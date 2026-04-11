@@ -159,7 +159,7 @@ export default function CompetenciasPage() {
     });
   };
 
-  const allDemands = useMemo(() => MOCK_DEMANDS.filter((d) => !d.isLegacy), []);
+  const allDemands = useMemo(() => MOCK_DEMANDS, []);
   const allClients = useMemo(() => [...new Set(allDemands.map((d) => d.client))].sort(), [allDemands]);
   const allTributacoes = useMemo(() => {
     const set = new Set<Tributacao>();

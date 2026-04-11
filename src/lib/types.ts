@@ -88,7 +88,7 @@ export const STATUS_LABELS: Record<DemandStatus, string> = {
   not_started: "Não Iniciada",
   in_progress: "Em Andamento",
   in_review: "Em Revisão",
-  waiting_info: "Aguardando Informação",
+  waiting_info: "Aguardando Documentação",
   blocked: "Bloqueada",
   completed: "Concluída",
   late: "Em Atraso",

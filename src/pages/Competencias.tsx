@@ -1,7 +1,10 @@
 import { useState, useMemo, Fragment } from "react";
 import AppLayout from "@/components/AppLayout";
 import { MOCK_DEMANDS, CLIENT_TRIBUTACAO } from "@/lib/mock-data";
-import { TRIBUTACAO_LABELS, Tributacao } from "@/lib/types";
+import { TRIBUTACAO_LABELS, Tributacao, DemandStatus, STATUS_LABELS, DEMAND_TYPE_LABELS } from "@/lib/types";
+import { StatusBadge } from "@/components/StatusBadge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { X } from "lucide-react";
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
 const MONTH_SHORT: Record<string, string> = {
@@ -9,8 +12,12 @@ const MONTH_SHORT: Record<string, string> = {
   "05": "Mai", "06": "Jun", "07": "Jul", "08": "Ago",
   "09": "Set", "10": "Out", "11": "Nov", "12": "Dez",
 };
+const MONTH_FULL: Record<string, string> = {
+  "01": "Janeiro", "02": "Fevereiro", "03": "Março", "04": "Abril",
+  "05": "Maio", "06": "Junho", "07": "Julho", "08": "Agosto",
+  "09": "Setembro", "10": "Outubro", "11": "Novembro", "12": "Dezembro",
+};
 
-// Status levels for each cell
 type CellLevel = "none" | "sem_movimento" | "lancado" | "conc_bancaria" | "conc_contabil";
 
 const LEVEL_CONFIG: Record<CellLevel, { bg: string; text: string; label: string }> = {
@@ -21,13 +28,21 @@ const LEVEL_CONFIG: Record<CellLevel, { bg: string; text: string; label: string 
   conc_contabil: { bg: "bg-emerald-500/20", text: "text-emerald-500", label: "CC" },
 };
 
+const DEMAND_TYPES_FOR_PANEL = [
+  { type: "lancamentos" as const, label: "Lançamentos Contábeis" },
+  { type: "conciliacao_bancaria" as const, label: "Conciliação Bancária" },
+  { type: "conciliacao_contabil" as const, label: "Conciliação Contábil" },
+  { type: "fechamento" as const, label: "Fechamento Contábil" },
+  { type: "revisao" as const, label: "Revisão" },
+];
+
 export default function CompetenciasPage() {
   const currentYear = new Date().getFullYear().toString();
   const [year, setYear] = useState(currentYear);
   const [selectedClient, setSelectedClient] = useState("all");
   const [selectedTributacao, setSelectedTributacao] = useState("all");
-  // Manual "sem movimento" overrides: key = "client|month"
   const [semMovimento, setSemMovimento] = useState<Set<string>>(new Set());
+  const [panelClient, setPanelClient] = useState<string | null>(null);
 
   const toggleSemMovimento = (client: string, month: string) => {
     const key = `${client}|${month}`;
@@ -63,25 +78,36 @@ export default function CompetenciasPage() {
           matrix[client][m] = "sem_movimento";
           return;
         }
-
         const comp = `${m}/${year}`;
         const clientMonth = yearDemands.filter((d) => d.client === client && d.competencia === comp);
-
         const hasLanc = clientMonth.some((d) => d.type === "lancamentos");
         const hasConcBanc = clientMonth.some((d) => d.type === "conciliacao_bancaria");
         const hasConcCont = clientMonth.some((d) => d.type === "conciliacao_contabil");
-
         let level: CellLevel = "none";
         if (hasConcCont) level = "conc_contabil";
         else if (hasConcBanc) level = "conc_bancaria";
         else if (hasLanc) level = "lancado";
-
         matrix[client][m] = level;
       });
     });
 
     return { clients: clientSet, matrix };
   }, [year, selectedClient, selectedTributacao, allDemands, semMovimento]);
+
+  // Panel data: demands for the selected client grouped by month
+  const panelData = useMemo(() => {
+    if (!panelClient) return null;
+    const clientDemands = allDemands.filter(
+      (d) => d.client === panelClient && d.competencia.endsWith(`/${year}`)
+    );
+    const byMonth: Record<string, typeof clientDemands> = {};
+    MONTHS.forEach((m) => {
+      const comp = `${m}/${year}`;
+      const demands = clientDemands.filter((d) => d.competencia === comp);
+      if (demands.length > 0) byMonth[m] = demands;
+    });
+    return { client: panelClient, trib: CLIENT_TRIBUTACAO[panelClient], byMonth, allDemands: clientDemands };
+  }, [panelClient, year, allDemands]);
 
   const totalClients = clients.length;
   const totalCells = totalClients * MONTHS.length;
@@ -97,9 +123,7 @@ export default function CompetenciasPage() {
       <div className="p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Competências {year}</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Evolução contábil por empresa e mês
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">Evolução contábil por empresa e mês</p>
         </div>
 
         {/* Filtros */}
@@ -123,36 +147,24 @@ export default function CompetenciasPage() {
 
         {/* Legenda */}
         <div className="flex flex-wrap items-center gap-5 text-xs">
-          <div className="flex items-center gap-1.5">
-            <div className="w-6 h-6 rounded flex items-center justify-center bg-orange-500/20">
-              <span className="text-orange-500 font-semibold text-[10px]">SM</span>
-            </div>
-            <span className="text-muted-foreground">Sem Movimento</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-6 h-6 rounded flex items-center justify-center bg-yellow-500/20">
-              <span className="text-yellow-500 font-semibold text-[10px]">L</span>
-            </div>
-            <span className="text-muted-foreground">Lançado</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-6 h-6 rounded flex items-center justify-center bg-blue-500/20">
-              <span className="text-blue-500 font-semibold text-[10px]">CB</span>
-            </div>
-            <span className="text-muted-foreground">Conc. Bancária</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-6 h-6 rounded flex items-center justify-center bg-emerald-500/20">
-              <span className="text-emerald-500 font-semibold text-[10px]">CC</span>
-            </div>
-            <span className="text-muted-foreground">Conc. Contábil</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <div className="w-6 h-6 rounded flex items-center justify-center bg-muted/30">
-              <span className="text-muted-foreground/40 font-semibold text-[10px]">—</span>
-            </div>
-            <span className="text-muted-foreground">Sem demanda</span>
-          </div>
+          {(["sem_movimento", "lancado", "conc_bancaria", "conc_contabil", "none"] as CellLevel[]).map((level) => {
+            const cfg = LEVEL_CONFIG[level];
+            const labels: Record<CellLevel, string> = {
+              none: "Sem demanda",
+              sem_movimento: "Sem Movimento",
+              lancado: "Lançado",
+              conc_bancaria: "Conc. Bancária",
+              conc_contabil: "Conc. Contábil",
+            };
+            return (
+              <div key={level} className="flex items-center gap-1.5">
+                <div className={`w-6 h-6 rounded flex items-center justify-center ${cfg.bg}`}>
+                  <span className={`font-semibold text-[10px] ${cfg.text}`}>{cfg.label}</span>
+                </div>
+                <span className="text-muted-foreground">{labels[level]}</span>
+              </div>
+            );
+          })}
           <div className="ml-auto text-muted-foreground">
             {totalClients} empresas · {pctDone}% conciliado
           </div>
@@ -181,7 +193,10 @@ export default function CompetenciasPage() {
                   const tribLabel = trib ? TRIBUTACAO_LABELS[trib] : "—";
                   return (
                     <tr key={client} className="hover:bg-muted/20">
-                      <td className="px-3 py-2 font-medium text-sm whitespace-nowrap sticky left-0 bg-card z-10">
+                      <td
+                        className="px-3 py-2 font-medium text-sm whitespace-nowrap sticky left-0 bg-card z-10 cursor-pointer hover:text-primary transition-colors"
+                        onClick={() => setPanelClient(client)}
+                      >
                         {client}
                       </td>
                       <td className="px-2 py-2 text-[10px] text-muted-foreground whitespace-nowrap">{tribLabel}</td>
@@ -211,6 +226,117 @@ export default function CompetenciasPage() {
           <p className="text-center text-muted-foreground py-12">Nenhuma empresa encontrada com os filtros selecionados.</p>
         )}
       </div>
+
+      {/* Painel lateral da empresa */}
+      <Sheet open={!!panelClient} onOpenChange={(open) => !open && setPanelClient(null)}>
+        <SheetContent className="w-[480px] sm:max-w-[480px] overflow-y-auto">
+          {panelData && (
+            <>
+              <SheetHeader className="pb-4 border-b">
+                <SheetTitle className="text-lg">{panelData.client}</SheetTitle>
+                {panelData.trib && (
+                  <p className="text-xs text-muted-foreground">{TRIBUTACAO_LABELS[panelData.trib]}</p>
+                )}
+              </SheetHeader>
+
+              <div className="py-4 space-y-6">
+                {/* Resumo por mês */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-3">Visão por Mês — {year}</h3>
+                  <div className="grid grid-cols-4 gap-2">
+                    {MONTHS.map((m) => {
+                      const level = matrix[panelData.client]?.[m] || "none";
+                      const cfg = LEVEL_CONFIG[level];
+                      return (
+                        <div key={m} className={`rounded-md p-2 text-center ${cfg.bg}`}>
+                          <p className="text-[10px] text-muted-foreground">{MONTH_SHORT[m]}</p>
+                          <p className={`text-xs font-semibold ${cfg.text}`}>{cfg.label}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Demandas detalhadas por mês */}
+                {Object.entries(panelData.byMonth).length > 0 ? (
+                  Object.entries(panelData.byMonth).map(([m, demands]) => (
+                    <div key={m}>
+                      <h4 className="text-sm font-semibold mb-2 text-primary">{MONTH_FULL[m]}</h4>
+                      <div className="space-y-2">
+                        {demands.map((d) => (
+                          <div key={d.id} className="rounded-md border bg-muted/20 p-3 space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium">{DEMAND_TYPE_LABELS[d.type]}</span>
+                              <StatusBadge status={d.status} />
+                            </div>
+                            <p className="text-xs text-muted-foreground">{d.description}</p>
+                            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                              <span>Prazo: {new Date(d.internalDeadline).toLocaleDateString("pt-BR")}</span>
+                              {d.notes && <span>• {d.notes}</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Nenhuma demanda registrada para {panelData.client} em {year}.
+                  </p>
+                )}
+
+                {/* Checklist de demandas por mês (para preencher) */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-3">Checklist de Atividades</h3>
+                  <p className="text-xs text-muted-foreground mb-3">Marque as atividades conforme concluídas</p>
+                  {MONTHS.map((m) => {
+                    const smKey = `${panelData.client}|${m}`;
+                    const isSM = semMovimento.has(smKey);
+                    const comp = `${m}/${year}`;
+                    const monthDemands = allDemands.filter(
+                      (d) => d.client === panelData.client && d.competencia === comp
+                    );
+
+                    return (
+                      <div key={m} className="mb-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium">{MONTH_SHORT[m]}/{year}</span>
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={isSM}
+                              onChange={() => toggleSemMovimento(panelData.client, m)}
+                              className="rounded border-border"
+                            />
+                            <span className="text-[10px] text-orange-500">Sem movimento</span>
+                          </label>
+                        </div>
+                        {!isSM && (
+                          <div className="ml-2 space-y-1">
+                            {DEMAND_TYPES_FOR_PANEL.map((dt) => {
+                              const exists = monthDemands.find((d) => d.type === dt.type);
+                              const done = exists?.status === "completed";
+                              return (
+                                <div key={dt.type} className="flex items-center gap-2">
+                                  <div className={`w-2 h-2 rounded-full ${done ? "bg-status-completed" : exists ? "bg-status-in-progress" : "bg-muted"}`} />
+                                  <span className={`text-xs ${done ? "line-through text-muted-foreground" : exists ? "" : "text-muted-foreground/50"}`}>
+                                    {dt.label}
+                                  </span>
+                                  {exists && <StatusBadge status={exists.status} />}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </AppLayout>
   );
 }

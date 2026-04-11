@@ -1,10 +1,10 @@
-import { useState, useMemo, Fragment } from "react";
+import { useState, useMemo, Fragment, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
 import { MOCK_DEMANDS, CLIENT_TRIBUTACAO } from "@/lib/mock-data";
-import { TRIBUTACAO_LABELS, Tributacao, DemandStatus, STATUS_LABELS, DEMAND_TYPE_LABELS } from "@/lib/types";
+import { TRIBUTACAO_LABELS, Tributacao, DemandStatus, DemandType, STATUS_LABELS, DEMAND_TYPE_LABELS } from "@/lib/types";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { X } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { toast } from "sonner";
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
 const MONTH_SHORT: Record<string, string> = {

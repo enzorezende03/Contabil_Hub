@@ -44,6 +44,7 @@ interface ClientForm {
   razao_social: string;
   tributacao: string;
   unidade: string;
+  obrigatoriedade_ecd: boolean;
   competencia_inicio: string;
 }
 
@@ -52,6 +53,7 @@ const emptyForm: ClientForm = {
   razao_social: "",
   tributacao: "simples_nacional",
   unidade: "2m_contabilidade",
+  obrigatoriedade_ecd: false,
   competencia_inicio: "",
 };
 
@@ -96,6 +98,7 @@ export default function Clients() {
         razao_social: payload.razao_social.trim(),
         tributacao: payload.tributacao,
         unidade: payload.unidade,
+        obrigatoriedade_ecd: payload.obrigatoriedade_ecd,
         competencia_inicio: payload.competencia_inicio,
         created_by: session!.user.id,
       };
@@ -152,6 +155,7 @@ export default function Clients() {
       razao_social: client.razao_social,
       tributacao: client.tributacao,
       unidade: client.unidade || "2m_contabilidade",
+      obrigatoriedade_ecd: client.obrigatoriedade_ecd || false,
       competencia_inicio: client.competencia_inicio,
     });
     setDialogOpen(true);
@@ -224,7 +228,12 @@ export default function Clients() {
                             {UNIDADE_LABELS[c.unidade] || c.unidade}
                           </span>
                         </TableCell>
-                        <TableCell>{TRIBUTACAO_LABELS[c.tributacao] || c.tributacao}</TableCell>
+                        <TableCell>
+                          {TRIBUTACAO_LABELS[c.tributacao] || c.tributacao}
+                          {c.obrigatoriedade_ecd && (
+                            <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-500/15 text-amber-600">ECD</span>
+                          )}
+                        </TableCell>
                         <TableCell>{c.competencia_inicio}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
@@ -297,6 +306,18 @@ export default function Clients() {
                 </SelectContent>
               </Select>
             </div>
+            {(form.tributacao === "lucro_presumido" || form.tributacao === "lucro_real") && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="ecd"
+                  checked={form.obrigatoriedade_ecd}
+                  onChange={(e) => setForm({ ...form, obrigatoriedade_ecd: e.target.checked })}
+                  className="rounded border-border"
+                />
+                <Label htmlFor="ecd" className="cursor-pointer">Obrigatoriedade ECD</Label>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Unidade</Label>
               <Select value={form.unidade} onValueChange={(v) => setForm({ ...form, unidade: v })}>

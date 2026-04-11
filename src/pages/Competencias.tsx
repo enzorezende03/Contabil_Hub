@@ -234,8 +234,12 @@ export default function CompetenciasPage() {
         const concBancStarted = !!concBancStatus && concBancStatus !== "not_started";
         const concContStarted = !!concContStatus && concContStatus !== "not_started";
 
+        // Check if any demand is waiting_info
+        const anyWaiting = [lancStatus, concBancStatus, concContStatus].some(s => s === "waiting_info");
+
         let level: CellLevel = "none";
-        if (concContDone) level = "conc_contabil";
+        if (anyWaiting) level = "aguardando_doc";
+        else if (concContDone) level = "conc_contabil";
         else if (concContStarted) level = "cc_andamento";
         else if (concBancDone) level = "conc_bancaria";
         else if (concBancStarted) level = "cb_andamento";
@@ -299,25 +303,26 @@ export default function CompetenciasPage() {
 
         {/* Legenda */}
         <div className="flex flex-wrap items-center gap-5 text-xs">
-          {(["sem_movimento", "lanc_andamento", "lancado", "cb_andamento", "conc_bancaria", "cc_andamento", "conc_contabil", "none", "disabled"] as CellLevel[]).map((level) => {
+          {(["none", "lanc_andamento", "lancado", "cb_andamento", "conc_bancaria", "cc_andamento", "conc_contabil", "aguardando_doc", "sem_movimento", "disabled"] as CellLevel[]).map((level) => {
             const cfg = LEVEL_CONFIG[level];
             const labels: Record<CellLevel, string> = {
               none: "Não Iniciada",
-              disabled: "Fora de responsabilidade",
-              sem_movimento: "Sem Movimento",
-              lanc_andamento: "Lançamento em andamento",
+              disabled: "Fora resp.",
+              sem_movimento: "Sem Mov.",
+              aguardando_doc: "Aguard. Doc.",
+              lanc_andamento: "Lanç. andamento",
               lancado: "Lançado",
-              cb_andamento: "Conc. Bancária em andamento",
+              cb_andamento: "CB andamento",
               conc_bancaria: "Conc. Bancária",
-              cc_andamento: "Conc. Contábil em andamento",
+              cc_andamento: "CC andamento",
               conc_contabil: "Conc. Contábil",
             };
             return (
-              <div key={level} className="flex items-center gap-1.5">
-                <div className={`w-6 h-6 rounded flex items-center justify-center ${cfg.bg}`}>
-                  <span className={`font-semibold text-[10px] ${cfg.text}`}>{cfg.label}</span>
+              <div key={level} className="flex items-center gap-1">
+                <div className={`w-5 h-5 rounded flex items-center justify-center ${cfg.bg}`}>
+                  <span className={`font-semibold text-[8px] ${cfg.text}`}>{cfg.label}</span>
                 </div>
-                <span className="text-muted-foreground">{labels[level]}</span>
+                <span className="text-muted-foreground text-[10px]">{labels[level]}</span>
               </div>
             );
           })}

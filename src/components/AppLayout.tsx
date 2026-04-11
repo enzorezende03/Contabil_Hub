@@ -44,9 +44,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
       <aside className="w-60 flex-shrink-0 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border">
-        <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
+        <div className="h-20 flex items-center px-4 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <img src={logo2m} alt="2M Grupo" className="w-8 h-8 object-contain opacity-90" />
+            <img src={logo2m} alt="2M Grupo" className="w-28 h-14 object-contain opacity-90" />
             <div className="leading-tight">
               <span className="font-semibold text-sidebar-accent-foreground tracking-tight text-sm block">2M Grupo</span>
               <span className="text-[10px] text-sidebar-foreground/60">Gestão Contábil</span>

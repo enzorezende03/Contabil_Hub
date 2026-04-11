@@ -54,7 +54,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center flex flex-col items-center gap-3">
-          <img src={logo2m} alt="2M Grupo" className="w-16 h-16 object-contain brightness-0 opacity-80" />
+          <img src={logo2m} alt="2M Grupo" className="w-40 h-20 object-contain brightness-0 opacity-80" />
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">2M Grupo</h1>
             <p className="text-sm text-muted-foreground mt-1">

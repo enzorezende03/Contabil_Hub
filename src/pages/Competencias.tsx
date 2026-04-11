@@ -222,14 +222,23 @@ export default function CompetenciasPage() {
         const lancKey = `${client}|${m}|lancamentos`;
         const concBancKey = `${client}|${m}|conciliacao_bancaria`;
         const concContKey = `${client}|${m}|conciliacao_contabil`;
-        const lancDone = demandStatuses[lancKey] === "completed";
-        const concBancDone = demandStatuses[concBancKey] === "completed";
-        const concContDone = demandStatuses[concContKey] === "completed";
+        const lancStatus = demandStatuses[lancKey];
+        const concBancStatus = demandStatuses[concBancKey];
+        const concContStatus = demandStatuses[concContKey];
+        const lancDone = lancStatus === "completed";
+        const concBancDone = concBancStatus === "completed";
+        const concContDone = concContStatus === "completed";
+        const lancStarted = !!lancStatus && lancStatus !== "not_started";
+        const concBancStarted = !!concBancStatus && concBancStatus !== "not_started";
+        const concContStarted = !!concContStatus && concContStatus !== "not_started";
 
         let level: CellLevel = "none";
         if (concContDone) level = "conc_contabil";
+        else if (concContStarted) level = "cc_andamento";
         else if (concBancDone) level = "conc_bancaria";
+        else if (concBancStarted) level = "cb_andamento";
         else if (lancDone) level = "lancado";
+        else if (lancStarted) level = "lanc_andamento";
         matrix[client][m] = level;
       });
     });
@@ -288,14 +297,17 @@ export default function CompetenciasPage() {
 
         {/* Legenda */}
         <div className="flex flex-wrap items-center gap-5 text-xs">
-          {(["sem_movimento", "lancado", "conc_bancaria", "conc_contabil", "none", "disabled"] as CellLevel[]).map((level) => {
+          {(["sem_movimento", "lanc_andamento", "lancado", "cb_andamento", "conc_bancaria", "cc_andamento", "conc_contabil", "none", "disabled"] as CellLevel[]).map((level) => {
             const cfg = LEVEL_CONFIG[level];
             const labels: Record<CellLevel, string> = {
               none: "Sem demanda",
               disabled: "Fora de responsabilidade",
               sem_movimento: "Sem Movimento",
+              lanc_andamento: "Lançamento em andamento",
               lancado: "Lançado",
+              cb_andamento: "Conc. Bancária em andamento",
               conc_bancaria: "Conc. Bancária",
+              cc_andamento: "Conc. Contábil em andamento",
               conc_contabil: "Conc. Contábil",
             };
             return (

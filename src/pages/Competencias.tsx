@@ -1,7 +1,6 @@
-import { useState, useMemo, Fragment, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import AppLayout from "@/components/AppLayout";
-import { TRIBUTACAO_LABELS, Tributacao, DemandStatus, DemandType, STATUS_LABELS, DEMAND_TYPE_LABELS } from "@/lib/types";
-import { StatusBadge } from "@/components/StatusBadge";
+import { TRIBUTACAO_LABELS, Tributacao, DemandStatus } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,10 +19,11 @@ const MONTH_FULL: Record<string, string> = {
   "09": "Setembro", "10": "Outubro", "11": "Novembro", "12": "Dezembro",
 };
 
-type CellLevel = "none" | "sem_movimento" | "lancado" | "conc_bancaria" | "conc_contabil";
+type CellLevel = "none" | "sem_movimento" | "lancado" | "conc_bancaria" | "conc_contabil" | "disabled";
 
 const LEVEL_CONFIG: Record<CellLevel, { bg: string; text: string; label: string }> = {
   none: { bg: "bg-muted/30", text: "text-muted-foreground/40", label: "—" },
+  disabled: { bg: "bg-muted/10", text: "text-muted-foreground/20", label: "—" },
   sem_movimento: { bg: "bg-orange-500/20", text: "text-orange-500", label: "SM" },
   lancado: { bg: "bg-yellow-500/20", text: "text-yellow-500", label: "L" },
   conc_bancaria: { bg: "bg-blue-500/20", text: "text-blue-500", label: "CB" },
@@ -41,6 +41,27 @@ const CLOSING_TYPES = [
   { type: "revisao" as const, label: "Revisão" },
 ];
 
+const TRIBUTACAO_LABELS_MAP: Record<string, string> = {
+  simples_nacional: "Simples Nacional",
+  lucro_presumido: "Lucro Presumido",
+  lucro_real: "Lucro Real",
+  mei: "MEI",
+};
+
+/** Returns true if the month (MM) in the given year is within responsibility */
+function isMonthEnabled(competenciaInicio: string, month: string, year: string): boolean {
+  // competenciaInicio format: MM/YYYY
+  const parts = competenciaInicio.split("/");
+  if (parts.length !== 2) return true;
+  const startMonth = parseInt(parts[0], 10);
+  const startYear = parseInt(parts[1], 10);
+  const currentMonth = parseInt(month, 10);
+  const currentYear = parseInt(year, 10);
+  if (currentYear > startYear) return true;
+  if (currentYear < startYear) return false;
+  return currentMonth >= startMonth;
+}
+
 export default function CompetenciasPage() {
   const { user } = useAuth();
   const currentYear = new Date().getFullYear().toString();
@@ -53,23 +74,30 @@ export default function CompetenciasPage() {
   const [demandStatuses, setDemandStatuses] = useState<Record<string, DemandStatus>>({});
   const [filledByMap, setFilledByMap] = useState<Record<string, string>>({});
 
+  // Fetch clients from DB
+  const { data: dbClients = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clients").select("*").order("razao_social");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Load saved statuses from DB
   useEffect(() => {
     const loadStatuses = async () => {
       const { data } = await supabase
         .from("demand_status_entries")
-        .select("client_name, month, year, demand_type, status, profiles!demand_status_entries_filled_by_fkey(display_name)")
+        .select("client_name, month, year, demand_type, status")
         .eq("year", year);
       if (data) {
         const statuses: Record<string, DemandStatus> = {};
-        const filledBy: Record<string, string> = {};
         data.forEach((d: any) => {
           const key = `${d.client_name}|${d.month}|${d.demand_type}`;
           statuses[key] = d.status as DemandStatus;
-          filledBy[key] = d.profiles?.display_name || "—";
         });
         setDemandStatuses(statuses);
-        setFilledByMap(filledBy);
       }
     };
     loadStatuses();
@@ -94,9 +122,6 @@ export default function CompetenciasPage() {
     if (error) {
       toast.error("Erro ao salvar status");
     } else {
-      // Update filledBy with current user
-      const { data: profile } = await supabase.from("profiles").select("display_name").eq("user_id", user.id).single();
-      setFilledByMap((prev) => ({ ...prev, [key]: profile?.display_name || "—" }));
       toast.success("Status atualizado");
     }
   }, [user, year]);
@@ -104,7 +129,7 @@ export default function CompetenciasPage() {
   const setBulkStatus = useCallback(async (client: string, months: Set<string>, type: string, status: DemandStatus) => {
     if (!user) return;
     if (months.size === 0) { toast.error("Selecione ao menos um mês"); return; }
-    
+
     setDemandStatuses((prev) => {
       const next = { ...prev };
       months.forEach((m) => { next[`${client}|${m}|${type}`] = status; });
@@ -127,13 +152,6 @@ export default function CompetenciasPage() {
     if (error) {
       toast.error("Erro ao salvar em lote");
     } else {
-      const { data: profile } = await supabase.from("profiles").select("display_name").eq("user_id", user.id).single();
-      const name = profile?.display_name || "—";
-      setFilledByMap((prev) => {
-        const next = { ...prev };
-        months.forEach((m) => { next[`${client}|${m}|${type}`] = name; });
-        return next;
-      });
       toast.success(`Status atualizado para ${months.size} meses`);
     }
   }, [user, year]);
@@ -159,64 +177,72 @@ export default function CompetenciasPage() {
     });
   };
 
-  const allDemands = useMemo(() => MOCK_DEMANDS, []);
-  const allClients = useMemo(() => [...new Set(allDemands.map((d) => d.client))].sort(), [allDemands]);
+  // Build client list and tributação map from DB
+  const clientsMap = useMemo(() => {
+    const map: Record<string, { tributacao: string; competencia_inicio: string }> = {};
+    dbClients.forEach((c: any) => {
+      map[c.razao_social] = { tributacao: c.tributacao, competencia_inicio: c.competencia_inicio };
+    });
+    return map;
+  }, [dbClients]);
+
+  const allClientNames = useMemo(() => Object.keys(clientsMap).sort(), [clientsMap]);
   const allTributacoes = useMemo(() => {
-    const set = new Set<Tributacao>();
-    allClients.forEach((c) => { const t = CLIENT_TRIBUTACAO[c]; if (t) set.add(t); });
+    const set = new Set<string>();
+    allClientNames.forEach((c) => { const t = clientsMap[c]?.tributacao; if (t) set.add(t); });
     return [...set].sort();
-  }, [allClients]);
+  }, [allClientNames, clientsMap]);
 
   const { clients, matrix } = useMemo(() => {
-    const yearDemands = allDemands.filter((d) => d.competencia.endsWith(`/${year}`));
-    let clientSet = [...new Set(yearDemands.map((d) => d.client))].sort();
+    let clientSet = [...allClientNames];
 
     if (selectedClient !== "all") clientSet = clientSet.filter((c) => c === selectedClient);
-    if (selectedTributacao !== "all") clientSet = clientSet.filter((c) => CLIENT_TRIBUTACAO[c] === selectedTributacao);
+    if (selectedTributacao !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.tributacao === selectedTributacao);
 
     const matrix: Record<string, Record<string, CellLevel>> = {};
 
     clientSet.forEach((client) => {
       matrix[client] = {};
+      const compInicio = clientsMap[client]?.competencia_inicio || "01/2000";
       MONTHS.forEach((m) => {
+        if (!isMonthEnabled(compInicio, m, year)) {
+          matrix[client][m] = "disabled";
+          return;
+        }
         const key = `${client}|${m}`;
         if (semMovimento.has(key)) {
           matrix[client][m] = "sem_movimento";
           return;
         }
-        const comp = `${m}/${year}`;
-        const clientMonth = yearDemands.filter((d) => d.client === client && d.competencia === comp);
-        const hasLanc = clientMonth.some((d) => d.type === "lancamentos");
-        const hasConcBanc = clientMonth.some((d) => d.type === "conciliacao_bancaria");
-        const hasConcCont = clientMonth.some((d) => d.type === "conciliacao_contabil");
+        // Check statuses from DB
+        const lancKey = `${client}|${m}|lancamentos`;
+        const concBancKey = `${client}|${m}|conciliacao_bancaria`;
+        const concContKey = `${client}|${m}|conciliacao_contabil`;
+        const lancDone = demandStatuses[lancKey] === "completed";
+        const concBancDone = demandStatuses[concBancKey] === "completed";
+        const concContDone = demandStatuses[concContKey] === "completed";
+
         let level: CellLevel = "none";
-        if (hasConcCont) level = "conc_contabil";
-        else if (hasConcBanc) level = "conc_bancaria";
-        else if (hasLanc) level = "lancado";
+        if (concContDone) level = "conc_contabil";
+        else if (concBancDone) level = "conc_bancaria";
+        else if (lancDone) level = "lancado";
         matrix[client][m] = level;
       });
     });
 
     return { clients: clientSet, matrix };
-  }, [year, selectedClient, selectedTributacao, allDemands, semMovimento]);
+  }, [year, selectedClient, selectedTributacao, allClientNames, clientsMap, semMovimento, demandStatuses]);
 
-  // Panel data: demands for the selected client grouped by month
   const panelData = useMemo(() => {
     if (!panelClient) return null;
-    const clientDemands = allDemands.filter(
-      (d) => d.client === panelClient && d.competencia.endsWith(`/${year}`)
-    );
-    const byMonth: Record<string, typeof clientDemands> = {};
-    MONTHS.forEach((m) => {
-      const comp = `${m}/${year}`;
-      const demands = clientDemands.filter((d) => d.competencia === comp);
-      if (demands.length > 0) byMonth[m] = demands;
-    });
-    return { client: panelClient, trib: CLIENT_TRIBUTACAO[panelClient], byMonth, allDemands: clientDemands };
-  }, [panelClient, year, allDemands]);
+    const info = clientsMap[panelClient];
+    return { client: panelClient, tributacao: info?.tributacao, competencia_inicio: info?.competencia_inicio || "01/2000" };
+  }, [panelClient, clientsMap]);
 
   const totalClients = clients.length;
-  const totalCells = totalClients * MONTHS.length;
+  const totalCells = clients.reduce((acc, c) =>
+    acc + MONTHS.reduce((a, m) => a + (matrix[c][m] !== "disabled" ? 1 : 0), 0), 0
+  );
   const doneCells = clients.reduce((acc, c) =>
     acc + MONTHS.reduce((a, m) => a + (matrix[c][m] === "conc_contabil" ? 1 : 0), 0), 0
   );
@@ -241,22 +267,23 @@ export default function CompetenciasPage() {
           </select>
           <select value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)} className={selectClass}>
             <option value="all">Todas as empresas</option>
-            {allClients.map((c) => <option key={c} value={c}>{c}</option>)}
+            {allClientNames.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
           <select value={selectedTributacao} onChange={(e) => setSelectedTributacao(e.target.value)} className={selectClass}>
             <option value="all">Todas as tributações</option>
             {allTributacoes.map((t) => (
-              <option key={t} value={t}>{TRIBUTACAO_LABELS[t]}</option>
+              <option key={t} value={t}>{TRIBUTACAO_LABELS_MAP[t] || t}</option>
             ))}
           </select>
         </div>
 
         {/* Legenda */}
         <div className="flex flex-wrap items-center gap-5 text-xs">
-          {(["sem_movimento", "lancado", "conc_bancaria", "conc_contabil", "none"] as CellLevel[]).map((level) => {
+          {(["sem_movimento", "lancado", "conc_bancaria", "conc_contabil", "none", "disabled"] as CellLevel[]).map((level) => {
             const cfg = LEVEL_CONFIG[level];
             const labels: Record<CellLevel, string> = {
               none: "Sem demanda",
+              disabled: "Fora de responsabilidade",
               sem_movimento: "Sem Movimento",
               lancado: "Lançado",
               conc_bancaria: "Conc. Bancária",
@@ -295,8 +322,7 @@ export default function CompetenciasPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {clients.map((client) => {
-                  const trib = CLIENT_TRIBUTACAO[client];
-                  const tribLabel = trib ? TRIBUTACAO_LABELS[trib] : "—";
+                  const tribLabel = TRIBUTACAO_LABELS_MAP[clientsMap[client]?.tributacao] || "—";
                   return (
                     <tr key={client} className="hover:bg-muted/20">
                       <td
@@ -309,13 +335,16 @@ export default function CompetenciasPage() {
                       {MONTHS.map((m) => {
                         const level = matrix[client][m];
                         const cfg = LEVEL_CONFIG[level];
-                        const canToggle = level === "none" || level === "sem_movimento";
+                        const isDisabled = level === "disabled";
+                        const canToggle = !isDisabled && (level === "none" || level === "sem_movimento");
                         return (
                           <td key={m} className="text-center px-1 py-2">
                             <div
-                              className={`mx-auto w-8 h-8 rounded flex items-center justify-center ${cfg.bg} ${canToggle ? "cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all" : ""}`}
+                              className={`mx-auto w-8 h-8 rounded flex items-center justify-center ${cfg.bg} ${
+                                isDisabled ? "cursor-not-allowed opacity-40" : canToggle ? "cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all" : ""
+                              }`}
                               onClick={canToggle ? () => toggleSemMovimento(client, m) : undefined}
-                              title={canToggle ? "Clique para marcar/desmarcar sem movimento" : undefined}
+                              title={isDisabled ? "Fora da responsabilidade" : canToggle ? "Clique para marcar/desmarcar sem movimento" : undefined}
                             >
                               <span className={`font-semibold text-[10px] ${cfg.text}`}>{cfg.label}</span>
                             </div>
@@ -329,7 +358,7 @@ export default function CompetenciasPage() {
             </table>
           </div>
         ) : (
-          <p className="text-center text-muted-foreground py-12">Nenhuma empresa encontrada com os filtros selecionados.</p>
+          <p className="text-center text-muted-foreground py-12">Nenhuma empresa encontrada. Cadastre clientes primeiro.</p>
         )}
       </div>
 
@@ -341,7 +370,7 @@ export default function CompetenciasPage() {
               <DialogHeader className="pb-4 border-b">
                 <DialogTitle className="text-lg">{panelData.client}</DialogTitle>
                 <DialogDescription>
-                  {panelData.trib ? TRIBUTACAO_LABELS[panelData.trib] : "Sem tributação definida"} — {year}
+                  {TRIBUTACAO_LABELS_MAP[panelData.tributacao || ""] || "Sem tributação definida"} — {year}
                 </DialogDescription>
               </DialogHeader>
 
@@ -353,8 +382,9 @@ export default function CompetenciasPage() {
                     {MONTHS.map((m) => {
                       const level = matrix[panelData.client]?.[m] || "none";
                       const cfg = LEVEL_CONFIG[level];
+                      const isDisabled = level === "disabled";
                       return (
-                        <div key={m} className={`rounded p-1.5 text-center ${cfg.bg}`}>
+                        <div key={m} className={`rounded p-1.5 text-center ${cfg.bg} ${isDisabled ? "opacity-40" : ""}`}>
                           <p className="text-[9px] text-muted-foreground">{MONTH_SHORT[m]}</p>
                           <p className={`text-[10px] font-bold ${cfg.text}`}>{cfg.label}</p>
                         </div>
@@ -373,19 +403,25 @@ export default function CompetenciasPage() {
                     >
                       {selectedMonths.size === 12 ? "Limpar" : "Todos"}
                     </button>
-                    {MONTHS.map((m) => (
-                      <button
-                        key={m}
-                        onClick={() => toggleMonth(m)}
-                        className={`h-6 w-9 text-[10px] font-medium rounded transition-colors ${
-                          selectedMonths.has(m)
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-card border hover:bg-muted"
-                        }`}
-                      >
-                        {MONTH_SHORT[m]}
-                      </button>
-                    ))}
+                    {MONTHS.map((m) => {
+                      const monthDisabled = !isMonthEnabled(panelData.competencia_inicio, m, year);
+                      return (
+                        <button
+                          key={m}
+                          disabled={monthDisabled}
+                          onClick={() => !monthDisabled && toggleMonth(m)}
+                          className={`h-6 w-9 text-[10px] font-medium rounded transition-colors ${
+                            monthDisabled
+                              ? "bg-muted/30 text-muted-foreground/30 cursor-not-allowed"
+                              : selectedMonths.has(m)
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-card border hover:bg-muted"
+                          }`}
+                        >
+                          {MONTH_SHORT[m]}
+                        </button>
+                      );
+                    })}
                   </div>
                   {selectedMonths.size > 0 && (
                     <div className="space-y-2">
@@ -418,12 +454,17 @@ export default function CompetenciasPage() {
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold">Preencher por Mês</h3>
                   {MONTHS.map((m) => {
+                    const monthDisabled = !isMonthEnabled(panelData.competencia_inicio, m, year);
+                    if (monthDisabled) {
+                      return (
+                        <div key={m} className="rounded-md border bg-muted/10 p-3 opacity-40 cursor-not-allowed">
+                          <span className="text-xs font-semibold text-muted-foreground">{MONTH_FULL[m]} — Fora da responsabilidade</span>
+                        </div>
+                      );
+                    }
+
                     const smKey = `${panelData.client}|${m}`;
                     const isSM = semMovimento.has(smKey);
-                    const comp = `${m}/${year}`;
-                    const monthDemands = allDemands.filter(
-                      (d) => d.client === panelData.client && d.competencia === comp
-                    );
 
                     return (
                       <div key={m} className="rounded-md border bg-muted/10 p-3">
@@ -442,18 +483,12 @@ export default function CompetenciasPage() {
                         {!isSM && (
                           <div className="space-y-2">
                             {DEMAND_TYPES_FOR_PANEL.map((dt) => {
-                              const existing = monthDemands.find((d) => d.type === dt.type);
                               const statusKey = `${panelData.client}|${m}|${dt.type}`;
-                              const currentStatus = demandStatuses[statusKey] || existing?.status || "not_started";
+                              const currentStatus = demandStatuses[statusKey] || "not_started";
 
                               return (
                                 <div key={dt.type} className="flex items-center gap-2">
                                   <span className="text-xs flex-1">{dt.label}</span>
-                                  {filledByMap[statusKey] && (
-                                    <span className="text-[9px] text-muted-foreground truncate max-w-[80px]" title={filledByMap[statusKey]}>
-                                      {filledByMap[statusKey]}
-                                    </span>
-                                  )}
                                   <select
                                     value={currentStatus}
                                     onChange={(e) => setDemandStatus(panelData.client, m, dt.type, e.target.value as DemandStatus)}

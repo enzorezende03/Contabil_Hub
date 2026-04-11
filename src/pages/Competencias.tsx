@@ -180,9 +180,9 @@ export default function CompetenciasPage() {
 
   // Build client list and tributação map from DB
   const clientsMap = useMemo(() => {
-    const map: Record<string, { tributacao: string; competencia_inicio: string }> = {};
+    const map: Record<string, { tributacao: string; competencia_inicio: string; unidade: string }> = {};
     dbClients.forEach((c: any) => {
-      map[c.razao_social] = { tributacao: c.tributacao, competencia_inicio: c.competencia_inicio };
+      map[c.razao_social] = { tributacao: c.tributacao, competencia_inicio: c.competencia_inicio, unidade: c.unidade || "2m_contabilidade" };
     });
     return map;
   }, [dbClients]);
@@ -199,6 +199,7 @@ export default function CompetenciasPage() {
 
     if (selectedClient !== "all") clientSet = clientSet.filter((c) => c === selectedClient);
     if (selectedTributacao !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.tributacao === selectedTributacao);
+    if (selectedUnidade !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.unidade === selectedUnidade);
 
     const matrix: Record<string, Record<string, CellLevel>> = {};
 

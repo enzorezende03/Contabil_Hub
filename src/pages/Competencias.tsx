@@ -188,9 +188,14 @@ export default function CompetenciasPage() {
                       {MONTHS.map((m) => {
                         const level = matrix[client][m];
                         const cfg = LEVEL_CONFIG[level];
+                        const canToggle = level === "none" || level === "sem_movimento";
                         return (
                           <td key={m} className="text-center px-1 py-2">
-                            <div className={`mx-auto w-8 h-8 rounded flex items-center justify-center ${cfg.bg}`}>
+                            <div
+                              className={`mx-auto w-8 h-8 rounded flex items-center justify-center ${cfg.bg} ${canToggle ? "cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all" : ""}`}
+                              onClick={canToggle ? () => toggleSemMovimento(client, m) : undefined}
+                              title={canToggle ? "Clique para marcar/desmarcar sem movimento" : undefined}
+                            >
                               <span className={`font-semibold text-[10px] ${cfg.text}`}>{cfg.label}</span>
                             </div>
                           </td>

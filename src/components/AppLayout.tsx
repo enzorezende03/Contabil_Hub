@@ -11,6 +11,7 @@ import {
   Settings,
   AlertTriangle,
   LogOut,
+  UserCog,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -30,8 +31,13 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
-  const { profile, signOut } = useAuth();
+  const { profile, isAdmin, signOut } = useAuth();
   const initials = profile?.display_name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "??";
+
+  const navItems = [
+    ...NAV_ITEMS,
+    ...(isAdmin ? [{ label: "Usuários", path: "/usuarios", icon: UserCog }] : []),
+  ];
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -47,7 +53,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         </div>
 
         <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto">
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link

@@ -215,6 +215,15 @@ export default function DemandsPage() {
           </div>
         )}
       </div>
+
+      <CreateDemandDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={(demand) => {
+          setLocalDemands((prev) => [demand, ...prev]);
+          toast.success("Demanda criada com sucesso!");
+        }}
+      />
     </AppLayout>
   );
 }

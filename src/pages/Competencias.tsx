@@ -233,12 +233,12 @@ export default function CompetenciasPage() {
     });
 
     return { clients: clientSet, matrix };
-  }, [year, selectedClient, selectedTributacao, allClientNames, clientsMap, semMovimento, demandStatuses]);
+  }, [year, selectedClient, selectedTributacao, selectedUnidade, allClientNames, clientsMap, semMovimento, demandStatuses]);
 
   const panelData = useMemo(() => {
     if (!panelClient) return null;
     const info = clientsMap[panelClient];
-    return { client: panelClient, tributacao: info?.tributacao, competencia_inicio: info?.competencia_inicio || "01/2000" };
+    return { client: panelClient, tributacao: info?.tributacao, unidade: info?.unidade, competencia_inicio: info?.competencia_inicio || "01/2000" };
   }, [panelClient, clientsMap]);
 
   const totalClients = clients.length;
@@ -276,6 +276,11 @@ export default function CompetenciasPage() {
             {allTributacoes.map((t) => (
               <option key={t} value={t}>{TRIBUTACAO_LABELS_MAP[t] || t}</option>
             ))}
+          </select>
+          <select value={selectedUnidade} onChange={(e) => setSelectedUnidade(e.target.value)} className={selectClass}>
+            <option value="all">Todas as unidades</option>
+            <option value="2m_contabilidade">2M Contabilidade</option>
+            <option value="2m_saude">2M Saúde</option>
           </select>
         </div>
 

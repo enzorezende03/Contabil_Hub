@@ -3,7 +3,7 @@ import AppLayout from "@/components/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Navigate } from "react-router-dom";
+import { canAccessPage } from "@/lib/permissions";
 
 const ROLE_OPTIONS = [
   { value: "estagiario", label: "Estagiário" },
@@ -20,7 +20,7 @@ interface UserRow {
 }
 
 export default function UsersPage() {
-  const { isAdmin, user } = useAuth();
+  const { user, profile } = useAuth();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -70,7 +70,7 @@ export default function UsersPage() {
     setLoading(false);
   };
 
-  if (!isAdmin) return <Navigate to="/" replace />;
+  // Access is now controlled by RoleRoute in App.tsx
 
   const inputClass = "h-9 px-3 text-sm border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary w-full";
   const selectClass = "h-9 px-3 text-sm border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary w-full";

@@ -142,9 +142,19 @@ export default function DemandsPage() {
                             {PRIORITY_LABELS[d.priority]}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground mb-2 line-clamp-2">{d.description}</p>
+                        <div className="flex flex-wrap gap-1 mb-1.5">
+                          {d.types.map((t) => (
+                            <span key={t} className="text-[9px] bg-muted px-1.5 py-0.5 rounded font-medium">
+                              {DEMAND_TYPE_LABELS[t]}
+                            </span>
+                          ))}
+                        </div>
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">{d.competencia}</span>
+                          <span className="text-muted-foreground">
+                            {d.competencias.length > 2
+                              ? `${d.competencias[0]} … ${d.competencias[d.competencias.length - 1]}`
+                              : d.competencias.join(", ")}
+                          </span>
                           <div className="flex items-center gap-2">
                             <span className={urgencyClass(d.internalDeadline)}>
                               <Clock className="w-3 h-3 inline mr-0.5" />
@@ -176,8 +186,8 @@ export default function DemandsPage() {
               <thead>
                 <tr className="border-b bg-muted/50">
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Cliente</th>
-                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Tipo</th>
-                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Comp.</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Atividades</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground">Competências</th>
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Prioridade</th>
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Status</th>
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground">Prazo</th>
@@ -192,8 +202,14 @@ export default function DemandsPage() {
                       <p className="font-medium">{d.client}</p>
                       <p className="text-xs text-muted-foreground truncate max-w-48">{d.description}</p>
                     </td>
-                    <td className="px-3 py-2.5 text-xs">{DEMAND_TYPE_LABELS[d.type]}</td>
-                    <td className="px-3 py-2.5 text-xs">{d.competencia}</td>
+                    <td className="px-3 py-2.5 text-xs max-w-40">
+                      <div className="flex flex-wrap gap-1">
+                        {d.types.map((t) => (
+                          <span key={t} className="bg-muted px-1 py-0.5 rounded text-[10px]">{DEMAND_TYPE_LABELS[t]}</span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5 text-xs">{d.competencias.join(", ")}</td>
                     <td className="px-3 py-2.5">
                       <span className={`text-xs font-medium ${
                         d.priority === "urgente" ? "text-destructive" :

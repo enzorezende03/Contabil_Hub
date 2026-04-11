@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
+import logo2m from "@/assets/logo-2m-contabilidade.png";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -53,11 +53,14 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold tracking-tight">Gestão Contábil</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {isSignUp ? "Crie sua conta" : "Acesse sua conta"}
-          </p>
+        <div className="text-center flex flex-col items-center gap-3">
+          <img src={logo2m} alt="2M Contabilidade" className="w-16 h-16 object-contain" />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">2M Grupo</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {isSignUp ? "Crie sua conta" : "Acesse sua conta"}
+            </p>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border bg-card p-6">

@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   LogOut,
   UserCog,
+  Building2,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { label: "Produtividade Equipe", path: "/equipe", icon: Users },
   { label: "Fechamento Contábil", path: "/competencias", icon: Calendar },
   { label: "Alertas", path: "/alertas", icon: AlertTriangle },
+  { label: "Clientes", path: "/clientes", icon: Building2 },
   { label: "Configurações", path: "/configuracoes", icon: Settings },
 ];
 

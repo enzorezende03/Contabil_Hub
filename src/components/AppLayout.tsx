@@ -44,8 +44,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
       <aside className="w-60 flex-shrink-0 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border">
-        <div className="h-14 flex items-center px-4 border-b border-sidebar-border">
-          <span className="font-semibold text-sidebar-accent-foreground tracking-tight text-base">Contábil Hub</span>
+        <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
+          <div className="leading-tight">
+            <span className="font-semibold text-sidebar-accent-foreground tracking-tight text-base block">Contábil Hub</span>
+            <span className="text-[10px] text-sidebar-foreground/60">2M Grupo</span>
+          </div>
         </div>
 
         <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto">

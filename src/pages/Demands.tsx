@@ -10,9 +10,13 @@ import {
   PRIORITY_LABELS,
   Priority,
   ROLE_LABELS,
+  type Demand,
 } from "@/lib/types";
 import { formatMinutes, getDeadlineUrgency } from "@/lib/demand-utils";
-import { Search, Filter, LayoutGrid, List, Clock, User, AlertTriangle } from "lucide-react";
+import { Search, Filter, LayoutGrid, List, Clock, User, AlertTriangle, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CreateDemandDialog } from "@/components/CreateDemandDialog";
+import { toast } from "sonner";
 
 type ViewMode = "list" | "kanban";
 
@@ -33,9 +37,11 @@ export default function DemandsPage() {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterAssignee, setFilterAssignee] = useState<string>("all");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [localDemands, setLocalDemands] = useState<Demand[]>(MOCK_DEMANDS);
 
   const filtered = useMemo(() => {
-    return MOCK_DEMANDS
+    return localDemands
       .filter((d) => {
         if (search && !d.client.toLowerCase().includes(search.toLowerCase()) && !d.description.toLowerCase().includes(search.toLowerCase())) return false;
         if (filterType !== "all" && d.type !== filterType) return false;
@@ -64,13 +70,19 @@ export default function DemandsPage() {
             <h1 className="text-2xl font-bold tracking-tight">Fila de Trabalho</h1>
             <p className="text-sm text-muted-foreground mt-1">{filtered.length} demandas</p>
           </div>
-          <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
-            <button onClick={() => setView("kanban")} className={`p-1.5 rounded-md transition-colors ${view === "kanban" ? "bg-card shadow-sm" : ""}`}>
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button onClick={() => setView("list")} className={`p-1.5 rounded-md transition-colors ${view === "list" ? "bg-card shadow-sm" : ""}`}>
-              <List className="w-4 h-4" />
-            </button>
+          <div className="flex items-center gap-3">
+            <Button onClick={() => setCreateOpen(true)} size="sm" className="gap-1.5">
+              <Plus className="w-4 h-4" />
+              Nova Demanda
+            </Button>
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
+              <button onClick={() => setView("kanban")} className={`p-1.5 rounded-md transition-colors ${view === "kanban" ? "bg-card shadow-sm" : ""}`}>
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button onClick={() => setView("list")} className={`p-1.5 rounded-md transition-colors ${view === "list" ? "bg-card shadow-sm" : ""}`}>
+                <List className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -203,6 +215,15 @@ export default function DemandsPage() {
           </div>
         )}
       </div>
+
+      <CreateDemandDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={(demand) => {
+          setLocalDemands((prev) => [demand, ...prev]);
+          toast.success("Demanda criada com sucesso!");
+        }}
+      />
     </AppLayout>
   );
 }

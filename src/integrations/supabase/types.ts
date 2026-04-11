@@ -14,7 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      demand_status_entries: {
+        Row: {
+          client_name: string
+          created_at: string
+          demand_type: string
+          filled_by: string
+          id: string
+          month: string
+          status: string
+          updated_at: string
+          year: string
+        }
+        Insert: {
+          client_name: string
+          created_at?: string
+          demand_type: string
+          filled_by: string
+          id?: string
+          month: string
+          status?: string
+          updated_at?: string
+          year: string
+        }
+        Update: {
+          client_name?: string
+          created_at?: string
+          demand_type?: string
+          filled_by?: string
+          id?: string
+          month?: string
+          status?: string
+          updated_at?: string
+          year?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string
+          id: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          id?: string
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

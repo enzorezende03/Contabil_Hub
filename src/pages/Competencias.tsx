@@ -26,6 +26,17 @@ export default function CompetenciasPage() {
   const [year, setYear] = useState(currentYear);
   const [selectedClient, setSelectedClient] = useState("all");
   const [selectedTributacao, setSelectedTributacao] = useState("all");
+  // Manual "sem movimento" overrides: key = "client|month"
+  const [semMovimento, setSemMovimento] = useState<Set<string>>(new Set());
+
+  const toggleSemMovimento = (client: string, month: string) => {
+    const key = `${client}|${month}`;
+    setSemMovimento((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
 
   const allDemands = useMemo(() => MOCK_DEMANDS.filter((d) => !d.isLegacy), []);
   const allClients = useMemo(() => [...new Set(allDemands.map((d) => d.client))].sort(), [allDemands]);
@@ -47,6 +58,12 @@ export default function CompetenciasPage() {
     clientSet.forEach((client) => {
       matrix[client] = {};
       MONTHS.forEach((m) => {
+        const key = `${client}|${m}`;
+        if (semMovimento.has(key)) {
+          matrix[client][m] = "sem_movimento";
+          return;
+        }
+
         const comp = `${m}/${year}`;
         const clientMonth = yearDemands.filter((d) => d.client === client && d.competencia === comp);
 
@@ -54,7 +71,6 @@ export default function CompetenciasPage() {
         const hasConcBanc = clientMonth.some((d) => d.type === "conciliacao_bancaria");
         const hasConcCont = clientMonth.some((d) => d.type === "conciliacao_contabil");
 
-        // Highest level reached
         let level: CellLevel = "none";
         if (hasConcCont) level = "conc_contabil";
         else if (hasConcBanc) level = "conc_bancaria";
@@ -65,7 +81,7 @@ export default function CompetenciasPage() {
     });
 
     return { clients: clientSet, matrix };
-  }, [year, selectedClient, selectedTributacao, allDemands]);
+  }, [year, selectedClient, selectedTributacao, allDemands, semMovimento]);
 
   const totalClients = clients.length;
   const totalCells = totalClients * MONTHS.length;

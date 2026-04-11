@@ -11,10 +11,11 @@ const MONTH_SHORT: Record<string, string> = {
 };
 
 // Status levels for each cell
-type CellLevel = "none" | "lancado" | "conc_bancaria" | "conc_contabil";
+type CellLevel = "none" | "sem_movimento" | "lancado" | "conc_bancaria" | "conc_contabil";
 
 const LEVEL_CONFIG: Record<CellLevel, { bg: string; text: string; label: string }> = {
   none: { bg: "bg-muted/30", text: "text-muted-foreground/40", label: "—" },
+  sem_movimento: { bg: "bg-orange-500/20", text: "text-orange-500", label: "SM" },
   lancado: { bg: "bg-yellow-500/20", text: "text-yellow-500", label: "L" },
   conc_bancaria: { bg: "bg-blue-500/20", text: "text-blue-500", label: "CB" },
   conc_contabil: { bg: "bg-emerald-500/20", text: "text-emerald-500", label: "CC" },

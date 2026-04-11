@@ -11,6 +11,7 @@ import {
   Settings,
   AlertTriangle,
   LogOut,
+  UserCog,
 } from "lucide-react";
 
 const NAV_ITEMS = [

@@ -14,15 +14,15 @@ export default function LegacyPage() {
   const [selectedStatus, setSelectedStatus] = usePersistedFilter<string>("legacy", "status", "all");
 
   // Extract unique years, clients, statuses
-  const years = useMemo(() => [...new Set(legacy.map((d) => d.competencia.split("/")[1] || "Outros"))].sort(), []);
+  const years = useMemo(() => [...new Set(legacy.flatMap((d) => d.competencias.map((c) => c.split("/")[1] || "Outros")))].sort(), []);
   const clients = useMemo(() => [...new Set(legacy.map((d) => d.client))].sort(), []);
   const statuses = useMemo(() => [...new Set(legacy.map((d) => d.status))], []);
 
   // Apply all filters
   const filtered = useMemo(() => {
     return legacy.filter((d) => {
-      const year = d.competencia.split("/")[1] || "Outros";
-      if (selectedYear !== "all" && year !== selectedYear) return false;
+      const demandYears = d.competencias.map((c) => c.split("/")[1] || "Outros");
+      if (selectedYear !== "all" && !demandYears.includes(selectedYear)) return false;
       if (selectedClient !== "all" && d.client !== selectedClient) return false;
       if (selectedStatus !== "all" && d.status !== selectedStatus) return false;
       return true;
@@ -33,7 +33,7 @@ export default function LegacyPage() {
   const byYear = useMemo(() => {
     const map: Record<string, typeof filtered> = {};
     filtered.forEach((d) => {
-      const year = d.competencia.split("/")[1] || "Outros";
+      const year = d.competencias[0]?.split("/")[1] || "Outros";
       if (!map[year]) map[year] = [];
       map[year].push(d);
     });
@@ -125,7 +125,7 @@ export default function LegacyPage() {
                     {items.map((d) => (
                       <tr key={d.id} className="hover:bg-muted/30">
                         <td className="px-3 py-2.5 font-medium">{d.client}</td>
-                        <td className="px-3 py-2.5 text-xs">{d.competencia}</td>
+                        <td className="px-3 py-2.5 text-xs">{d.competencias.join(", ")}</td>
                         <td className="px-3 py-2.5 text-xs">{d.description}</td>
                         <td className="px-3 py-2.5"><StatusBadge status={d.status} /></td>
                         <td className="px-3 py-2.5 text-xs">{getMember(d.assignee)?.name}</td>

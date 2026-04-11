@@ -7,7 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index.tsx";
 import Demands from "./pages/Demands.tsx";
 import Team from "./pages/Team.tsx";
-import Legacy from "./pages/Legacy.tsx";
+
 import Competencias from "./pages/Competencias.tsx";
 import Alerts from "./pages/Alerts.tsx";
 import Reports from "./pages/Reports.tsx";
@@ -33,7 +33,7 @@ const AppRoutes = () => (
     <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
     <Route path="/demandas" element={<ProtectedRoute><Demands /></ProtectedRoute>} />
     <Route path="/equipe" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-    <Route path="/antigas" element={<ProtectedRoute><Legacy /></ProtectedRoute>} />
+    
     <Route path="/competencias" element={<ProtectedRoute><Competencias /></ProtectedRoute>} />
     <Route path="/alertas" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
     <Route path="/relatorios" element={<ProtectedRoute><Reports /></ProtectedRoute>} />

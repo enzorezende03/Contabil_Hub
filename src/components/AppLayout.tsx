@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   { label: "Fila de Trabalho", path: "/demandas", icon: ListTodo },
   { label: "Equipe", path: "/equipe", icon: Users },
   { label: "Competências", path: "/competencias", icon: Calendar },
-  { label: "Escritas Antigas", path: "/antigas", icon: Archive },
+  
   { label: "Relatórios", path: "/relatorios", icon: BarChart3 },
   { label: "Alertas", path: "/alertas", icon: AlertTriangle },
   { label: "Configurações", path: "/configuracoes", icon: Settings },

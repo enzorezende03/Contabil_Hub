@@ -449,6 +449,11 @@ export default function CompetenciasPage() {
                               return (
                                 <div key={dt.type} className="flex items-center gap-2">
                                   <span className="text-xs flex-1">{dt.label}</span>
+                                  {filledByMap[statusKey] && (
+                                    <span className="text-[9px] text-muted-foreground truncate max-w-[80px]" title={filledByMap[statusKey]}>
+                                      {filledByMap[statusKey]}
+                                    </span>
+                                  )}
                                   <select
                                     value={currentStatus}
                                     onChange={(e) => setDemandStatus(panelData.client, m, dt.type, e.target.value as DemandStatus)}

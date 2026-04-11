@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { canAccessPage, type AppPage } from "@/lib/permissions";
+import logo2m from "@/assets/logo-2m-contabilidade.png";
 import {
   LayoutDashboard,
   ListTodo,

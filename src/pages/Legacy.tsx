@@ -90,7 +90,7 @@ export default function LegacyPage() {
         </div>
 
         {/* Seções por ano */}
-        {filteredYears.map(([year, items]) => {
+        {byYear.map(([year, items]) => {
           const yearCompleted = items.filter((d) => d.status === "completed").length;
           const yearPct = items.length > 0 ? Math.round((yearCompleted / items.length) * 100) : 0;
 
@@ -139,7 +139,7 @@ export default function LegacyPage() {
           );
         })}
 
-        {filteredYears.length === 0 && (
+        {byYear.length === 0 && (
           <p className="text-center text-muted-foreground py-8">Nenhuma demanda antiga encontrada.</p>
         )}
       </div>

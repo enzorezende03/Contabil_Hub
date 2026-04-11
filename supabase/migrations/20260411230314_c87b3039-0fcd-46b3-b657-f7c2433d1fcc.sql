@@ -1,0 +1,1 @@
+ALTER TABLE public.clients ADD COLUMN unidade TEXT NOT NULL DEFAULT '2m_contabilidade';

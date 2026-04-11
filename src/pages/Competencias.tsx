@@ -68,6 +68,7 @@ export default function CompetenciasPage() {
   const [year, setYear] = useState(currentYear);
   const [selectedClient, setSelectedClient] = useState("all");
   const [selectedTributacao, setSelectedTributacao] = useState("all");
+  const [selectedUnidade, setSelectedUnidade] = useState("all");
   const [semMovimento, setSemMovimento] = useState<Set<string>>(new Set());
   const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
   const [panelClient, setPanelClient] = useState<string | null>(null);
@@ -179,9 +180,9 @@ export default function CompetenciasPage() {
 
   // Build client list and tributação map from DB
   const clientsMap = useMemo(() => {
-    const map: Record<string, { tributacao: string; competencia_inicio: string }> = {};
+    const map: Record<string, { tributacao: string; competencia_inicio: string; unidade: string }> = {};
     dbClients.forEach((c: any) => {
-      map[c.razao_social] = { tributacao: c.tributacao, competencia_inicio: c.competencia_inicio };
+      map[c.razao_social] = { tributacao: c.tributacao, competencia_inicio: c.competencia_inicio, unidade: c.unidade || "2m_contabilidade" };
     });
     return map;
   }, [dbClients]);
@@ -198,6 +199,7 @@ export default function CompetenciasPage() {
 
     if (selectedClient !== "all") clientSet = clientSet.filter((c) => c === selectedClient);
     if (selectedTributacao !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.tributacao === selectedTributacao);
+    if (selectedUnidade !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.unidade === selectedUnidade);
 
     const matrix: Record<string, Record<string, CellLevel>> = {};
 
@@ -231,12 +233,12 @@ export default function CompetenciasPage() {
     });
 
     return { clients: clientSet, matrix };
-  }, [year, selectedClient, selectedTributacao, allClientNames, clientsMap, semMovimento, demandStatuses]);
+  }, [year, selectedClient, selectedTributacao, selectedUnidade, allClientNames, clientsMap, semMovimento, demandStatuses]);
 
   const panelData = useMemo(() => {
     if (!panelClient) return null;
     const info = clientsMap[panelClient];
-    return { client: panelClient, tributacao: info?.tributacao, competencia_inicio: info?.competencia_inicio || "01/2000" };
+    return { client: panelClient, tributacao: info?.tributacao, unidade: info?.unidade, competencia_inicio: info?.competencia_inicio || "01/2000" };
   }, [panelClient, clientsMap]);
 
   const totalClients = clients.length;
@@ -275,6 +277,11 @@ export default function CompetenciasPage() {
               <option key={t} value={t}>{TRIBUTACAO_LABELS_MAP[t] || t}</option>
             ))}
           </select>
+          <select value={selectedUnidade} onChange={(e) => setSelectedUnidade(e.target.value)} className={selectClass}>
+            <option value="all">Todas as unidades</option>
+            <option value="2m_contabilidade">2M Contabilidade</option>
+            <option value="2m_saude">2M Saúde</option>
+          </select>
         </div>
 
         {/* Legenda */}
@@ -312,6 +319,7 @@ export default function CompetenciasPage() {
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground sticky left-0 bg-muted/50 z-10 min-w-[180px]">
                     Empresa
                   </th>
+                  <th className="text-left px-2 py-2 font-medium text-muted-foreground text-xs">Unidade</th>
                   <th className="text-left px-2 py-2 font-medium text-muted-foreground text-xs">Trib.</th>
                   {MONTHS.map((m) => (
                     <th key={m} className="text-center px-1 py-2 font-medium text-muted-foreground min-w-[44px]">
@@ -323,6 +331,8 @@ export default function CompetenciasPage() {
               <tbody className="divide-y divide-border">
                 {clients.map((client) => {
                   const tribLabel = TRIBUTACAO_LABELS_MAP[clientsMap[client]?.tributacao] || "—";
+                  const unidade = clientsMap[client]?.unidade || "2m_contabilidade";
+                  const unidadeLabel = unidade === "2m_saude" ? "Saúde" : "Contab.";
                   return (
                     <tr key={client} className="hover:bg-muted/20">
                       <td
@@ -330,6 +340,13 @@ export default function CompetenciasPage() {
                         onClick={() => setPanelClient(client)}
                       >
                         {client}
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${
+                          unidade === "2m_saude" ? "bg-emerald-500/15 text-emerald-600" : "bg-blue-500/15 text-blue-600"
+                        }`}>
+                          {unidadeLabel}
+                        </span>
                       </td>
                       <td className="px-2 py-2 text-[10px] text-muted-foreground whitespace-nowrap">{tribLabel}</td>
                       {MONTHS.map((m) => {

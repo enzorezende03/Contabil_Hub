@@ -26,14 +26,24 @@ const TRIBUTACAO_OPTIONS = [
   { value: "mei", label: "MEI" },
 ];
 
+const UNIDADE_OPTIONS = [
+  { value: "2m_contabilidade", label: "2M Contabilidade" },
+  { value: "2m_saude", label: "2M Saúde" },
+];
+
 const TRIBUTACAO_LABELS: Record<string, string> = Object.fromEntries(
   TRIBUTACAO_OPTIONS.map((t) => [t.value, t.label])
+);
+
+const UNIDADE_LABELS: Record<string, string> = Object.fromEntries(
+  UNIDADE_OPTIONS.map((u) => [u.value, u.label])
 );
 
 interface ClientForm {
   cnpj: string;
   razao_social: string;
   tributacao: string;
+  unidade: string;
   competencia_inicio: string;
 }
 
@@ -41,6 +51,7 @@ const emptyForm: ClientForm = {
   cnpj: "",
   razao_social: "",
   tributacao: "simples_nacional",
+  unidade: "2m_contabilidade",
   competencia_inicio: "",
 };
 
@@ -84,6 +95,7 @@ export default function Clients() {
         cnpj: cnpjDigits,
         razao_social: payload.razao_social.trim(),
         tributacao: payload.tributacao,
+        unidade: payload.unidade,
         competencia_inicio: payload.competencia_inicio,
         created_by: session!.user.id,
       };
@@ -139,6 +151,7 @@ export default function Clients() {
       cnpj: formatCnpj(client.cnpj),
       razao_social: client.razao_social,
       tributacao: client.tributacao,
+      unidade: client.unidade || "2m_contabilidade",
       competencia_inicio: client.competencia_inicio,
     });
     setDialogOpen(true);
@@ -190,9 +203,10 @@ export default function Clients() {
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                     <TableRow>
                       <TableHead>Razão Social</TableHead>
                       <TableHead>CNPJ</TableHead>
+                      <TableHead>Unidade</TableHead>
                       <TableHead>Tributação</TableHead>
                       <TableHead>Responsabilidade desde</TableHead>
                       <TableHead className="w-24 text-right">Ações</TableHead>
@@ -203,6 +217,13 @@ export default function Clients() {
                       <TableRow key={c.id}>
                         <TableCell className="font-medium">{c.razao_social}</TableCell>
                         <TableCell className="font-mono text-sm">{formatCnpj(c.cnpj)}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                            c.unidade === "2m_saude" ? "bg-emerald-500/15 text-emerald-600" : "bg-blue-500/15 text-blue-600"
+                          }`}>
+                            {UNIDADE_LABELS[c.unidade] || c.unidade}
+                          </span>
+                        </TableCell>
                         <TableCell>{TRIBUTACAO_LABELS[c.tributacao] || c.tributacao}</TableCell>
                         <TableCell>{c.competencia_inicio}</TableCell>
                         <TableCell className="text-right">
@@ -271,6 +292,21 @@ export default function Clients() {
                   {TRIBUTACAO_OPTIONS.map((t) => (
                     <SelectItem key={t.value} value={t.value}>
                       {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Unidade</Label>
+              <Select value={form.unidade} onValueChange={(v) => setForm({ ...form, unidade: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {UNIDADE_OPTIONS.map((u) => (
+                    <SelectItem key={u.value} value={u.value}>
+                      {u.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

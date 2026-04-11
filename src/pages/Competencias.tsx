@@ -1,10 +1,12 @@
-import { useState, useMemo, Fragment, useCallback } from "react";
+import { useState, useMemo, Fragment, useCallback, useEffect } from "react";
 import AppLayout from "@/components/AppLayout";
 import { MOCK_DEMANDS, CLIENT_TRIBUTACAO } from "@/lib/mock-data";
 import { TRIBUTACAO_LABELS, Tributacao, DemandStatus, DemandType, STATUS_LABELS, DEMAND_TYPE_LABELS } from "@/lib/types";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
 const MONTH_SHORT: Record<string, string> = {
@@ -40,6 +42,7 @@ const CLOSING_TYPES = [
 ];
 
 export default function CompetenciasPage() {
+  const { user } = useAuth();
   const currentYear = new Date().getFullYear().toString();
   const [year, setYear] = useState(currentYear);
   const [selectedClient, setSelectedClient] = useState("all");
@@ -47,24 +50,93 @@ export default function CompetenciasPage() {
   const [semMovimento, setSemMovimento] = useState<Set<string>>(new Set());
   const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
   const [panelClient, setPanelClient] = useState<string | null>(null);
-  // Track demand statuses: key = "client|month|type" -> DemandStatus
   const [demandStatuses, setDemandStatuses] = useState<Record<string, DemandStatus>>({});
+  const [filledByMap, setFilledByMap] = useState<Record<string, string>>({});
 
-  const setDemandStatus = useCallback((client: string, month: string, type: string, status: DemandStatus) => {
+  // Load saved statuses from DB
+  useEffect(() => {
+    const loadStatuses = async () => {
+      const { data } = await supabase
+        .from("demand_status_entries")
+        .select("client_name, month, year, demand_type, status, profiles!demand_status_entries_filled_by_fkey(display_name)")
+        .eq("year", year);
+      if (data) {
+        const statuses: Record<string, DemandStatus> = {};
+        const filledBy: Record<string, string> = {};
+        data.forEach((d: any) => {
+          const key = `${d.client_name}|${d.month}|${d.demand_type}`;
+          statuses[key] = d.status as DemandStatus;
+          filledBy[key] = d.profiles?.display_name || "—";
+        });
+        setDemandStatuses(statuses);
+        setFilledByMap(filledBy);
+      }
+    };
+    loadStatuses();
+  }, [year]);
+
+  const setDemandStatus = useCallback(async (client: string, month: string, type: string, status: DemandStatus) => {
+    if (!user) return;
     const key = `${client}|${month}|${type}`;
     setDemandStatuses((prev) => ({ ...prev, [key]: status }));
-    toast.success("Status atualizado");
-  }, []);
 
-  const setBulkStatus = useCallback((client: string, months: Set<string>, type: string, status: DemandStatus) => {
+    const { error } = await supabase
+      .from("demand_status_entries")
+      .upsert({
+        client_name: client,
+        month,
+        year,
+        demand_type: type,
+        status,
+        filled_by: user.id,
+      }, { onConflict: "client_name,month,year,demand_type" });
+
+    if (error) {
+      toast.error("Erro ao salvar status");
+    } else {
+      // Update filledBy with current user
+      const { data: profile } = await supabase.from("profiles").select("display_name").eq("user_id", user.id).single();
+      setFilledByMap((prev) => ({ ...prev, [key]: profile?.display_name || "—" }));
+      toast.success("Status atualizado");
+    }
+  }, [user, year]);
+
+  const setBulkStatus = useCallback(async (client: string, months: Set<string>, type: string, status: DemandStatus) => {
+    if (!user) return;
     if (months.size === 0) { toast.error("Selecione ao menos um mês"); return; }
+    
     setDemandStatuses((prev) => {
       const next = { ...prev };
       months.forEach((m) => { next[`${client}|${m}|${type}`] = status; });
       return next;
     });
-    toast.success(`Status atualizado para ${months.size} meses`);
-  }, []);
+
+    const rows = [...months].map((m) => ({
+      client_name: client,
+      month: m,
+      year,
+      demand_type: type,
+      status,
+      filled_by: user.id,
+    }));
+
+    const { error } = await supabase
+      .from("demand_status_entries")
+      .upsert(rows, { onConflict: "client_name,month,year,demand_type" });
+
+    if (error) {
+      toast.error("Erro ao salvar em lote");
+    } else {
+      const { data: profile } = await supabase.from("profiles").select("display_name").eq("user_id", user.id).single();
+      const name = profile?.display_name || "—";
+      setFilledByMap((prev) => {
+        const next = { ...prev };
+        months.forEach((m) => { next[`${client}|${m}|${type}`] = name; });
+        return next;
+      });
+      toast.success(`Status atualizado para ${months.size} meses`);
+    }
+  }, [user, year]);
 
   const toggleMonth = (m: string) => {
     setSelectedMonths((prev) => {
@@ -377,6 +449,11 @@ export default function CompetenciasPage() {
                               return (
                                 <div key={dt.type} className="flex items-center gap-2">
                                   <span className="text-xs flex-1">{dt.label}</span>
+                                  {filledByMap[statusKey] && (
+                                    <span className="text-[9px] text-muted-foreground truncate max-w-[80px]" title={filledByMap[statusKey]}>
+                                      {filledByMap[statusKey]}
+                                    </span>
+                                  )}
                                   <select
                                     value={currentStatus}
                                     onChange={(e) => setDemandStatus(panelData.client, m, dt.type, e.target.value as DemandStatus)}

@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
   ListTodo,
@@ -9,6 +10,7 @@ import {
   Archive,
   Settings,
   AlertTriangle,
+  LogOut,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -28,6 +30,8 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
+  const { profile, signOut } = useAuth();
+  const initials = profile?.display_name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "??";
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -65,12 +69,15 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <div className="p-3 border-t border-sidebar-border">
           <div className="flex items-center gap-2 px-3 py-2">
             <div className="w-7 h-7 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-medium text-sidebar-accent-foreground">
-              AS
+              {initials}
             </div>
-            <div className="text-xs">
-              <div className="font-medium text-sidebar-accent-foreground">Ana Silva</div>
-              <div className="text-sidebar-foreground/60">Coordenação</div>
+            <div className="text-xs flex-1">
+              <div className="font-medium text-sidebar-accent-foreground">{profile?.display_name || "—"}</div>
+              <div className="text-sidebar-foreground/60 capitalize">{profile?.role || "—"}</div>
             </div>
+            <button onClick={signOut} className="text-sidebar-foreground/60 hover:text-sidebar-accent-foreground transition-colors" title="Sair">
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </aside>

@@ -45,6 +45,7 @@ export default function CompetenciasPage() {
   const [selectedClient, setSelectedClient] = useState("all");
   const [selectedTributacao, setSelectedTributacao] = useState("all");
   const [semMovimento, setSemMovimento] = useState<Set<string>>(new Set());
+  const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
   const [panelClient, setPanelClient] = useState<string | null>(null);
   // Track demand statuses: key = "client|month|type" -> DemandStatus
   const [demandStatuses, setDemandStatuses] = useState<Record<string, DemandStatus>>({});
@@ -54,6 +55,28 @@ export default function CompetenciasPage() {
     setDemandStatuses((prev) => ({ ...prev, [key]: status }));
     toast.success("Status atualizado");
   }, []);
+
+  const setBulkStatus = useCallback((client: string, months: Set<string>, type: string, status: DemandStatus) => {
+    if (months.size === 0) { toast.error("Selecione ao menos um mês"); return; }
+    setDemandStatuses((prev) => {
+      const next = { ...prev };
+      months.forEach((m) => { next[`${client}|${m}|${type}`] = status; });
+      return next;
+    });
+    toast.success(`Status atualizado para ${months.size} meses`);
+  }, []);
+
+  const toggleMonth = (m: string) => {
+    setSelectedMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(m)) next.delete(m); else next.add(m);
+      return next;
+    });
+  };
+
+  const toggleAllMonths = () => {
+    setSelectedMonths((prev) => prev.size === 12 ? new Set() : new Set(MONTHS));
+  };
 
   const toggleSemMovimento = (client: string, month: string) => {
     const key = `${client}|${month}`;
@@ -268,9 +291,60 @@ export default function CompetenciasPage() {
                   </div>
                 </div>
 
+                {/* Preenchimento em lote */}
+                <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-3">
+                  <h3 className="text-sm font-semibold">Preencher em Lote</h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      onClick={toggleAllMonths}
+                      className="h-6 px-2 text-[10px] font-medium border rounded bg-card hover:bg-muted transition-colors"
+                    >
+                      {selectedMonths.size === 12 ? "Limpar" : "Todos"}
+                    </button>
+                    {MONTHS.map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => toggleMonth(m)}
+                        className={`h-6 w-9 text-[10px] font-medium rounded transition-colors ${
+                          selectedMonths.has(m)
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-card border hover:bg-muted"
+                        }`}
+                      >
+                        {MONTH_SHORT[m]}
+                      </button>
+                    ))}
+                  </div>
+                  {selectedMonths.size > 0 && (
+                    <div className="space-y-2">
+                      {DEMAND_TYPES_FOR_PANEL.map((dt) => (
+                        <div key={dt.type} className="flex items-center gap-2">
+                          <span className="text-xs flex-1">{dt.label}</span>
+                          <select
+                            defaultValue=""
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                setBulkStatus(panelData.client, selectedMonths, dt.type, e.target.value as DemandStatus);
+                                e.target.value = "";
+                              }
+                            }}
+                            className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px]"
+                          >
+                            <option value="" disabled>Aplicar status...</option>
+                            <option value="not_started">Não Iniciada</option>
+                            <option value="in_progress">Em Andamento</option>
+                            <option value="waiting_info">Aguardando Info</option>
+                            <option value="completed">Concluída</option>
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* Preenchimento por mês */}
                 <div className="space-y-3">
-                  <h3 className="text-sm font-semibold">Preencher Demandas por Mês</h3>
+                  <h3 className="text-sm font-semibold">Preencher por Mês</h3>
                   {MONTHS.map((m) => {
                     const smKey = `${panelData.client}|${m}`;
                     const isSM = semMovimento.has(smKey);

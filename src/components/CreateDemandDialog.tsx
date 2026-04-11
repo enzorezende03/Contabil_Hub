@@ -20,7 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 interface CreateDemandDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: (demands: Demand[]) => void;
+  onCreated: (demand: Demand) => void;
 }
 
 const MONTHS = ["01","02","03","04","05","06","07","08","09","10","11","12"];
@@ -82,39 +82,34 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
     setClientDeadline("");
   };
 
-  const totalDemands = selectedTypes.size * selectedMonths.size;
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!client || !assignee || !internalDeadline) return;
 
-    const demands: Demand[] = [];
-    let counter = 0;
+    const typesArr = [...selectedTypes];
+    const competencias = [...selectedMonths].sort().map((m) => `${m}/${compYear}`);
+    const maxWeight = Math.max(...typesArr.map(getWeightForType));
 
-    selectedMonths.forEach((month) => {
-      selectedTypes.forEach((type) => {
-        demands.push({
-          id: `d-${Date.now()}-${counter++}`,
-          client,
-          competencia: `${month}/${compYear}`,
-          type,
-          description: description || DEMAND_TYPE_LABELS[type],
-          assignee,
-          complexity: "media",
-          weight: getWeightForType(type),
-          priority,
-          internalDeadline,
-          clientDeadline: clientDeadline || internalDeadline,
-          status: "not_started",
-          timeSpentMinutes: 0,
-          notes: "",
-          isLegacy: false,
-          createdAt: new Date().toISOString().split("T")[0],
-        });
-      });
-    });
+    const demand: Demand = {
+      id: `d-${Date.now()}`,
+      client,
+      competencias,
+      types: typesArr,
+      description: description || typesArr.map((t) => DEMAND_TYPE_LABELS[t]).join(", "),
+      assignee,
+      complexity: "media",
+      weight: maxWeight,
+      priority,
+      internalDeadline,
+      clientDeadline: clientDeadline || internalDeadline,
+      status: "not_started",
+      timeSpentMinutes: 0,
+      notes: "",
+      isLegacy: false,
+      createdAt: new Date().toISOString().split("T")[0],
+    };
 
-    onCreated(demands);
+    onCreated(demand);
     resetForm();
     onOpenChange(false);
   };
@@ -142,7 +137,7 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
             {/* Multi-select: Tipos de Demanda */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <Label className="mb-0">Tipos de Demanda *</Label>
+                <Label className="mb-0">Atividades *</Label>
                 <button type="button" onClick={selectAllTypes} className="text-[10px] text-primary hover:underline">
                   Selecionar todos
                 </button>
@@ -234,11 +229,11 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
 
           <div className="flex items-center justify-between pt-2 border-t">
             <span className="text-xs text-muted-foreground">
-              {totalDemands} demanda{totalDemands > 1 ? "s" : ""} será{totalDemands > 1 ? "ão" : ""} criada{totalDemands > 1 ? "s" : ""}
+              {selectedTypes.size} atividade{selectedTypes.size > 1 ? "s" : ""} · {selectedMonths.size} mês{selectedMonths.size > 1 ? "es" : ""}
             </span>
             <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit">Criar {totalDemands > 1 ? `${totalDemands} Demandas` : "Demanda"}</Button>
+              <Button type="submit">Criar Demanda</Button>
             </div>
           </div>
         </form>

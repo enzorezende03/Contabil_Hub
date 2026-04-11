@@ -44,8 +44,8 @@ export default function TeamPage() {
 
   const typeReport = Object.entries(DEMAND_TYPE_LABELS).map(([k, v]) => ({
     type: v,
-    count: demands.filter((d) => d.type === k).length,
-    completed: demands.filter((d) => d.type === k && d.status === "completed").length,
+    count: demands.filter((d) => d.types.includes(k as any)).length,
+    completed: demands.filter((d) => d.types.includes(k as any) && d.status === "completed").length,
   })).filter((t) => t.count > 0);
 
   return (

@@ -76,7 +76,7 @@ export default function Dashboard() {
   // Type distribution for bar chart
   const typeCounts = Object.keys(DEMAND_TYPE_LABELS).map((t) => ({
     name: DEMAND_TYPE_LABELS[t as keyof typeof DEMAND_TYPE_LABELS].replace("Contábil", "").replace("Bancária", "Banc.").trim(),
-    value: demands.filter((d) => d.type === t).length,
+    value: demands.filter((d) => d.types.includes(t as any)).length,
   })).filter((t) => t.value > 0);
 
   // Priority distribution
@@ -212,7 +212,7 @@ export default function Dashboard() {
                     <p className="text-xs text-muted-foreground truncate">{d.description}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-xs text-muted-foreground">{d.competencia}</span>
+                    <span className="text-xs text-muted-foreground">{d.competencias[0]}</span>
                     <StatusBadge status={d.status} />
                   </div>
                 </div>

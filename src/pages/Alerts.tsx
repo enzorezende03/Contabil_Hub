@@ -34,7 +34,7 @@ export default function AlertsPage() {
             <div key={d.id} className="flex items-center justify-between py-2 gap-4">
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{d.client}</p>
-                <p className="text-xs text-muted-foreground">{d.description} · {d.competencia}</p>
+                <p className="text-xs text-muted-foreground">{d.description} · {d.competencias.join(", ")}</p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <span className="text-xs text-muted-foreground">{getMember(d.assignee)?.name.split(" ")[0]}</span>

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import AppLayout from "@/components/AppLayout";
 import { StatusBadge } from "@/components/StatusBadge";
 import { MOCK_DEMANDS, TEAM_MEMBERS } from "@/lib/mock-data";
@@ -32,11 +33,11 @@ const KANBAN_COLUMNS: DemandStatus[] = [
 const PRIORITY_ORDER: Record<Priority, number> = { urgente: 0, alta: 1, media: 2, baixa: 3 };
 
 export default function DemandsPage() {
-  const [view, setView] = useState<ViewMode>("kanban");
+  const [view, setView] = usePersistedFilter<ViewMode>("demandas", "view", "kanban");
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState<string>("all");
-  const [filterPriority, setFilterPriority] = useState<string>("all");
-  const [filterAssignee, setFilterAssignee] = useState<string>("all");
+  const [filterType, setFilterType] = usePersistedFilter<string>("demandas", "type", "all");
+  const [filterPriority, setFilterPriority] = usePersistedFilter<string>("demandas", "priority", "all");
+  const [filterAssignee, setFilterAssignee] = usePersistedFilter<string>("demandas", "assignee", "all");
   const [createOpen, setCreateOpen] = useState(false);
   const [localDemands, setLocalDemands] = useState<Demand[]>(MOCK_DEMANDS);
 

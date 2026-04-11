@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { canAccessPage, type AppPage } from "@/lib/permissions";
 import {
   LayoutDashboard,
   ListTodo,
@@ -16,13 +17,14 @@ import {
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { label: "Dashboard", path: "/", icon: LayoutDashboard },
-  { label: "Fila de Trabalho", path: "/demandas", icon: ListTodo },
-  { label: "Produtividade Equipe", path: "/equipe", icon: Users },
-  { label: "Fechamento Contábil", path: "/competencias", icon: Calendar },
-  { label: "Alertas", path: "/alertas", icon: AlertTriangle },
-  { label: "Clientes", path: "/clientes", icon: Building2 },
-  { label: "Configurações", path: "/configuracoes", icon: Settings },
+  { label: "Dashboard", path: "/" as AppPage, icon: LayoutDashboard },
+  { label: "Fila de Trabalho", path: "/demandas" as AppPage, icon: ListTodo },
+  { label: "Produtividade Equipe", path: "/equipe" as AppPage, icon: Users },
+  { label: "Fechamento Contábil", path: "/competencias" as AppPage, icon: Calendar },
+  { label: "Alertas", path: "/alertas" as AppPage, icon: AlertTriangle },
+  { label: "Clientes", path: "/clientes" as AppPage, icon: Building2 },
+  { label: "Configurações", path: "/configuracoes" as AppPage, icon: Settings },
+  { label: "Usuários", path: "/usuarios" as AppPage, icon: UserCog },
 ];
 
 interface AppLayoutProps {
@@ -31,13 +33,11 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
-  const { profile, isAdmin, signOut } = useAuth();
+  const { profile, signOut } = useAuth();
   const initials = profile?.display_name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "??";
+  const userRole = profile?.role;
 
-  const navItems = [
-    ...NAV_ITEMS,
-    ...(isAdmin ? [{ label: "Usuários", path: "/usuarios", icon: UserCog }] : []),
-  ];
+  const navItems = NAV_ITEMS.filter((item) => canAccessPage(userRole, item.path));
 
   return (
     <div className="flex h-screen overflow-hidden">

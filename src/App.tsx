@@ -14,6 +14,7 @@ import Reports from "./pages/Reports.tsx";
 import SettingsPage from "./pages/SettingsPage.tsx";
 import Users from "./pages/Users.tsx";
 import Login from "./pages/Login.tsx";
+import Setup from "./pages/Setup.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<Login />} />
+    <Route path="/setup" element={<Setup />} />
     <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
     <Route path="/demandas" element={<ProtectedRoute><Demands /></ProtectedRoute>} />
     <Route path="/equipe" element={<ProtectedRoute><Team /></ProtectedRoute>} />

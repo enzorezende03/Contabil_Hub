@@ -19,14 +19,17 @@ const MONTH_FULL: Record<string, string> = {
   "09": "Setembro", "10": "Outubro", "11": "Novembro", "12": "Dezembro",
 };
 
-type CellLevel = "none" | "sem_movimento" | "lancado" | "conc_bancaria" | "conc_contabil" | "disabled";
+type CellLevel = "none" | "sem_movimento" | "lancado" | "conc_bancaria" | "conc_contabil" | "disabled" | "lanc_andamento" | "cb_andamento" | "cc_andamento";
 
 const LEVEL_CONFIG: Record<CellLevel, { bg: string; text: string; label: string }> = {
   none: { bg: "bg-muted/30", text: "text-muted-foreground/40", label: "—" },
   disabled: { bg: "bg-muted/10", text: "text-muted-foreground/20", label: "—" },
   sem_movimento: { bg: "bg-orange-500/20", text: "text-orange-500", label: "SM" },
+  lanc_andamento: { bg: "bg-yellow-500/10", text: "text-yellow-400", label: "L…" },
   lancado: { bg: "bg-yellow-500/20", text: "text-yellow-500", label: "L" },
+  cb_andamento: { bg: "bg-blue-500/10", text: "text-blue-400", label: "CB…" },
   conc_bancaria: { bg: "bg-blue-500/20", text: "text-blue-500", label: "CB" },
+  cc_andamento: { bg: "bg-emerald-500/10", text: "text-emerald-400", label: "CC…" },
   conc_contabil: { bg: "bg-emerald-500/20", text: "text-emerald-500", label: "CC" },
 };
 

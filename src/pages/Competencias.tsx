@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import AppLayout from "@/components/AppLayout";
 import { TRIBUTACAO_LABELS, Tributacao, DemandStatus } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -67,10 +68,10 @@ function isMonthEnabled(competenciaInicio: string, month: string, year: string):
 export default function CompetenciasPage() {
   const { user } = useAuth();
   const currentYear = new Date().getFullYear().toString();
-  const [year, setYear] = useState(currentYear);
-  const [selectedClient, setSelectedClient] = useState("all");
-  const [selectedTributacao, setSelectedTributacao] = useState("all");
-  const [selectedUnidade, setSelectedUnidade] = useState("all");
+  const [year, setYear] = usePersistedFilter("competencias", "year", currentYear);
+  const [selectedClient, setSelectedClient] = usePersistedFilter("competencias", "client", "all");
+  const [selectedTributacao, setSelectedTributacao] = usePersistedFilter("competencias", "tributacao", "all");
+  const [selectedUnidade, setSelectedUnidade] = usePersistedFilter("competencias", "unidade", "all");
   const [semMovimento, setSemMovimento] = useState<Set<string>>(new Set());
   const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
   const [panelClient, setPanelClient] = useState<string | null>(null);

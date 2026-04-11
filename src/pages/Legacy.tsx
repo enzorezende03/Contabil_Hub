@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import AppLayout from "@/components/AppLayout";
 import { MOCK_DEMANDS, TEAM_MEMBERS } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -8,9 +9,9 @@ export default function LegacyPage() {
   const legacy = MOCK_DEMANDS.filter((d) => d.isLegacy);
   const getMember = (id: string) => TEAM_MEMBERS.find((m) => m.id === id);
 
-  const [selectedYear, setSelectedYear] = useState<string>("all");
-  const [selectedClient, setSelectedClient] = useState<string>("all");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [selectedYear, setSelectedYear] = usePersistedFilter<string>("legacy", "year", "all");
+  const [selectedClient, setSelectedClient] = usePersistedFilter<string>("legacy", "client", "all");
+  const [selectedStatus, setSelectedStatus] = usePersistedFilter<string>("legacy", "status", "all");
 
   // Extract unique years, clients, statuses
   const years = useMemo(() => [...new Set(legacy.map((d) => d.competencia.split("/")[1] || "Outros"))].sort(), []);

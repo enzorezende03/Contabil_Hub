@@ -300,7 +300,7 @@ export default function CompetenciasPage() {
           {(["sem_movimento", "lanc_andamento", "lancado", "cb_andamento", "conc_bancaria", "cc_andamento", "conc_contabil", "none", "disabled"] as CellLevel[]).map((level) => {
             const cfg = LEVEL_CONFIG[level];
             const labels: Record<CellLevel, string> = {
-              none: "Sem demanda",
+              none: "Não Iniciada",
               disabled: "Fora de responsabilidade",
               sem_movimento: "Sem Movimento",
               lanc_andamento: "Lançamento em andamento",

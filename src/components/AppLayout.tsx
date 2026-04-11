@@ -17,10 +17,8 @@ import {
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
   { label: "Fila de Trabalho", path: "/demandas", icon: ListTodo },
-  { label: "Equipe", path: "/equipe", icon: Users },
+  { label: "Produtividade Equipe", path: "/equipe", icon: Users },
   { label: "Fechamento Contábil", path: "/competencias", icon: Calendar },
-  
-  { label: "Relatórios", path: "/relatorios", icon: BarChart3 },
   { label: "Alertas", path: "/alertas", icon: AlertTriangle },
   { label: "Configurações", path: "/configuracoes", icon: Settings },
 ];

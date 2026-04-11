@@ -20,12 +20,13 @@ const MONTH_FULL: Record<string, string> = {
   "09": "Setembro", "10": "Outubro", "11": "Novembro", "12": "Dezembro",
 };
 
-type CellLevel = "none" | "sem_movimento" | "lancado" | "conc_bancaria" | "conc_contabil" | "disabled" | "lanc_andamento" | "cb_andamento" | "cc_andamento";
+type CellLevel = "none" | "sem_movimento" | "lancado" | "conc_bancaria" | "conc_contabil" | "disabled" | "lanc_andamento" | "cb_andamento" | "cc_andamento" | "aguardando_doc";
 
 const LEVEL_CONFIG: Record<CellLevel, { bg: string; text: string; label: string }> = {
   none: { bg: "bg-muted/30", text: "text-muted-foreground/40", label: "—" },
   disabled: { bg: "bg-muted/10", text: "text-muted-foreground/20", label: "—" },
   sem_movimento: { bg: "bg-orange-500/20", text: "text-orange-500", label: "SM" },
+  aguardando_doc: { bg: "bg-red-500/20", text: "text-red-500", label: "AD" },
   lanc_andamento: { bg: "bg-yellow-500/10", text: "text-yellow-400", label: "L…" },
   lancado: { bg: "bg-yellow-500/20", text: "text-yellow-500", label: "L" },
   cb_andamento: { bg: "bg-blue-500/10", text: "text-blue-400", label: "CB…" },
@@ -233,8 +234,12 @@ export default function CompetenciasPage() {
         const concBancStarted = !!concBancStatus && concBancStatus !== "not_started";
         const concContStarted = !!concContStatus && concContStatus !== "not_started";
 
+        // Check if any demand is waiting_info
+        const anyWaiting = [lancStatus, concBancStatus, concContStatus].some(s => s === "waiting_info");
+
         let level: CellLevel = "none";
-        if (concContDone) level = "conc_contabil";
+        if (anyWaiting) level = "aguardando_doc";
+        else if (concContDone) level = "conc_contabil";
         else if (concContStarted) level = "cc_andamento";
         else if (concBancDone) level = "conc_bancaria";
         else if (concBancStarted) level = "cb_andamento";
@@ -297,26 +302,27 @@ export default function CompetenciasPage() {
         </div>
 
         {/* Legenda */}
-        <div className="flex flex-wrap items-center gap-5 text-xs">
-          {(["sem_movimento", "lanc_andamento", "lancado", "cb_andamento", "conc_bancaria", "cc_andamento", "conc_contabil", "none", "disabled"] as CellLevel[]).map((level) => {
+        <div className="flex flex-wrap items-center gap-3 text-xs">
+          {(["none", "lanc_andamento", "lancado", "cb_andamento", "conc_bancaria", "cc_andamento", "conc_contabil", "aguardando_doc", "sem_movimento", "disabled"] as CellLevel[]).map((level) => {
             const cfg = LEVEL_CONFIG[level];
             const labels: Record<CellLevel, string> = {
               none: "Não Iniciada",
-              disabled: "Fora de responsabilidade",
-              sem_movimento: "Sem Movimento",
-              lanc_andamento: "Lançamento em andamento",
+              disabled: "Fora resp.",
+              sem_movimento: "Sem Mov.",
+              aguardando_doc: "Aguard. Doc.",
+              lanc_andamento: "Lanç. andamento",
               lancado: "Lançado",
-              cb_andamento: "Conc. Bancária em andamento",
+              cb_andamento: "CB andamento",
               conc_bancaria: "Conc. Bancária",
-              cc_andamento: "Conc. Contábil em andamento",
+              cc_andamento: "CC andamento",
               conc_contabil: "Conc. Contábil",
             };
             return (
-              <div key={level} className="flex items-center gap-1.5">
-                <div className={`w-6 h-6 rounded flex items-center justify-center ${cfg.bg}`}>
-                  <span className={`font-semibold text-[10px] ${cfg.text}`}>{cfg.label}</span>
+              <div key={level} className="flex items-center gap-1">
+                <div className={`w-5 h-5 rounded flex items-center justify-center ${cfg.bg}`}>
+                  <span className={`font-semibold text-[8px] ${cfg.text}`}>{cfg.label}</span>
                 </div>
-                <span className="text-muted-foreground">{labels[level]}</span>
+                <span className="text-muted-foreground text-[10px]">{labels[level]}</span>
               </div>
             );
           })}

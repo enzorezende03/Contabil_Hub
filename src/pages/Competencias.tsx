@@ -1,6 +1,7 @@
 import { useState, useMemo, Fragment } from "react";
 import AppLayout from "@/components/AppLayout";
-import { MOCK_DEMANDS } from "@/lib/mock-data";
+import { MOCK_DEMANDS, CLIENT_TRIBUTACAO } from "@/lib/mock-data";
+import { TRIBUTACAO_LABELS, Tributacao } from "@/lib/types";
 import { Check, Minus, X } from "lucide-react";
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
@@ -27,14 +28,36 @@ function cellBg(status: CellStatus) {
 export default function CompetenciasPage() {
   const currentYear = new Date().getFullYear().toString();
   const [year, setYear] = useState(currentYear);
+  const [selectedClient, setSelectedClient] = useState("all");
+  const [selectedTributacao, setSelectedTributacao] = useState("all");
 
-  // Get unique clients that have demands in the selected year (non-legacy)
+  // All non-legacy demands
+  const allDemands = useMemo(() => MOCK_DEMANDS.filter((d) => !d.isLegacy), []);
+
+  // Unique clients & tributações
+  const allClients = useMemo(() => [...new Set(allDemands.map((d) => d.client))].sort(), [allDemands]);
+  const allTributacoes = useMemo(() => {
+    const set = new Set<Tributacao>();
+    allClients.forEach((c) => {
+      const t = CLIENT_TRIBUTACAO[c];
+      if (t) set.add(t);
+    });
+    return [...set].sort();
+  }, [allClients]);
+
+  // Build matrix with filters
   const { clients, matrix } = useMemo(() => {
-    const yearDemands = MOCK_DEMANDS.filter(
-      (d) => !d.isLegacy && d.competencia.endsWith(`/${year}`)
-    );
+    const yearDemands = allDemands.filter((d) => d.competencia.endsWith(`/${year}`));
 
-    const clientSet = [...new Set(yearDemands.map((d) => d.client))].sort();
+    let clientSet = [...new Set(yearDemands.map((d) => d.client))].sort();
+
+    // Apply filters
+    if (selectedClient !== "all") {
+      clientSet = clientSet.filter((c) => c === selectedClient);
+    }
+    if (selectedTributacao !== "all") {
+      clientSet = clientSet.filter((c) => CLIENT_TRIBUTACAO[c] === selectedTributacao);
+    }
 
     const matrix: Record<string, Record<string, { lancamentos: CellStatus; conciliacoes: CellStatus }>> = {};
 
@@ -44,14 +67,12 @@ export default function CompetenciasPage() {
         const comp = `${m}/${year}`;
         const clientMonth = yearDemands.filter((d) => d.client === client && d.competencia === comp);
 
-        // Lançamentos
         const lanc = clientMonth.filter((d) => d.type === "lancamentos");
         let lancStatus: CellStatus = "none";
         if (lanc.length > 0) {
           lancStatus = lanc.every((d) => d.status === "completed") ? "done" : "partial";
         }
 
-        // Conciliações (bancária + contábil)
         const conc = clientMonth.filter((d) =>
           d.type === "conciliacao_bancaria" || d.type === "conciliacao_contabil"
         );
@@ -65,7 +86,7 @@ export default function CompetenciasPage() {
     });
 
     return { clients: clientSet, matrix };
-  }, [year]);
+  }, [year, selectedClient, selectedTributacao, allDemands]);
 
   // Stats
   const totalClients = clients.length;
@@ -78,23 +99,33 @@ export default function CompetenciasPage() {
   }, 0);
   const pctDone = totalCells > 0 ? Math.round((doneCells / totalCells) * 100) : 0;
 
+  const selectClass = "h-8 px-3 text-sm border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary";
+
   return (
     <AppLayout>
       <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Competências {year}</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Visão geral de lançamentos e conciliações por empresa e mês
-            </p>
-          </div>
-          <select
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-            className="h-8 px-3 text-sm border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary"
-          >
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Competências {year}</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Visão geral de lançamentos e conciliações por empresa e mês
+          </p>
+        </div>
+
+        {/* Filtros */}
+        <div className="flex flex-wrap items-center gap-3">
+          <select value={year} onChange={(e) => setYear(e.target.value)} className={selectClass}>
             {["2026", "2025", "2024", "2023"].map((y) => (
               <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+          <select value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)} className={selectClass}>
+            <option value="all">Todas as empresas</option>
+            {allClients.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={selectedTributacao} onChange={(e) => setSelectedTributacao(e.target.value)} className={selectClass}>
+            <option value="all">Todas as tributações</option>
+            {allTributacoes.map((t) => (
+              <option key={t} value={t}>{TRIBUTACAO_LABELS[t]}</option>
             ))}
           </select>
         </div>
@@ -133,6 +164,7 @@ export default function CompetenciasPage() {
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground sticky left-0 bg-muted/50 z-10 min-w-[180px]">
                     Empresa
                   </th>
+                  <th className="text-left px-2 py-2 font-medium text-muted-foreground text-xs">Trib.</th>
                   {MONTHS.map((m) => (
                     <th key={m} className="text-center px-1 py-2 font-medium text-muted-foreground" colSpan={2}>
                       {MONTH_SHORT[m]}
@@ -141,6 +173,7 @@ export default function CompetenciasPage() {
                 </tr>
                 <tr className="border-b bg-muted/30">
                   <th className="sticky left-0 bg-muted/30 z-10" />
+                  <th />
                   {MONTHS.map((m) => (
                     <Fragment key={m}>
                       <th className="text-center px-0.5 py-1 text-[10px] text-muted-foreground font-normal">Lanç</th>
@@ -150,38 +183,42 @@ export default function CompetenciasPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {clients.map((client) => (
-                  <tr key={client} className="hover:bg-muted/20">
-                    <td className="px-3 py-2 font-medium text-sm whitespace-nowrap sticky left-0 bg-card z-10">
-                      {client}
-                    </td>
-                    {MONTHS.map((m) => {
-                      const cell = matrix[client][m];
-                      return (
-                        <Fragment key={m}>
-                          <td className={`text-center px-1 py-2 ${cellBg(cell.lancamentos)}`}>
-                            <div className="flex justify-center">
-                              <CellIcon status={cell.lancamentos} />
-                            </div>
-                          </td>
-                          <td className={`text-center px-1 py-2 border-r border-border/30 last:border-r-0 ${cellBg(cell.conciliacoes)}`}>
-                            <div className="flex justify-center">
-                              <CellIcon status={cell.conciliacoes} />
-                            </div>
-                          </td>
-                        </Fragment>
-                      );
-                    })}
-                  </tr>
-                ))}
+                {clients.map((client) => {
+                  const trib = CLIENT_TRIBUTACAO[client];
+                  const tribLabel = trib ? TRIBUTACAO_LABELS[trib] : "—";
+                  return (
+                    <tr key={client} className="hover:bg-muted/20">
+                      <td className="px-3 py-2 font-medium text-sm whitespace-nowrap sticky left-0 bg-card z-10">
+                        {client}
+                      </td>
+                      <td className="px-2 py-2 text-[10px] text-muted-foreground whitespace-nowrap">{tribLabel}</td>
+                      {MONTHS.map((m) => {
+                        const cell = matrix[client][m];
+                        return (
+                          <Fragment key={m}>
+                            <td className={`text-center px-1 py-2 ${cellBg(cell.lancamentos)}`}>
+                              <div className="flex justify-center">
+                                <CellIcon status={cell.lancamentos} />
+                              </div>
+                            </td>
+                            <td className={`text-center px-1 py-2 border-r border-border/30 last:border-r-0 ${cellBg(cell.conciliacoes)}`}>
+                              <div className="flex justify-center">
+                                <CellIcon status={cell.conciliacoes} />
+                              </div>
+                            </td>
+                          </Fragment>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         ) : (
-          <p className="text-center text-muted-foreground py-12">Nenhuma demanda encontrada para {year}.</p>
+          <p className="text-center text-muted-foreground py-12">Nenhuma empresa encontrada com os filtros selecionados.</p>
         )}
       </div>
     </AppLayout>
   );
 }
-

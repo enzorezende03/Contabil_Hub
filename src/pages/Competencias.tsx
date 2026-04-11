@@ -43,6 +43,14 @@ export default function CompetenciasPage() {
   const [selectedTributacao, setSelectedTributacao] = useState("all");
   const [semMovimento, setSemMovimento] = useState<Set<string>>(new Set());
   const [panelClient, setPanelClient] = useState<string | null>(null);
+  // Track demand statuses: key = "client|month|type" -> DemandStatus
+  const [demandStatuses, setDemandStatuses] = useState<Record<string, DemandStatus>>({});
+
+  const setDemandStatus = useCallback((client: string, month: string, type: string, status: DemandStatus) => {
+    const key = `${client}|${month}|${type}`;
+    setDemandStatuses((prev) => ({ ...prev, [key]: status }));
+    toast.success("Status atualizado");
+  }, []);
 
   const toggleSemMovimento = (client: string, month: string) => {
     const key = `${client}|${month}`;

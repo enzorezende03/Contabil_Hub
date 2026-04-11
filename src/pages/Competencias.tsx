@@ -106,7 +106,13 @@ export default function CompetenciasPage() {
         </div>
 
         {/* Legenda */}
-        <div className="flex items-center gap-5 text-xs">
+        <div className="flex flex-wrap items-center gap-5 text-xs">
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-6 rounded flex items-center justify-center bg-orange-500/20">
+              <span className="text-orange-500 font-semibold text-[10px]">SM</span>
+            </div>
+            <span className="text-muted-foreground">Sem Movimento</span>
+          </div>
           <div className="flex items-center gap-1.5">
             <div className="w-6 h-6 rounded flex items-center justify-center bg-yellow-500/20">
               <span className="text-yellow-500 font-semibold text-[10px]">L</span>

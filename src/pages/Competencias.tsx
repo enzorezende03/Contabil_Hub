@@ -375,6 +375,14 @@ export default function CompetenciasPage() {
                         const cfg = LEVEL_CONFIG[level];
                         const isDisabled = level === "disabled";
                         const canToggle = !isDisabled && (level === "none" || level === "sem_movimento");
+                        const statusLabel: Record<string, string> = {
+                          not_started: "Não Iniciada", in_progress: "Em Andamento",
+                          waiting_info: "Aguardando Doc.", completed: "Concluída",
+                          blocked: "Bloqueada", late: "Em Atraso", in_review: "Em Revisão",
+                        };
+                        const tooltip = isDisabled
+                          ? "Fora da responsabilidade"
+                          : `${MONTH_FULL[m]}/${year}\nLançamentos: ${statusLabel[demandStatuses[`${client}|${m}|lancamentos`]] || "Não Iniciada"}\nConc. Bancária: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_bancaria`]] || "Não Iniciada"}\nConc. Contábil: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_contabil`]] || "Não Iniciada"}`;
                         return (
                           <td key={m} className="text-center px-1 py-2">
                             <div
@@ -382,7 +390,7 @@ export default function CompetenciasPage() {
                                 isDisabled ? "cursor-not-allowed opacity-40" : canToggle ? "cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all" : ""
                               }`}
                               onClick={canToggle ? () => toggleSemMovimento(client, m) : undefined}
-                              title={isDisabled ? "Fora da responsabilidade" : canToggle ? "Clique para marcar/desmarcar sem movimento" : undefined}
+                              title={tooltip}
                             >
                               <span className={`font-semibold text-[10px] ${cfg.text}`}>{cfg.label}</span>
                             </div>

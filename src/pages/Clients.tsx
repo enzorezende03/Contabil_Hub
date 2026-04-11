@@ -23,7 +23,6 @@ const TRIBUTACAO_OPTIONS = [
   { value: "simples_nacional", label: "Simples Nacional" },
   { value: "lucro_presumido", label: "Lucro Presumido" },
   { value: "lucro_real", label: "Lucro Real" },
-  { value: "mei", label: "MEI" },
 ];
 
 const UNIDADE_OPTIONS = [

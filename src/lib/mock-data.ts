@@ -12,8 +12,8 @@ export const CLIENT_TRIBUTACAO: Record<string, Tributacao> = {
   "Restaurante Sabor LTDA": "lucro_presumido",
   "Logística Rápida SA": "lucro_presumido",
   "Clínica Vida Saudável": "simples_nacional",
-  "Escritório Design ME": "mei",
-  "Padaria Artesanal": "mei",
+  "Escritório Design ME": "simples_nacional",
+  "Padaria Artesanal": "simples_nacional",
 };
 export const TEAM_MEMBERS: TeamMember[] = [
   { id: "1", name: "Ana Silva", role: "coordenacao" },

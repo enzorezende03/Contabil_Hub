@@ -45,7 +45,6 @@ const TRIBUTACAO_LABELS_MAP: Record<string, string> = {
   simples_nacional: "Simples Nacional",
   lucro_presumido: "Lucro Presumido",
   lucro_real: "Lucro Real",
-  mei: "MEI",
 };
 
 /** Returns true if the month (MM) in the given year is within responsibility */

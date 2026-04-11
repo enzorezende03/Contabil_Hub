@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import AppLayout from "@/components/AppLayout";
 import { MOCK_DEMANDS } from "@/lib/mock-data";
 import { Check, Minus, X } from "lucide-react";
@@ -185,5 +185,3 @@ export default function CompetenciasPage() {
   );
 }
 
-// Need Fragment import
-import { Fragment } from "react";

@@ -319,6 +319,7 @@ export default function CompetenciasPage() {
                   <th className="text-left px-3 py-2 font-medium text-muted-foreground sticky left-0 bg-muted/50 z-10 min-w-[180px]">
                     Empresa
                   </th>
+                  <th className="text-left px-2 py-2 font-medium text-muted-foreground text-xs">Unidade</th>
                   <th className="text-left px-2 py-2 font-medium text-muted-foreground text-xs">Trib.</th>
                   {MONTHS.map((m) => (
                     <th key={m} className="text-center px-1 py-2 font-medium text-muted-foreground min-w-[44px]">

@@ -37,9 +37,11 @@ export default function DemandsPage() {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterAssignee, setFilterAssignee] = useState<string>("all");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [localDemands, setLocalDemands] = useState<Demand[]>(MOCK_DEMANDS);
 
   const filtered = useMemo(() => {
-    return MOCK_DEMANDS
+    return localDemands
       .filter((d) => {
         if (search && !d.client.toLowerCase().includes(search.toLowerCase()) && !d.description.toLowerCase().includes(search.toLowerCase())) return false;
         if (filterType !== "all" && d.type !== filterType) return false;

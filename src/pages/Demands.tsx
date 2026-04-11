@@ -220,9 +220,9 @@ export default function DemandsPage() {
       <CreateDemandDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        onCreated={(demands) => {
-          setLocalDemands((prev) => [...demands, ...prev]);
-          toast.success(`${demands.length} demanda${demands.length > 1 ? "s" : ""} criada${demands.length > 1 ? "s" : ""} com sucesso!`);
+        onCreated={(demand) => {
+          setLocalDemands((prev) => [demand, ...prev]);
+          toast.success("Demanda criada com sucesso!");
         }}
       />
     </AppLayout>

@@ -32,6 +32,9 @@ const DEMAND_TYPES_FOR_PANEL = [
   { type: "lancamentos" as const, label: "Lançamentos Contábeis" },
   { type: "conciliacao_bancaria" as const, label: "Conciliação Bancária" },
   { type: "conciliacao_contabil" as const, label: "Conciliação Contábil" },
+];
+
+const CLOSING_TYPES = [
   { type: "fechamento" as const, label: "Fechamento Contábil" },
   { type: "revisao" as const, label: "Revisão" },
 ];
@@ -318,6 +321,34 @@ export default function CompetenciasPage() {
                             })}
                           </div>
                         )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Encerramento da empresa */}
+                <div className="space-y-3 border-t pt-4">
+                  <h3 className="text-sm font-semibold">Encerramento do Exercício</h3>
+                  {CLOSING_TYPES.map((dt) => {
+                    const statusKey = `${panelData.client}|closing|${dt.type}`;
+                    const currentStatus = demandStatuses[statusKey] || "not_started";
+
+                    return (
+                      <div key={dt.type} className="flex items-center gap-2">
+                        <span className="text-xs flex-1">{dt.label}</span>
+                        <select
+                          value={currentStatus}
+                          onChange={(e) => setDemandStatus(panelData.client, "closing", dt.type, e.target.value as DemandStatus)}
+                          className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px]"
+                        >
+                          <option value="not_started">Não Iniciada</option>
+                          <option value="in_progress">Em Andamento</option>
+                          <option value="in_review">Em Revisão</option>
+                          <option value="waiting_info">Aguardando Info</option>
+                          <option value="completed">Concluída</option>
+                          <option value="blocked">Bloqueada</option>
+                          <option value="late">Em Atraso</option>
+                        </select>
                       </div>
                     );
                   })}

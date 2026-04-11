@@ -10,7 +10,7 @@ import Team from "./pages/Team.tsx";
 
 import Competencias from "./pages/Competencias.tsx";
 import Alerts from "./pages/Alerts.tsx";
-import Reports from "./pages/Reports.tsx";
+
 import SettingsPage from "./pages/SettingsPage.tsx";
 import Users from "./pages/Users.tsx";
 import Login from "./pages/Login.tsx";
@@ -36,7 +36,7 @@ const AppRoutes = () => (
     
     <Route path="/competencias" element={<ProtectedRoute><Competencias /></ProtectedRoute>} />
     <Route path="/alertas" element={<ProtectedRoute><Alerts /></ProtectedRoute>} />
-    <Route path="/relatorios" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+    
       <Route path="/configuracoes" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route path="/usuarios" element={<ProtectedRoute><Users /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />

@@ -10,9 +10,13 @@ import {
   PRIORITY_LABELS,
   Priority,
   ROLE_LABELS,
+  type Demand,
 } from "@/lib/types";
 import { formatMinutes, getDeadlineUrgency } from "@/lib/demand-utils";
-import { Search, Filter, LayoutGrid, List, Clock, User, AlertTriangle } from "lucide-react";
+import { Search, Filter, LayoutGrid, List, Clock, User, AlertTriangle, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CreateDemandDialog } from "@/components/CreateDemandDialog";
+import { toast } from "sonner";
 
 type ViewMode = "list" | "kanban";
 

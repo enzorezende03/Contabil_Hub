@@ -1,10 +1,10 @@
-import { useState, useMemo, Fragment } from "react";
+import { useState, useMemo, Fragment, useCallback } from "react";
 import AppLayout from "@/components/AppLayout";
 import { MOCK_DEMANDS, CLIENT_TRIBUTACAO } from "@/lib/mock-data";
-import { TRIBUTACAO_LABELS, Tributacao, DemandStatus, STATUS_LABELS, DEMAND_TYPE_LABELS } from "@/lib/types";
+import { TRIBUTACAO_LABELS, Tributacao, DemandStatus, DemandType, STATUS_LABELS, DEMAND_TYPE_LABELS } from "@/lib/types";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { X } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { toast } from "sonner";
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
 const MONTH_SHORT: Record<string, string> = {
@@ -43,6 +43,14 @@ export default function CompetenciasPage() {
   const [selectedTributacao, setSelectedTributacao] = useState("all");
   const [semMovimento, setSemMovimento] = useState<Set<string>>(new Set());
   const [panelClient, setPanelClient] = useState<string | null>(null);
+  // Track demand statuses: key = "client|month|type" -> DemandStatus
+  const [demandStatuses, setDemandStatuses] = useState<Record<string, DemandStatus>>({});
+
+  const setDemandStatus = useCallback((client: string, month: string, type: string, status: DemandStatus) => {
+    const key = `${client}|${month}|${type}`;
+    setDemandStatuses((prev) => ({ ...prev, [key]: status }));
+    toast.success("Status atualizado");
+  }, []);
 
   const toggleSemMovimento = (client: string, month: string) => {
     const key = `${client}|${month}`;
@@ -229,66 +237,37 @@ export default function CompetenciasPage() {
 
       {/* Painel lateral da empresa */}
       <Sheet open={!!panelClient} onOpenChange={(open) => !open && setPanelClient(null)}>
-        <SheetContent className="w-[480px] sm:max-w-[480px] overflow-y-auto">
+        <SheetContent className="w-[520px] sm:max-w-[520px] overflow-y-auto">
           {panelData && (
             <>
               <SheetHeader className="pb-4 border-b">
                 <SheetTitle className="text-lg">{panelData.client}</SheetTitle>
-                {panelData.trib && (
-                  <p className="text-xs text-muted-foreground">{TRIBUTACAO_LABELS[panelData.trib]}</p>
-                )}
+                <SheetDescription>
+                  {panelData.trib ? TRIBUTACAO_LABELS[panelData.trib] : "Sem tributação definida"} — {year}
+                </SheetDescription>
               </SheetHeader>
 
-              <div className="py-4 space-y-6">
-                {/* Resumo por mês */}
+              <div className="py-4 space-y-4">
+                {/* Resumo visual por mês */}
                 <div>
-                  <h3 className="text-sm font-semibold mb-3">Visão por Mês — {year}</h3>
-                  <div className="grid grid-cols-4 gap-2">
+                  <h3 className="text-sm font-semibold mb-2">Resumo por Mês</h3>
+                  <div className="grid grid-cols-6 gap-1.5">
                     {MONTHS.map((m) => {
                       const level = matrix[panelData.client]?.[m] || "none";
                       const cfg = LEVEL_CONFIG[level];
                       return (
-                        <div key={m} className={`rounded-md p-2 text-center ${cfg.bg}`}>
-                          <p className="text-[10px] text-muted-foreground">{MONTH_SHORT[m]}</p>
-                          <p className={`text-xs font-semibold ${cfg.text}`}>{cfg.label}</p>
+                        <div key={m} className={`rounded p-1.5 text-center ${cfg.bg}`}>
+                          <p className="text-[9px] text-muted-foreground">{MONTH_SHORT[m]}</p>
+                          <p className={`text-[10px] font-bold ${cfg.text}`}>{cfg.label}</p>
                         </div>
                       );
                     })}
                   </div>
                 </div>
 
-                {/* Demandas detalhadas por mês */}
-                {Object.entries(panelData.byMonth).length > 0 ? (
-                  Object.entries(panelData.byMonth).map(([m, demands]) => (
-                    <div key={m}>
-                      <h4 className="text-sm font-semibold mb-2 text-primary">{MONTH_FULL[m]}</h4>
-                      <div className="space-y-2">
-                        {demands.map((d) => (
-                          <div key={d.id} className="rounded-md border bg-muted/20 p-3 space-y-1.5">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium">{DEMAND_TYPE_LABELS[d.type]}</span>
-                              <StatusBadge status={d.status} />
-                            </div>
-                            <p className="text-xs text-muted-foreground">{d.description}</p>
-                            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                              <span>Prazo: {new Date(d.internalDeadline).toLocaleDateString("pt-BR")}</span>
-                              {d.notes && <span>• {d.notes}</span>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Nenhuma demanda registrada para {panelData.client} em {year}.
-                  </p>
-                )}
-
-                {/* Checklist de demandas por mês (para preencher) */}
-                <div>
-                  <h3 className="text-sm font-semibold mb-3">Checklist de Atividades</h3>
-                  <p className="text-xs text-muted-foreground mb-3">Marque as atividades conforme concluídas</p>
+                {/* Preenchimento por mês */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-semibold">Preencher Demandas por Mês</h3>
                   {MONTHS.map((m) => {
                     const smKey = `${panelData.client}|${m}`;
                     const isSM = semMovimento.has(smKey);
@@ -298,31 +277,42 @@ export default function CompetenciasPage() {
                     );
 
                     return (
-                      <div key={m} className="mb-3">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-medium">{MONTH_SHORT[m]}/{year}</span>
-                          <label className="flex items-center gap-1.5 cursor-pointer">
+                      <div key={m} className="rounded-md border bg-muted/10 p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-semibold">{MONTH_FULL[m]}</span>
+                          <label className="flex items-center gap-1.5 cursor-pointer select-none">
                             <input
                               type="checkbox"
                               checked={isSM}
                               onChange={() => toggleSemMovimento(panelData.client, m)}
-                              className="rounded border-border"
+                              className="rounded border-border accent-orange-500"
                             />
-                            <span className="text-[10px] text-orange-500">Sem movimento</span>
+                            <span className="text-[10px] text-orange-500 font-medium">Sem movimento</span>
                           </label>
                         </div>
                         {!isSM && (
-                          <div className="ml-2 space-y-1">
+                          <div className="space-y-2">
                             {DEMAND_TYPES_FOR_PANEL.map((dt) => {
-                              const exists = monthDemands.find((d) => d.type === dt.type);
-                              const done = exists?.status === "completed";
+                              const existing = monthDemands.find((d) => d.type === dt.type);
+                              const statusKey = `${panelData.client}|${m}|${dt.type}`;
+                              const currentStatus = demandStatuses[statusKey] || existing?.status || "not_started";
+
                               return (
                                 <div key={dt.type} className="flex items-center gap-2">
-                                  <div className={`w-2 h-2 rounded-full ${done ? "bg-status-completed" : exists ? "bg-status-in-progress" : "bg-muted"}`} />
-                                  <span className={`text-xs ${done ? "line-through text-muted-foreground" : exists ? "" : "text-muted-foreground/50"}`}>
-                                    {dt.label}
-                                  </span>
-                                  {exists && <StatusBadge status={exists.status} />}
+                                  <span className="text-xs flex-1">{dt.label}</span>
+                                  <select
+                                    value={currentStatus}
+                                    onChange={(e) => setDemandStatus(panelData.client, m, dt.type, e.target.value as DemandStatus)}
+                                    className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px]"
+                                  >
+                                    <option value="not_started">Não Iniciada</option>
+                                    <option value="in_progress">Em Andamento</option>
+                                    <option value="in_review">Em Revisão</option>
+                                    <option value="waiting_info">Aguardando Info</option>
+                                    <option value="completed">Concluída</option>
+                                    <option value="blocked">Bloqueada</option>
+                                    <option value="late">Em Atraso</option>
+                                  </select>
                                 </div>
                               );
                             })}

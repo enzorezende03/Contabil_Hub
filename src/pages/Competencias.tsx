@@ -11,10 +11,11 @@ const MONTH_SHORT: Record<string, string> = {
 };
 
 // Status levels for each cell
-type CellLevel = "none" | "lancado" | "conc_bancaria" | "conc_contabil";
+type CellLevel = "none" | "sem_movimento" | "lancado" | "conc_bancaria" | "conc_contabil";
 
 const LEVEL_CONFIG: Record<CellLevel, { bg: string; text: string; label: string }> = {
   none: { bg: "bg-muted/30", text: "text-muted-foreground/40", label: "—" },
+  sem_movimento: { bg: "bg-orange-500/20", text: "text-orange-500", label: "SM" },
   lancado: { bg: "bg-yellow-500/20", text: "text-yellow-500", label: "L" },
   conc_bancaria: { bg: "bg-blue-500/20", text: "text-blue-500", label: "CB" },
   conc_contabil: { bg: "bg-emerald-500/20", text: "text-emerald-500", label: "CC" },
@@ -25,6 +26,17 @@ export default function CompetenciasPage() {
   const [year, setYear] = useState(currentYear);
   const [selectedClient, setSelectedClient] = useState("all");
   const [selectedTributacao, setSelectedTributacao] = useState("all");
+  // Manual "sem movimento" overrides: key = "client|month"
+  const [semMovimento, setSemMovimento] = useState<Set<string>>(new Set());
+
+  const toggleSemMovimento = (client: string, month: string) => {
+    const key = `${client}|${month}`;
+    setSemMovimento((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
 
   const allDemands = useMemo(() => MOCK_DEMANDS.filter((d) => !d.isLegacy), []);
   const allClients = useMemo(() => [...new Set(allDemands.map((d) => d.client))].sort(), [allDemands]);
@@ -46,6 +58,12 @@ export default function CompetenciasPage() {
     clientSet.forEach((client) => {
       matrix[client] = {};
       MONTHS.forEach((m) => {
+        const key = `${client}|${m}`;
+        if (semMovimento.has(key)) {
+          matrix[client][m] = "sem_movimento";
+          return;
+        }
+
         const comp = `${m}/${year}`;
         const clientMonth = yearDemands.filter((d) => d.client === client && d.competencia === comp);
 
@@ -53,7 +71,6 @@ export default function CompetenciasPage() {
         const hasConcBanc = clientMonth.some((d) => d.type === "conciliacao_bancaria");
         const hasConcCont = clientMonth.some((d) => d.type === "conciliacao_contabil");
 
-        // Highest level reached
         let level: CellLevel = "none";
         if (hasConcCont) level = "conc_contabil";
         else if (hasConcBanc) level = "conc_bancaria";
@@ -64,7 +81,7 @@ export default function CompetenciasPage() {
     });
 
     return { clients: clientSet, matrix };
-  }, [year, selectedClient, selectedTributacao, allDemands]);
+  }, [year, selectedClient, selectedTributacao, allDemands, semMovimento]);
 
   const totalClients = clients.length;
   const totalCells = totalClients * MONTHS.length;
@@ -105,7 +122,13 @@ export default function CompetenciasPage() {
         </div>
 
         {/* Legenda */}
-        <div className="flex items-center gap-5 text-xs">
+        <div className="flex flex-wrap items-center gap-5 text-xs">
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-6 rounded flex items-center justify-center bg-orange-500/20">
+              <span className="text-orange-500 font-semibold text-[10px]">SM</span>
+            </div>
+            <span className="text-muted-foreground">Sem Movimento</span>
+          </div>
           <div className="flex items-center gap-1.5">
             <div className="w-6 h-6 rounded flex items-center justify-center bg-yellow-500/20">
               <span className="text-yellow-500 font-semibold text-[10px]">L</span>
@@ -165,9 +188,14 @@ export default function CompetenciasPage() {
                       {MONTHS.map((m) => {
                         const level = matrix[client][m];
                         const cfg = LEVEL_CONFIG[level];
+                        const canToggle = level === "none" || level === "sem_movimento";
                         return (
                           <td key={m} className="text-center px-1 py-2">
-                            <div className={`mx-auto w-8 h-8 rounded flex items-center justify-center ${cfg.bg}`}>
+                            <div
+                              className={`mx-auto w-8 h-8 rounded flex items-center justify-center ${cfg.bg} ${canToggle ? "cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all" : ""}`}
+                              onClick={canToggle ? () => toggleSemMovimento(client, m) : undefined}
+                              title={canToggle ? "Clique para marcar/desmarcar sem movimento" : undefined}
+                            >
                               <span className={`font-semibold text-[10px] ${cfg.text}`}>{cfg.label}</span>
                             </div>
                           </td>

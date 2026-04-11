@@ -18,7 +18,7 @@ const NAV_ITEMS = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
   { label: "Fila de Trabalho", path: "/demandas", icon: ListTodo },
   { label: "Equipe", path: "/equipe", icon: Users },
-  { label: "Competências", path: "/competencias", icon: Calendar },
+  { label: "Fechamento Contábil", path: "/competencias", icon: Calendar },
   
   { label: "Relatórios", path: "/relatorios", icon: BarChart3 },
   { label: "Alertas", path: "/alertas", icon: AlertTriangle },

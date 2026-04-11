@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DEMAND_TYPE_LABELS,
   PRIORITY_LABELS,
@@ -19,7 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 interface CreateDemandDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: (demand: Demand) => void;
+  onCreated: (demands: Demand[]) => void;
 }
 
 const MONTHS = ["01","02","03","04","05","06","07","08","09","10","11","12"];
@@ -32,8 +33,8 @@ const MONTH_NAMES: Record<string, string> = {
 export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDemandDialogProps) {
   const now = new Date();
   const [client, setClient] = useState("");
-  const [type, setType] = useState<DemandType>("lancamentos");
-  const [compMonth, setCompMonth] = useState(String(now.getMonth() + 1).padStart(2, "0"));
+  const [selectedTypes, setSelectedTypes] = useState<Set<DemandType>>(new Set(["lancamentos"]));
+  const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set([String(now.getMonth() + 1).padStart(2, "0")]));
   const [compYear, setCompYear] = useState(String(now.getFullYear()));
   const [priority, setPriority] = useState<Priority>("media");
   const [assignee, setAssignee] = useState("");
@@ -50,10 +51,29 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
     },
   });
 
+  const toggleType = (type: DemandType) => {
+    setSelectedTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) { if (next.size > 1) next.delete(type); } else next.add(type);
+      return next;
+    });
+  };
+
+  const toggleMonth = (m: string) => {
+    setSelectedMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(m)) { if (next.size > 1) next.delete(m); } else next.add(m);
+      return next;
+    });
+  };
+
+  const selectAllMonths = () => setSelectedMonths(new Set(MONTHS));
+  const selectAllTypes = () => setSelectedTypes(new Set(Object.keys(DEMAND_TYPE_LABELS) as DemandType[]));
+
   const resetForm = () => {
     setClient("");
-    setType("lancamentos");
-    setCompMonth(String(now.getMonth() + 1).padStart(2, "0"));
+    setSelectedTypes(new Set(["lancamentos"]));
+    setSelectedMonths(new Set([String(now.getMonth() + 1).padStart(2, "0")]));
     setCompYear(String(now.getFullYear()));
     setPriority("media");
     setAssignee("");
@@ -62,30 +82,39 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
     setClientDeadline("");
   };
 
+  const totalDemands = selectedTypes.size * selectedMonths.size;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!client || !assignee || !internalDeadline) return;
 
-    const demand: Demand = {
-      id: `d-${Date.now()}`,
-      client,
-      competencia: `${compMonth}/${compYear}`,
-      type,
-      description: description || DEMAND_TYPE_LABELS[type],
-      assignee,
-      complexity: "media",
-      weight: getWeightForType(type),
-      priority,
-      internalDeadline,
-      clientDeadline: clientDeadline || internalDeadline,
-      status: "not_started",
-      timeSpentMinutes: 0,
-      notes: "",
-      isLegacy: false,
-      createdAt: new Date().toISOString().split("T")[0],
-    };
+    const demands: Demand[] = [];
+    let counter = 0;
 
-    onCreated(demand);
+    selectedMonths.forEach((month) => {
+      selectedTypes.forEach((type) => {
+        demands.push({
+          id: `d-${Date.now()}-${counter++}`,
+          client,
+          competencia: `${month}/${compYear}`,
+          type,
+          description: description || DEMAND_TYPE_LABELS[type],
+          assignee,
+          complexity: "media",
+          weight: getWeightForType(type),
+          priority,
+          internalDeadline,
+          clientDeadline: clientDeadline || internalDeadline,
+          status: "not_started",
+          timeSpentMinutes: 0,
+          notes: "",
+          isLegacy: false,
+          createdAt: new Date().toISOString().split("T")[0],
+        });
+      });
+    });
+
+    onCreated(demands);
     resetForm();
     onOpenChange(false);
   };
@@ -94,13 +123,13 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nova Demanda</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
+          <div className="space-y-4">
+            <div>
               <Label>Cliente *</Label>
               <select value={client} onChange={(e) => setClient(e.target.value)} className={selectClass} required>
                 <option value="">Selecione...</option>
@@ -110,61 +139,89 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
               </select>
             </div>
 
-            <div className="col-span-2">
-              <Label>Tipo de Demanda *</Label>
-              <select value={type} onChange={(e) => setType(e.target.value as DemandType)} className={selectClass}>
+            {/* Multi-select: Tipos de Demanda */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label className="mb-0">Tipos de Demanda *</Label>
+                <button type="button" onClick={selectAllTypes} className="text-[10px] text-primary hover:underline">
+                  Selecionar todos
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 rounded-md border p-2 max-h-40 overflow-y-auto">
                 {Object.entries(DEMAND_TYPE_LABELS).map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
+                  <label key={k} className="flex items-center gap-1.5 cursor-pointer text-xs hover:bg-muted/50 rounded px-1 py-0.5">
+                    <Checkbox
+                      checked={selectedTypes.has(k as DemandType)}
+                      onCheckedChange={() => toggleType(k as DemandType)}
+                    />
+                    <span>{v}</span>
+                  </label>
                 ))}
-              </select>
+              </div>
             </div>
 
+            {/* Multi-select: Competências */}
             <div>
-              <Label>Competência (Mês)</Label>
-              <select value={compMonth} onChange={(e) => setCompMonth(e.target.value)} className={selectClass}>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label className="mb-0">Competências *</Label>
+                <button type="button" onClick={selectAllMonths} className="text-[10px] text-primary hover:underline">
+                  Selecionar todos
+                </button>
+              </div>
+              <div className="flex items-center gap-2 mb-1.5">
+                <select value={compYear} onChange={(e) => setCompYear(e.target.value)} className="h-8 px-2 text-sm border rounded-md bg-card">
+                  {["2026","2025","2024","2023","2022","2021","2020","2019","2018"].map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
                 {MONTHS.map((m) => (
-                  <option key={m} value={m}>{MONTH_NAMES[m]}</option>
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => toggleMonth(m)}
+                    className={`h-7 w-12 text-xs font-medium rounded transition-colors ${
+                      selectedMonths.has(m)
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card border hover:bg-muted"
+                    }`}
+                  >
+                    {MONTH_NAMES[m].slice(0, 3)}
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
-            <div>
-              <Label>Competência (Ano)</Label>
-              <select value={compYear} onChange={(e) => setCompYear(e.target.value)} className={selectClass}>
-                {["2026","2025","2024","2023","2022","2021","2020","2019","2018"].map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Prioridade *</Label>
+                <select value={priority} onChange={(e) => setPriority(e.target.value as Priority)} className={selectClass}>
+                  {Object.entries(PRIORITY_LABELS).map(([k, v]) => (
+                    <option key={k} value={k}>{v}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>Responsável *</Label>
+                <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className={selectClass} required>
+                  <option value="">Selecione...</option>
+                  {TEAM_MEMBERS.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>Prazo Interno *</Label>
+                <Input type="date" value={internalDeadline} onChange={(e) => setInternalDeadline(e.target.value)} required />
+              </div>
+              <div>
+                <Label>Prazo Cliente</Label>
+                <Input type="date" value={clientDeadline} onChange={(e) => setClientDeadline(e.target.value)} />
+              </div>
             </div>
 
             <div>
-              <Label>Prioridade *</Label>
-              <select value={priority} onChange={(e) => setPriority(e.target.value as Priority)} className={selectClass}>
-                {Object.entries(PRIORITY_LABELS).map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <Label>Responsável *</Label>
-              <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className={selectClass} required>
-                <option value="">Selecione...</option>
-                {TEAM_MEMBERS.map((m) => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <Label>Prazo Interno *</Label>
-              <Input type="date" value={internalDeadline} onChange={(e) => setInternalDeadline(e.target.value)} required />
-            </div>
-            <div>
-              <Label>Prazo Cliente</Label>
-              <Input type="date" value={clientDeadline} onChange={(e) => setClientDeadline(e.target.value)} />
-            </div>
-
-            <div className="col-span-2">
               <Label>Descrição</Label>
               <Textarea
                 value={description}
@@ -175,9 +232,14 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit">Criar Demanda</Button>
+          <div className="flex items-center justify-between pt-2 border-t">
+            <span className="text-xs text-muted-foreground">
+              {totalDemands} demanda{totalDemands > 1 ? "s" : ""} será{totalDemands > 1 ? "ão" : ""} criada{totalDemands > 1 ? "s" : ""}
+            </span>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button type="submit">Criar {totalDemands > 1 ? `${totalDemands} Demandas` : "Demanda"}</Button>
+            </div>
           </div>
         </form>
       </DialogContent>

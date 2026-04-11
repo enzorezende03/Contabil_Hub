@@ -302,7 +302,7 @@ export default function CompetenciasPage() {
         </div>
 
         {/* Legenda */}
-        <div className="flex flex-wrap items-center gap-5 text-xs">
+        <div className="flex flex-wrap items-center gap-3 text-xs">
           {(["none", "lanc_andamento", "lancado", "cb_andamento", "conc_bancaria", "cc_andamento", "conc_contabil", "aguardando_doc", "sem_movimento", "disabled"] as CellLevel[]).map((level) => {
             const cfg = LEVEL_CONFIG[level];
             const labels: Record<CellLevel, string> = {

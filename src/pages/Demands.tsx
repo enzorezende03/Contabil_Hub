@@ -70,13 +70,19 @@ export default function DemandsPage() {
             <h1 className="text-2xl font-bold tracking-tight">Fila de Trabalho</h1>
             <p className="text-sm text-muted-foreground mt-1">{filtered.length} demandas</p>
           </div>
-          <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
-            <button onClick={() => setView("kanban")} className={`p-1.5 rounded-md transition-colors ${view === "kanban" ? "bg-card shadow-sm" : ""}`}>
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button onClick={() => setView("list")} className={`p-1.5 rounded-md transition-colors ${view === "list" ? "bg-card shadow-sm" : ""}`}>
-              <List className="w-4 h-4" />
-            </button>
+          <div className="flex items-center gap-3">
+            <Button onClick={() => setCreateOpen(true)} size="sm" className="gap-1.5">
+              <Plus className="w-4 h-4" />
+              Nova Demanda
+            </Button>
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
+              <button onClick={() => setView("kanban")} className={`p-1.5 rounded-md transition-colors ${view === "kanban" ? "bg-card shadow-sm" : ""}`}>
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button onClick={() => setView("list")} className={`p-1.5 rounded-md transition-colors ${view === "list" ? "bg-card shadow-sm" : ""}`}>
+                <List className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 

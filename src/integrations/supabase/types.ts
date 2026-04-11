@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      clients: {
+        Row: {
+          cnpj: string
+          competencia_inicio: string
+          created_at: string
+          created_by: string
+          id: string
+          razao_social: string
+          tributacao: string
+          updated_at: string
+        }
+        Insert: {
+          cnpj: string
+          competencia_inicio: string
+          created_at?: string
+          created_by: string
+          id?: string
+          razao_social: string
+          tributacao?: string
+          updated_at?: string
+        }
+        Update: {
+          cnpj?: string
+          competencia_inicio?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          razao_social?: string
+          tributacao?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       demand_status_entries: {
         Row: {
           client_name: string

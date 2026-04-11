@@ -46,9 +46,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <aside className="w-60 flex-shrink-0 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border">
         <div className="h-24 flex items-center px-4 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
-            <img src={logo2m} alt="2M Grupo" className="w-44 h-20 object-contain opacity-90" />
+            <img src={logo2m} alt="Contábil Hub" className="w-44 h-20 object-contain opacity-90" />
             <div className="leading-tight">
-              <span className="font-semibold text-sidebar-accent-foreground tracking-tight text-sm block">2M Grupo</span>
+              <span className="font-semibold text-sidebar-accent-foreground tracking-tight text-sm block">Contábil Hub</span>
               <span className="text-[10px] text-sidebar-foreground/60">Gestão Contábil</span>
             </div>
           </div>

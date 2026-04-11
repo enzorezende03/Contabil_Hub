@@ -2,7 +2,6 @@ import { useState, useMemo, Fragment } from "react";
 import AppLayout from "@/components/AppLayout";
 import { MOCK_DEMANDS, CLIENT_TRIBUTACAO } from "@/lib/mock-data";
 import { TRIBUTACAO_LABELS, Tributacao } from "@/lib/types";
-import { Check, Minus, X } from "lucide-react";
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
 const MONTH_SHORT: Record<string, string> = {
@@ -11,19 +10,15 @@ const MONTH_SHORT: Record<string, string> = {
   "09": "Set", "10": "Out", "11": "Nov", "12": "Dez",
 };
 
-type CellStatus = "done" | "partial" | "none";
+// Status levels for each cell
+type CellLevel = "none" | "lancado" | "conc_bancaria" | "conc_contabil";
 
-function CellIcon({ status }: { status: CellStatus }) {
-  if (status === "done") return <Check className="w-4 h-4 text-status-completed" />;
-  if (status === "partial") return <Minus className="w-4 h-4 text-status-in-progress" />;
-  return <X className="w-4 h-4 text-muted-foreground/30" />;
-}
-
-function cellBg(status: CellStatus) {
-  if (status === "done") return "bg-status-completed/15";
-  if (status === "partial") return "bg-status-in-progress/15";
-  return "";
-}
+const LEVEL_CONFIG: Record<CellLevel, { bg: string; text: string; label: string }> = {
+  none: { bg: "bg-muted/30", text: "text-muted-foreground/40", label: "—" },
+  lancado: { bg: "bg-yellow-500/20", text: "text-yellow-500", label: "L" },
+  conc_bancaria: { bg: "bg-blue-500/20", text: "text-blue-500", label: "CB" },
+  conc_contabil: { bg: "bg-emerald-500/20", text: "text-emerald-500", label: "CC" },
+};
 
 export default function CompetenciasPage() {
   const currentYear = new Date().getFullYear().toString();
@@ -31,35 +26,22 @@ export default function CompetenciasPage() {
   const [selectedClient, setSelectedClient] = useState("all");
   const [selectedTributacao, setSelectedTributacao] = useState("all");
 
-  // All non-legacy demands
   const allDemands = useMemo(() => MOCK_DEMANDS.filter((d) => !d.isLegacy), []);
-
-  // Unique clients & tributações
   const allClients = useMemo(() => [...new Set(allDemands.map((d) => d.client))].sort(), [allDemands]);
   const allTributacoes = useMemo(() => {
     const set = new Set<Tributacao>();
-    allClients.forEach((c) => {
-      const t = CLIENT_TRIBUTACAO[c];
-      if (t) set.add(t);
-    });
+    allClients.forEach((c) => { const t = CLIENT_TRIBUTACAO[c]; if (t) set.add(t); });
     return [...set].sort();
   }, [allClients]);
 
-  // Build matrix with filters
   const { clients, matrix } = useMemo(() => {
     const yearDemands = allDemands.filter((d) => d.competencia.endsWith(`/${year}`));
-
     let clientSet = [...new Set(yearDemands.map((d) => d.client))].sort();
 
-    // Apply filters
-    if (selectedClient !== "all") {
-      clientSet = clientSet.filter((c) => c === selectedClient);
-    }
-    if (selectedTributacao !== "all") {
-      clientSet = clientSet.filter((c) => CLIENT_TRIBUTACAO[c] === selectedTributacao);
-    }
+    if (selectedClient !== "all") clientSet = clientSet.filter((c) => c === selectedClient);
+    if (selectedTributacao !== "all") clientSet = clientSet.filter((c) => CLIENT_TRIBUTACAO[c] === selectedTributacao);
 
-    const matrix: Record<string, Record<string, { lancamentos: CellStatus; conciliacoes: CellStatus }>> = {};
+    const matrix: Record<string, Record<string, CellLevel>> = {};
 
     clientSet.forEach((client) => {
       matrix[client] = {};
@@ -67,36 +49,28 @@ export default function CompetenciasPage() {
         const comp = `${m}/${year}`;
         const clientMonth = yearDemands.filter((d) => d.client === client && d.competencia === comp);
 
-        const lanc = clientMonth.filter((d) => d.type === "lancamentos");
-        let lancStatus: CellStatus = "none";
-        if (lanc.length > 0) {
-          lancStatus = lanc.every((d) => d.status === "completed") ? "done" : "partial";
-        }
+        const hasLanc = clientMonth.some((d) => d.type === "lancamentos");
+        const hasConcBanc = clientMonth.some((d) => d.type === "conciliacao_bancaria");
+        const hasConcCont = clientMonth.some((d) => d.type === "conciliacao_contabil");
 
-        const conc = clientMonth.filter((d) =>
-          d.type === "conciliacao_bancaria" || d.type === "conciliacao_contabil"
-        );
-        let concStatus: CellStatus = "none";
-        if (conc.length > 0) {
-          concStatus = conc.every((d) => d.status === "completed") ? "done" : "partial";
-        }
+        // Highest level reached
+        let level: CellLevel = "none";
+        if (hasConcCont) level = "conc_contabil";
+        else if (hasConcBanc) level = "conc_bancaria";
+        else if (hasLanc) level = "lancado";
 
-        matrix[client][m] = { lancamentos: lancStatus, conciliacoes: concStatus };
+        matrix[client][m] = level;
       });
     });
 
     return { clients: clientSet, matrix };
   }, [year, selectedClient, selectedTributacao, allDemands]);
 
-  // Stats
   const totalClients = clients.length;
-  const totalCells = totalClients * MONTHS.length * 2;
-  const doneCells = clients.reduce((acc, c) => {
-    return acc + MONTHS.reduce((a, m) => {
-      const cell = matrix[c][m];
-      return a + (cell.lancamentos === "done" ? 1 : 0) + (cell.conciliacoes === "done" ? 1 : 0);
-    }, 0);
-  }, 0);
+  const totalCells = totalClients * MONTHS.length;
+  const doneCells = clients.reduce((acc, c) =>
+    acc + MONTHS.reduce((a, m) => a + (matrix[c][m] === "conc_contabil" ? 1 : 0), 0), 0
+  );
   const pctDone = totalCells > 0 ? Math.round((doneCells / totalCells) * 100) : 0;
 
   const selectClass = "h-8 px-3 text-sm border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary";
@@ -107,7 +81,7 @@ export default function CompetenciasPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Competências {year}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Visão geral de lançamentos e conciliações por empresa e mês
+            Evolução contábil por empresa e mês
           </p>
         </div>
 
@@ -130,28 +104,34 @@ export default function CompetenciasPage() {
           </select>
         </div>
 
-        {/* Legenda e resumo */}
-        <div className="flex items-center gap-6 text-xs">
+        {/* Legenda */}
+        <div className="flex items-center gap-5 text-xs">
           <div className="flex items-center gap-1.5">
-            <div className="w-5 h-5 rounded flex items-center justify-center bg-status-completed/15">
-              <Check className="w-3.5 h-3.5 text-status-completed" />
+            <div className="w-6 h-6 rounded flex items-center justify-center bg-yellow-500/20">
+              <span className="text-yellow-500 font-semibold text-[10px]">L</span>
             </div>
-            <span className="text-muted-foreground">Concluído</span>
+            <span className="text-muted-foreground">Lançado</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-5 h-5 rounded flex items-center justify-center bg-status-in-progress/15">
-              <Minus className="w-3.5 h-3.5 text-status-in-progress" />
+            <div className="w-6 h-6 rounded flex items-center justify-center bg-blue-500/20">
+              <span className="text-blue-500 font-semibold text-[10px]">CB</span>
             </div>
-            <span className="text-muted-foreground">Em andamento</span>
+            <span className="text-muted-foreground">Conc. Bancária</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-5 h-5 rounded flex items-center justify-center">
-              <X className="w-3.5 h-3.5 text-muted-foreground/30" />
+            <div className="w-6 h-6 rounded flex items-center justify-center bg-emerald-500/20">
+              <span className="text-emerald-500 font-semibold text-[10px]">CC</span>
+            </div>
+            <span className="text-muted-foreground">Conc. Contábil</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-6 h-6 rounded flex items-center justify-center bg-muted/30">
+              <span className="text-muted-foreground/40 font-semibold text-[10px]">—</span>
             </div>
             <span className="text-muted-foreground">Sem demanda</span>
           </div>
           <div className="ml-auto text-muted-foreground">
-            {totalClients} empresas · {pctDone}% concluído
+            {totalClients} empresas · {pctDone}% conciliado
           </div>
         </div>
 
@@ -166,19 +146,9 @@ export default function CompetenciasPage() {
                   </th>
                   <th className="text-left px-2 py-2 font-medium text-muted-foreground text-xs">Trib.</th>
                   {MONTHS.map((m) => (
-                    <th key={m} className="text-center px-1 py-2 font-medium text-muted-foreground" colSpan={2}>
+                    <th key={m} className="text-center px-1 py-2 font-medium text-muted-foreground min-w-[44px]">
                       {MONTH_SHORT[m]}
                     </th>
-                  ))}
-                </tr>
-                <tr className="border-b bg-muted/30">
-                  <th className="sticky left-0 bg-muted/30 z-10" />
-                  <th />
-                  {MONTHS.map((m) => (
-                    <Fragment key={m}>
-                      <th className="text-center px-0.5 py-1 text-[10px] text-muted-foreground font-normal">Lanç</th>
-                      <th className="text-center px-0.5 py-1 text-[10px] text-muted-foreground font-normal border-r border-border/50 last:border-r-0">Conc</th>
-                    </Fragment>
                   ))}
                 </tr>
               </thead>
@@ -193,20 +163,14 @@ export default function CompetenciasPage() {
                       </td>
                       <td className="px-2 py-2 text-[10px] text-muted-foreground whitespace-nowrap">{tribLabel}</td>
                       {MONTHS.map((m) => {
-                        const cell = matrix[client][m];
+                        const level = matrix[client][m];
+                        const cfg = LEVEL_CONFIG[level];
                         return (
-                          <Fragment key={m}>
-                            <td className={`text-center px-1 py-2 ${cellBg(cell.lancamentos)}`}>
-                              <div className="flex justify-center">
-                                <CellIcon status={cell.lancamentos} />
-                              </div>
-                            </td>
-                            <td className={`text-center px-1 py-2 border-r border-border/30 last:border-r-0 ${cellBg(cell.conciliacoes)}`}>
-                              <div className="flex justify-center">
-                                <CellIcon status={cell.conciliacoes} />
-                              </div>
-                            </td>
-                          </Fragment>
+                          <td key={m} className="text-center px-1 py-2">
+                            <div className={`mx-auto w-8 h-8 rounded flex items-center justify-center ${cfg.bg}`}>
+                              <span className={`font-semibold text-[10px] ${cfg.text}`}>{cfg.label}</span>
+                            </div>
+                          </td>
                         );
                       })}
                     </tr>

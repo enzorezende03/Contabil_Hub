@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import logo2m from "@/assets/logo-2m-contabilidade.png";
+import logo2m from "@/assets/logo-2m-grupo.png";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");

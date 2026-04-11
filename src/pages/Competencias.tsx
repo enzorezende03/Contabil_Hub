@@ -310,11 +310,8 @@ export default function CompetenciasPage() {
                                   >
                                     <option value="not_started">Não Iniciada</option>
                                     <option value="in_progress">Em Andamento</option>
-                                    <option value="in_review">Em Revisão</option>
                                     <option value="waiting_info">Aguardando Info</option>
                                     <option value="completed">Concluída</option>
-                                    <option value="blocked">Bloqueada</option>
-                                    <option value="late">Em Atraso</option>
                                   </select>
                                 </div>
                               );

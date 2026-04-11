@@ -331,6 +331,8 @@ export default function CompetenciasPage() {
               <tbody className="divide-y divide-border">
                 {clients.map((client) => {
                   const tribLabel = TRIBUTACAO_LABELS_MAP[clientsMap[client]?.tributacao] || "—";
+                  const unidade = clientsMap[client]?.unidade || "2m_contabilidade";
+                  const unidadeLabel = unidade === "2m_saude" ? "Saúde" : "Contab.";
                   return (
                     <tr key={client} className="hover:bg-muted/20">
                       <td
@@ -338,6 +340,13 @@ export default function CompetenciasPage() {
                         onClick={() => setPanelClient(client)}
                       >
                         {client}
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${
+                          unidade === "2m_saude" ? "bg-emerald-500/15 text-emerald-600" : "bg-blue-500/15 text-blue-600"
+                        }`}>
+                          {unidadeLabel}
+                        </span>
                       </td>
                       <td className="px-2 py-2 text-[10px] text-muted-foreground whitespace-nowrap">{tribLabel}</td>
                       {MONTHS.map((m) => {

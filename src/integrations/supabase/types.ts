@@ -23,6 +23,7 @@ export type Database = {
           id: string
           razao_social: string
           tributacao: string
+          unidade: string
           updated_at: string
         }
         Insert: {
@@ -33,6 +34,7 @@ export type Database = {
           id?: string
           razao_social: string
           tributacao?: string
+          unidade?: string
           updated_at?: string
         }
         Update: {
@@ -43,6 +45,7 @@ export type Database = {
           id?: string
           razao_social?: string
           tributacao?: string
+          unidade?: string
           updated_at?: string
         }
         Relationships: []

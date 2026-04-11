@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { canAccessPage, type AppPage } from "@/lib/permissions";
+import logo2m from "@/assets/logo-2m-contabilidade.png";
 import {
   LayoutDashboard,
   ListTodo,
@@ -43,12 +44,13 @@ export default function AppLayout({ children }: AppLayoutProps) {
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
       <aside className="w-60 flex-shrink-0 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border">
-        <div className="h-14 flex items-center px-5 border-b border-sidebar-border">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">C</span>
+        <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
+          <div className="flex items-center gap-3">
+            <img src={logo2m} alt="2M Contabilidade" className="w-8 h-8 object-contain brightness-0 invert opacity-90" />
+            <div className="leading-tight">
+              <span className="font-semibold text-sidebar-accent-foreground tracking-tight text-sm block">2M Grupo</span>
+              <span className="text-[10px] text-sidebar-foreground/60">Gestão Contábil</span>
             </div>
-            <span className="font-semibold text-sidebar-accent-foreground tracking-tight">ContábilGest</span>
           </div>
         </div>
 

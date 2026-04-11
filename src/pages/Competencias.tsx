@@ -68,6 +68,7 @@ export default function CompetenciasPage() {
   const [year, setYear] = useState(currentYear);
   const [selectedClient, setSelectedClient] = useState("all");
   const [selectedTributacao, setSelectedTributacao] = useState("all");
+  const [selectedUnidade, setSelectedUnidade] = useState("all");
   const [semMovimento, setSemMovimento] = useState<Set<string>>(new Set());
   const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
   const [panelClient, setPanelClient] = useState<string | null>(null);

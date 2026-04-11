@@ -2,49 +2,71 @@ import { useState, useMemo } from "react";
 import AppLayout from "@/components/AppLayout";
 import { MOCK_DEMANDS, TEAM_MEMBERS } from "@/lib/mock-data";
 import { StatusBadge } from "@/components/StatusBadge";
+import { STATUS_LABELS, DemandStatus } from "@/lib/types";
 
 export default function LegacyPage() {
   const legacy = MOCK_DEMANDS.filter((d) => d.isLegacy);
   const getMember = (id: string) => TEAM_MEMBERS.find((m) => m.id === id);
 
-  // Group by year extracted from competencia (MM/YYYY)
+  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [selectedClient, setSelectedClient] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+
+  // Extract unique years, clients, statuses
+  const years = useMemo(() => [...new Set(legacy.map((d) => d.competencia.split("/")[1] || "Outros"))].sort(), []);
+  const clients = useMemo(() => [...new Set(legacy.map((d) => d.client))].sort(), []);
+  const statuses = useMemo(() => [...new Set(legacy.map((d) => d.status))], []);
+
+  // Apply all filters
+  const filtered = useMemo(() => {
+    return legacy.filter((d) => {
+      const year = d.competencia.split("/")[1] || "Outros";
+      if (selectedYear !== "all" && year !== selectedYear) return false;
+      if (selectedClient !== "all" && d.client !== selectedClient) return false;
+      if (selectedStatus !== "all" && d.status !== selectedStatus) return false;
+      return true;
+    });
+  }, [selectedYear, selectedClient, selectedStatus]);
+
+  // Group filtered by year
   const byYear = useMemo(() => {
-    const map: Record<string, typeof legacy> = {};
-    legacy.forEach((d) => {
+    const map: Record<string, typeof filtered> = {};
+    filtered.forEach((d) => {
       const year = d.competencia.split("/")[1] || "Outros";
       if (!map[year]) map[year] = [];
       map[year].push(d);
     });
     return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
-  }, []);
-
-  const years = useMemo(() => byYear.map(([y]) => y), [byYear]);
-  const [selectedYear, setSelectedYear] = useState<string>("all");
-
-  const filteredYears = selectedYear === "all" ? byYear : byYear.filter(([y]) => y === selectedYear);
+  }, [filtered]);
 
   // Global stats
-  const totalFiltered = filteredYears.reduce((s, [, items]) => s + items.length, 0);
-  const completedFiltered = filteredYears.reduce((s, [, items]) => s + items.filter((d) => d.status === "completed").length, 0);
+  const totalFiltered = filtered.length;
+  const completedFiltered = filtered.filter((d) => d.status === "completed").length;
   const pctFiltered = totalFiltered > 0 ? Math.round((completedFiltered / totalFiltered) * 100) : 0;
+
+  const selectClass = "rounded-md border bg-card px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary";
 
   return (
     <AppLayout>
       <div className="p-6 space-y-6 max-w-6xl">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Escritas Antigas</h1>
-            <p className="text-sm text-muted-foreground mt-1">Controle de demandas de anos anteriores, organizado por ano</p>
-          </div>
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-            className="rounded-md border bg-card px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          >
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Escritas Antigas</h1>
+          <p className="text-sm text-muted-foreground mt-1">Controle de demandas de anos anteriores</p>
+        </div>
+
+        {/* Filtros */}
+        <div className="flex flex-wrap items-center gap-3">
+          <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} className={selectClass}>
             <option value="all">Todos os anos</option>
-            {years.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
+            {years.map((y) => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <select value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)} className={selectClass}>
+            <option value="all">Todas as empresas</option>
+            {clients.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={selectedStatus} onChange={(e) => setSelectedStatus(e.target.value)} className={selectClass}>
+            <option value="all">Todos os status</option>
+            {statuses.map((s) => <option key={s} value={s}>{STATUS_LABELS[s as DemandStatus]}</option>)}
           </select>
         </div>
 

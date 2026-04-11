@@ -44,8 +44,8 @@ export interface TeamMember {
 export interface Demand {
   id: string;
   client: string;
-  competencia: string; // MM/YYYY
-  type: DemandType;
+  competencias: string[]; // ["MM/YYYY", ...]
+  types: DemandType[];
   description: string;
   assignee: string; // TeamMember id
   complexity: Complexity;
@@ -58,8 +58,11 @@ export interface Demand {
   completionDate?: string;
   timeSpentMinutes: number;
   notes: string;
-  isLegacy: boolean; // escrita antiga
+  isLegacy: boolean;
   createdAt: string;
+  // Legacy compat
+  competencia?: string;
+  type?: DemandType;
 }
 
 export interface TaskWeight {

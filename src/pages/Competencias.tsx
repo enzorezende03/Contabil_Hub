@@ -3,7 +3,7 @@ import AppLayout from "@/components/AppLayout";
 import { MOCK_DEMANDS, CLIENT_TRIBUTACAO } from "@/lib/mock-data";
 import { TRIBUTACAO_LABELS, Tributacao, DemandStatus, DemandType, STATUS_LABELS, DEMAND_TYPE_LABELS } from "@/lib/types";
 import { StatusBadge } from "@/components/StatusBadge";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -333,17 +333,17 @@ export default function CompetenciasPage() {
         )}
       </div>
 
-      {/* Painel lateral da empresa */}
-      <Sheet open={!!panelClient} onOpenChange={(open) => !open && setPanelClient(null)}>
-        <SheetContent className="w-[520px] sm:max-w-[520px] overflow-y-auto">
+      {/* Modal da empresa */}
+      <Dialog open={!!panelClient} onOpenChange={(open) => !open && setPanelClient(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           {panelData && (
             <>
-              <SheetHeader className="pb-4 border-b">
-                <SheetTitle className="text-lg">{panelData.client}</SheetTitle>
-                <SheetDescription>
+              <DialogHeader className="pb-4 border-b">
+                <DialogTitle className="text-lg">{panelData.client}</DialogTitle>
+                <DialogDescription>
                   {panelData.trib ? TRIBUTACAO_LABELS[panelData.trib] : "Sem tributação definida"} — {year}
-                </SheetDescription>
-              </SheetHeader>
+                </DialogDescription>
+              </DialogHeader>
 
               <div className="py-4 space-y-4">
                 {/* Resumo visual por mês */}
@@ -504,8 +504,8 @@ export default function CompetenciasPage() {
               </div>
             </>
           )}
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

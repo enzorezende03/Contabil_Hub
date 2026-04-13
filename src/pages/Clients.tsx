@@ -176,6 +176,7 @@ export default function Clients() {
       unidade: client.unidade || "2m_contabilidade",
       obrigatoriedade_ecd: client.obrigatoriedade_ecd || false,
       competencia_inicio: client.competencia_inicio,
+      perfil: client.perfil || "standard",
     });
     setDialogOpen(true);
   };

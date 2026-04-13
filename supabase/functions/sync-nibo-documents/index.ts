@@ -101,35 +101,43 @@ serve(async (req) => {
     const cnpjMap = new Map<string, string>();
     dbClients.forEach((c: any) => cnpjMap.set(c.cnpj.replace(/\D/g, ""), c.razao_social));
 
-    // Step 3: Fetch "Documentos recebidos" via reports/obligations/complete
-    const reportsUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${firm.id}/reports/obligations/complete`;
-    console.log("Fetching reports from:", reportsUrl);
+    // Step 3: Try multiple endpoints to find "Documentos recebidos"
+    const baseUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${firm.id}`;
+    const endpointsToTry = [
+      { name: "reports/obligations/complete", url: `${baseUrl}/reports/obligations/complete` },
+      { name: "reports/obligations", url: `${baseUrl}/reports/obligations` },
+      { name: "protocols", url: `${baseUrl}/protocols` },
+      { name: "fileds", url: `${baseUrl}/fileds` },
+      { name: "receiveddocuments", url: `${baseUrl}/receiveddocuments` },
+      { name: "documents", url: `${baseUrl}/documents` },
+    ];
 
-    // First try raw request to see what the endpoint returns
-    let allReports: any[] = [];
-    try {
-      const rawRes = await fetch(reportsUrl, { headers: niboHeaders });
-      console.log("Reports endpoint status:", rawRes.status);
-      const rawBody = await rawRes.text();
-      console.log("Reports raw response (first 2000 chars):", rawBody.substring(0, 2000));
+    const endpointResults: Record<string, any> = {};
 
-      if (rawRes.ok) {
-        const data = JSON.parse(rawBody);
-        allReports = data.items || data.value || (Array.isArray(data) ? data : []);
-        console.log(`Parsed ${allReports.length} reports`);
-        if (allReports.length > 0) {
-          console.log("Sample report:", JSON.stringify(allReports[0]).substring(0, 1000));
-        }
-
-        // If first page has 100 items, fetch remaining pages
-        if (allReports.length >= 100) {
-          const remaining = await fetchAllPages(reportsUrl + "?$skip=100", niboHeaders, "filedDate desc");
-          allReports.push(...remaining);
-        }
+    for (const ep of endpointsToTry) {
+      try {
+        const res = await fetch(ep.url, { headers: niboHeaders });
+        const body = await res.text();
+        endpointResults[ep.name] = {
+          status: res.status,
+          preview: body.substring(0, 500),
+        };
+        console.log(`Endpoint ${ep.name}: status=${res.status}, body=${body.substring(0, 500)}`);
+      } catch (e) {
+        endpointResults[ep.name] = { status: "error", preview: String(e) };
+        console.log(`Endpoint ${ep.name}: error=${e}`);
       }
-    } catch (e) {
-      console.error("Failed to fetch reports:", e);
     }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        accounting_firm_id: firm.id,
+        accounting_firm_name: firm.name,
+        endpoint_results: endpointResults,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
 
     // Step 4: Process reports into alerts, matching by CNPJ
     const alertsMap = new Map<string, {

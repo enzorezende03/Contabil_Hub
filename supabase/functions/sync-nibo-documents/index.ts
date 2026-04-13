@@ -4,35 +4,17 @@ import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 const NIBO_ACCOUNTANT_URL = "https://api.nibo.com.br/accountant/api/v1";
 
-async function fetchAllPages(
-  url: string,
-  headers: Record<string, string>,
-  orderBy = "name",
-  maxPages = 20
-): Promise<any[]> {
-  const allItems: any[] = [];
-  let skip = 0;
-  const top = 100;
-
-  for (let page = 0; page < maxPages; page++) {
-    const separator = url.includes("?") ? "&" : "?";
-    const pageUrl = `${url}${separator}$top=${top}&$skip=${skip}&$orderby=${orderBy}`;
-    const res = await fetch(pageUrl, { headers });
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`API error [${res.status}] for ${pageUrl}: ${body}`);
-    }
-    const data = await res.json();
-    const items = data.items || data.value || (Array.isArray(data) ? data : []);
-    allItems.push(...items);
-
-    console.log(`Page ${page + 1}: fetched ${items.length} items (total: ${allItems.length})`);
-    if (items.length < top) break;
-    skip += top;
-  }
-
-  return allItems;
-}
+// Status mapping from NIBO API docs
+const STATUS_MAP: Record<number, string> = {
+  1: "excluido",
+  2: "cancelado",
+  3: "nao_recebido",
+  4: "recebido",
+  5: "nao_ativo",
+  6: "ativo",
+  7: "baixa_justificada",
+  8: "pago",
+};
 
 function getNiboHeaders(apiKey: string, userId?: string): Record<string, string> {
   const headers: Record<string, string> = {
@@ -41,6 +23,33 @@ function getNiboHeaders(apiKey: string, userId?: string): Record<string, string>
   };
   if (userId) headers["X-User-Id"] = userId;
   return headers;
+}
+
+async function fetchAllPages(
+  url: string,
+  headers: Record<string, string>,
+  maxPages = 20
+): Promise<any[]> {
+  const allItems: any[] = [];
+  let skip = 0;
+  const top = 100;
+
+  for (let page = 0; page < maxPages; page++) {
+    const separator = url.includes("?") ? "&" : "?";
+    const pageUrl = `${url}${separator}$top=${top}&$skip=${skip}`;
+    const res = await fetch(pageUrl, { headers });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`API error [${res.status}] for ${pageUrl}: ${body}`);
+    }
+    const data = await res.json();
+    const items = data.items || data.value || (Array.isArray(data) ? data : []);
+    allItems.push(...items);
+    if (items.length < top) break;
+    skip += top;
+  }
+
+  return allItems;
 }
 
 async function getAccountingFirmId(headers: Record<string, string>): Promise<{ id: string; name: string }> {
@@ -54,18 +63,6 @@ async function getAccountingFirmId(headers: Record<string, string>): Promise<{ i
   if (!firms?.length) throw new Error("No accounting firms found in NIBO");
   return { id: firms[0].id || firms[0].Id, name: firms[0].name };
 }
-
-// Status mapping from NIBO API docs
-const STATUS_MAP: Record<number, string> = {
-  1: "excluido",
-  2: "cancelado",
-  3: "nao_recebido",
-  4: "recebido",
-  5: "nao_ativo",
-  6: "ativo",
-  7: "baixa_justificada",
-  8: "pago",
-};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -86,6 +83,8 @@ serve(async (req) => {
     const firm = await getAccountingFirmId(niboHeaders);
     console.log("Accounting firm:", firm.name, "ID:", firm.id);
 
+    const baseUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${firm.id}`;
+
     // Step 2: Get DB clients for CNPJ matching
     const { data: dbClients, error: clientsError } = await supabase
       .from("clients")
@@ -101,76 +100,67 @@ serve(async (req) => {
     const cnpjMap = new Map<string, string>();
     dbClients.forEach((c: any) => cnpjMap.set(c.cnpj.replace(/\D/g, ""), c.razao_social));
 
-    // Step 3: Explore available data
-    const baseUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${firm.id}`;
-    
-    // Check all accounting firms
-    const allFirmsRes = await fetch(`${NIBO_ACCOUNTANT_URL}/accountingfirms`, { headers: niboHeaders });
-    const allFirmsBody = await allFirmsRes.text();
-    console.log("All firms:", allFirmsBody.substring(0, 2000));
-
-    // Check obligation groups
-    let obligationGroups: any[] = [];
+    // Step 3: Try /fileds first (Documentos recebidos - may be beta-only)
+    let allFileds: any[] = [];
+    let filedsAvailable = false;
     try {
-      obligationGroups = await fetchAllPages(`${baseUrl}/obligationgroups`, niboHeaders);
-      console.log(`Obligation groups: ${obligationGroups.length}`);
-      if (obligationGroups.length > 0) {
-        console.log("Sample group:", JSON.stringify(obligationGroups[0]).substring(0, 500));
-      }
-    } catch(e) { console.log("obligationgroups error:", e); }
-
-    // Check obligations (no orderby=name, that field doesn't exist)
-    let obligations: any[] = [];
-    try {
-      const oblRes = await fetch(`${baseUrl}/obligations?$top=100&$skip=0`, { headers: niboHeaders });
-      const oblBody = await oblRes.text();
-      console.log("Obligations status:", oblRes.status);
-      console.log("Obligations raw (first 2000):", oblBody.substring(0, 2000));
-      if (oblRes.ok) {
-        const oblData = JSON.parse(oblBody);
-        obligations = oblData.items || oblData.value || (Array.isArray(oblData) ? oblData : []);
-        console.log(`Obligations: ${obligations.length}`);
-        if (obligations.length > 0) {
-          console.log("Sample obligation 1:", JSON.stringify(obligations[0]).substring(0, 800));
-          if (obligations.length > 1) console.log("Sample obligation 2:", JSON.stringify(obligations[1]).substring(0, 800));
+      const filedsRes = await fetch(`${baseUrl}/fileds?$top=100&$skip=0`, { headers: niboHeaders });
+      if (filedsRes.ok) {
+        const filedsData = await filedsRes.json();
+        allFileds = filedsData.items || filedsData.value || (Array.isArray(filedsData) ? filedsData : []);
+        filedsAvailable = allFileds.length > 0 || filedsRes.status === 200;
+        if (allFileds.length >= 100) {
+          const more = await fetchAllPages(`${baseUrl}/fileds?$skip=100`, niboHeaders);
+          allFileds.push(...more);
         }
+        console.log(`Fileds endpoint: ${allFileds.length} documents`);
+      } else {
+        console.log(`Fileds endpoint not available (status ${filedsRes.status})`);
+        await filedsRes.text(); // consume body
       }
-    } catch(e) { console.log("obligations error:", e); }
+    } catch (e) {
+      console.log("Fileds endpoint error:", e);
+    }
 
-    // Try reports with different approaches
-    try {
-      // Try without any OData params
-      const r1 = await fetch(`${baseUrl}/reports/obligations/complete`, { headers: niboHeaders });
-      const b1 = await r1.text();
-      console.log("Reports no-params:", r1.status, b1.substring(0, 500));
-      
-      // Try with customer filter (matched customer)
-      const { data: dbClients2 } = await supabase.from("clients").select("cnpj, razao_social").limit(1);
-      if (dbClients2?.[0]) {
-        // Find the NIBO customer ID for this client
-        const customersUrl2 = `${baseUrl}/customers`;
-        const custRes = await fetch(`${customersUrl2}?$top=5&$filter=documentNumber eq '${dbClients2[0].cnpj.replace(/\D/g, "")}'`, { headers: niboHeaders });
-        const custBody = await custRes.text();
-        console.log("Customer filter result:", custRes.status, custBody.substring(0, 500));
-
-        // Also try the fileds endpoint with the specific beta format
-        const r3 = await fetch(`${baseUrl}/fileds?$top=5`, { headers: niboHeaders });
-        console.log("Fileds with top:", r3.status, (await r3.text()).substring(0, 500));
+    // Step 4: Fallback to /reports/obligations/complete
+    let allReports: any[] = [];
+    if (!filedsAvailable || allFileds.length === 0) {
+      try {
+        allReports = await fetchAllPages(`${baseUrl}/reports/obligations/complete`, niboHeaders);
+        console.log(`Reports endpoint: ${allReports.length} reports`);
+        if (allReports.length > 0) {
+          console.log("Sample report:", JSON.stringify(allReports[0]).substring(0, 800));
+        }
+      } catch (e) {
+        console.log("Reports endpoint error:", e);
       }
-    } catch(e) { console.log("reports exploration error:", e); }
+    }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        firm,
-        obligation_groups: obligationGroups.length,
-        obligations_count: obligations.length,
-        sample_obligations: obligations.slice(0, 3),
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    // Step 5: Also fetch customers for matching
+    const niboCustomers = await fetchAllPages(`${baseUrl}/customers?$orderby=name`, niboHeaders);
+    console.log(`Fetched ${niboCustomers.length} customers from NIBO`);
 
-    // Step 4: Process reports into alerts, matching by CNPJ
+    // Step 6: Match NIBO customers to DB clients
+    const matchedCustomers: { niboId: string; cnpj: string; clientName: string; niboName: string }[] = [];
+    for (const cust of niboCustomers) {
+      const custCnpj = (cust.documentNumber || cust.document || cust.cnpj || "").replace(/\D/g, "");
+      const dbName = cnpjMap.get(custCnpj);
+      if (dbName) {
+        matchedCustomers.push({
+          niboId: cust.id || cust.Id,
+          cnpj: custCnpj,
+          clientName: dbName,
+          niboName: cust.name || cust.tradingName || "",
+        });
+      }
+    }
+    console.log(`Matched ${matchedCustomers.length} customers`);
+
+    // Step 7: Build alerts from available data
+    const now = new Date();
+    const currentMonth = String(now.getMonth() + 1).padStart(2, "0");
+    const currentYear = String(now.getFullYear());
+
     const alertsMap = new Map<string, {
       client_cnpj: string;
       client_name: string;
@@ -181,68 +171,72 @@ serve(async (req) => {
       nibo_status: string;
     }>();
 
-    let matchedCount = 0;
+    // Use fileds data if available
+    const sourceData = allFileds.length > 0 ? allFileds : allReports;
 
-    for (const report of allReports) {
-      // Extract CNPJ from customer nested object or top-level
-      const custCnpj = (
-        report.customer?.documentNumber ||
-        report.customer?.document ||
-        report.customer?.cnpj ||
-        report.documentNumber ||
-        report.cnpj ||
-        ""
-      ).replace(/\D/g, "");
+    if (sourceData.length > 0) {
+      for (const item of sourceData) {
+        const custCnpj = (
+          item.customer?.documentNumber || item.customer?.document ||
+          item.documentNumber || item.cnpj || ""
+        ).replace(/\D/g, "");
 
-      const clientName = cnpjMap.get(custCnpj);
-      if (!clientName) continue;
-      matchedCount++;
+        const clientName = cnpjMap.get(custCnpj);
+        if (!clientName) continue;
 
-      // Extract competência (accrual date)
-      const accrual = report.accrual || "";
-      let month = "", year = "";
-      if (accrual) {
-        const date = new Date(accrual);
-        if (!isNaN(date.getTime())) {
-          month = String(date.getMonth() + 1).padStart(2, "0");
-          year = String(date.getFullYear());
+        const accrual = item.accrual || "";
+        let month = "", year = "";
+        if (accrual) {
+          const date = new Date(accrual);
+          if (!isNaN(date.getTime())) {
+            month = String(date.getMonth() + 1).padStart(2, "0");
+            year = String(date.getFullYear());
+          }
+        }
+        if (!month || !year) continue;
+
+        const statusNum = typeof item.status === "number" ? item.status : parseInt(item.status, 10);
+        const niboStatus = STATUS_MAP[statusNum] || "pending";
+        const filedDate = item.filedDate || null;
+
+        const key = `${custCnpj}|${month}|${year}`;
+        const existing = alertsMap.get(key);
+
+        if (existing) {
+          existing.document_count++;
+          if (filedDate && (!existing.last_filed_date || filedDate > existing.last_filed_date)) {
+            existing.last_filed_date = filedDate;
+          }
+          if (niboStatus === "recebido") existing.nibo_status = "recebido";
+        } else {
+          alertsMap.set(key, {
+            client_cnpj: custCnpj,
+            client_name: clientName,
+            month, year,
+            document_count: 1,
+            last_filed_date: filedDate,
+            nibo_status: niboStatus,
+          });
         }
       }
-      if (!month || !year) continue;
-
-      const statusNum = typeof report.status === "number" ? report.status : parseInt(report.status, 10);
-      const niboStatus = STATUS_MAP[statusNum] || "pending";
-      const filedDate = report.filedDate || null;
-
-      const key = `${custCnpj}|${month}|${year}`;
-      const existing = alertsMap.get(key);
-
-      if (existing) {
-        existing.document_count++;
-        if (filedDate && (!existing.last_filed_date || filedDate > existing.last_filed_date)) {
-          existing.last_filed_date = filedDate;
-        }
-        // Keep most relevant status (recebido > others)
-        if (niboStatus === "recebido") existing.nibo_status = "recebido";
-      } else {
-        alertsMap.set(key, {
-          client_cnpj: custCnpj,
-          client_name: clientName,
-          month,
-          year,
-          document_count: 1,
-          last_filed_date: filedDate,
-          nibo_status: niboStatus,
+    } else {
+      // Fallback: sync matched customers for current month
+      for (const mc of matchedCustomers) {
+        alertsMap.set(`${mc.cnpj}|${currentMonth}|${currentYear}`, {
+          client_cnpj: mc.cnpj,
+          client_name: mc.clientName,
+          month: currentMonth,
+          year: currentYear,
+          document_count: 0,
+          last_filed_date: null,
+          nibo_status: "synced",
         });
       }
     }
 
-    console.log(`Matched ${matchedCount} reports to DB clients, ${alertsMap.size} unique periods`);
-
-    // Step 5: Upsert alerts into DB
+    // Step 8: Upsert alerts
     const alertRows = Array.from(alertsMap.values());
     let synced = 0;
-
     if (alertRows.length > 0) {
       const { error: upsertError } = await supabase
         .from("nibo_document_alerts")
@@ -257,10 +251,12 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        accounting_firm_id: firm.id,
-        accounting_firm_name: firm.name,
-        total_reports: allReports.length,
-        matched_reports: matchedCount,
+        accounting_firm: firm.name,
+        nibo_customers: niboCustomers.length,
+        matched_clients: matchedCustomers.length,
+        fileds_available: filedsAvailable,
+        fileds_count: allFileds.length,
+        reports_count: allReports.length,
         synced,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

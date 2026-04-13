@@ -433,6 +433,12 @@ export default function CompetenciasPage() {
               </div>
             );
           })}
+          <div className="flex items-center gap-1">
+            <div className="w-3.5 h-3.5 rounded-full bg-green-500 flex items-center justify-center">
+              <FileText className="w-2 h-2 text-white" />
+            </div>
+            <span className="text-muted-foreground text-[10px]">Doc. NIBO</span>
+          </div>
           <div className="ml-auto text-muted-foreground">
             {totalClients} empresas · {pctDone}% conciliado
           </div>

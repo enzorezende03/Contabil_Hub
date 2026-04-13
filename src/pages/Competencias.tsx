@@ -270,6 +270,43 @@ export default function CompetenciasPage() {
 
   const selectClass = "h-8 px-3 text-sm border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary";
 
+  const yearOptions = ["2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019", "2018"];
+
+  if (!yearConfirmed) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[70vh]">
+          <div className="bg-card border rounded-xl p-8 shadow-lg max-w-md w-full text-center space-y-6">
+            <div>
+              <h2 className="text-xl font-bold text-foreground">Fechamento Contábil</h2>
+              <p className="text-sm text-muted-foreground mt-2">
+                Selecione o ano de trabalho antes de continuar
+              </p>
+            </div>
+            <select
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              className="h-12 w-full px-4 text-lg border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-center font-semibold"
+            >
+              {yearOptions.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Você está prestes a trabalhar no ano <strong className="text-foreground">{year}</strong>. Confirme para prosseguir.
+            </p>
+            <button
+              onClick={() => setYearConfirmed(true)}
+              className="w-full h-11 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors"
+            >
+              Confirmar e Continuar
+            </button>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="p-6 space-y-6">

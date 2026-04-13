@@ -151,7 +151,7 @@ export default function DemandsPage() {
       <div className="p-6 space-y-4 max-w-7xl">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Fila de Trabalho</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Solicitação de Clientes</h1>
             <p className="text-sm text-muted-foreground mt-1">{filtered.length} demandas</p>
           </div>
           <div className="flex items-center gap-3">

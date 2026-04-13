@@ -105,16 +105,30 @@ serve(async (req) => {
     const reportsUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${firm.id}/reports/obligations/complete`;
     console.log("Fetching reports from:", reportsUrl);
 
+    // First try raw request to see what the endpoint returns
     let allReports: any[] = [];
     try {
-      allReports = await fetchAllPages(reportsUrl, niboHeaders, "filedDate desc");
-      console.log(`Fetched ${allReports.length} obligation reports from NIBO`);
-      if (allReports.length > 0) {
-        console.log("Sample report:", JSON.stringify(allReports[0]).substring(0, 1000));
+      const rawRes = await fetch(reportsUrl, { headers: niboHeaders });
+      console.log("Reports endpoint status:", rawRes.status);
+      const rawBody = await rawRes.text();
+      console.log("Reports raw response (first 2000 chars):", rawBody.substring(0, 2000));
+
+      if (rawRes.ok) {
+        const data = JSON.parse(rawBody);
+        allReports = data.items || data.value || (Array.isArray(data) ? data : []);
+        console.log(`Parsed ${allReports.length} reports`);
+        if (allReports.length > 0) {
+          console.log("Sample report:", JSON.stringify(allReports[0]).substring(0, 1000));
+        }
+
+        // If first page has 100 items, fetch remaining pages
+        if (allReports.length >= 100) {
+          const remaining = await fetchAllPages(reportsUrl + "?$skip=100", niboHeaders, "filedDate desc");
+          allReports.push(...remaining);
+        }
       }
     } catch (e) {
       console.error("Failed to fetch reports:", e);
-      throw new Error(`Reports endpoint error: ${e instanceof Error ? e.message : String(e)}`);
     }
 
     // Step 4: Process reports into alerts, matching by CNPJ

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 interface CreateDemandDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: (demand: Demand) => void;
+  onCreated: () => void;
 }
 
 const MONTHS = ["01","02","03","04","05","06","07","08","09","10","11","12"];

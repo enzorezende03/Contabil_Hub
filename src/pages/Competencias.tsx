@@ -361,8 +361,20 @@ export default function CompetenciasPage() {
     <AppLayout>
       <div className="p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Fechamento Contábil {year}</h1>
-          <p className="text-sm text-muted-foreground mt-1">Evolução contábil por empresa e mês</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Fechamento Contábil {year}</h1>
+              <p className="text-sm text-muted-foreground mt-1">Evolução contábil por empresa e mês</p>
+            </div>
+            <button
+              onClick={syncNibo}
+              disabled={syncing}
+              className="flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              Sincronizar NIBO
+            </button>
+          </div>
         </div>
 
         {/* Filtros */}

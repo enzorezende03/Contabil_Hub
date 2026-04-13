@@ -522,8 +522,8 @@ export default function CompetenciasPage() {
                                 <span className={`font-semibold text-[10px] ${cfg.text}`}>{cfg.label}</span>
                               </div>
                               {niboAlert && !isDisabled && (
-                                <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-500 flex items-center justify-center" title={`NIBO: ${niboAlert.document_count} doc(s)`}>
-                                  <FileText className="w-2 h-2 text-white" />
+                                <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-green-500 flex items-center justify-center ring-2 ring-card" title={`NIBO: ${niboAlert.document_count} doc(s) — Status: ${niboAlert.nibo_status}`}>
+                                  <FileText className="w-2.5 h-2.5 text-white" />
                                 </div>
                               )}
                             </div>

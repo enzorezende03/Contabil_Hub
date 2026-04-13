@@ -70,7 +70,15 @@ serve(async (req) => {
       });
     }
 
-    // Step 3: Fetch filed documents from NIBO
+    // Step 3: Try to list obligation groups first to validate API access
+    const testUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${accountingFirmId}/obligationgroups?$top=5`;
+    console.log("Testing API access with:", testUrl);
+    const testRes = await fetch(testUrl, { headers: niboHeaders });
+    console.log("Obligation groups response status:", testRes.status);
+    const testBody = await testRes.text();
+    console.log("Obligation groups response:", testBody.substring(0, 500));
+
+    // Step 3b: Fetch filed documents from NIBO
     const filedsUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${accountingFirmId}/fileds?$top=500`;
     console.log("Fetching fileds from:", filedsUrl);
 

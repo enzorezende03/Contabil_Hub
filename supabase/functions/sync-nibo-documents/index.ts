@@ -119,14 +119,21 @@ serve(async (req) => {
       }
     } catch(e) { console.log("obligationgroups error:", e); }
 
-    // Check obligations
+    // Check obligations (no orderby=name, that field doesn't exist)
     let obligations: any[] = [];
     try {
-      obligations = await fetchAllPages(`${baseUrl}/obligations`, niboHeaders);
-      console.log(`Obligations: ${obligations.length}`);
-      if (obligations.length > 0) {
-        console.log("Sample obligation:", JSON.stringify(obligations[0]).substring(0, 500));
-        console.log("Sample obligation 2:", JSON.stringify(obligations[1] || {}).substring(0, 500));
+      const oblRes = await fetch(`${baseUrl}/obligations?$top=100&$skip=0`, { headers: niboHeaders });
+      const oblBody = await oblRes.text();
+      console.log("Obligations status:", oblRes.status);
+      console.log("Obligations raw (first 2000):", oblBody.substring(0, 2000));
+      if (oblRes.ok) {
+        const oblData = JSON.parse(oblBody);
+        obligations = oblData.items || oblData.value || (Array.isArray(oblData) ? oblData : []);
+        console.log(`Obligations: ${obligations.length}`);
+        if (obligations.length > 0) {
+          console.log("Sample obligation 1:", JSON.stringify(obligations[0]).substring(0, 800));
+          if (obligations.length > 1) console.log("Sample obligation 2:", JSON.stringify(obligations[1]).substring(0, 800));
+        }
       }
     } catch(e) { console.log("obligations error:", e); }
 

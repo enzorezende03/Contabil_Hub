@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
+import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { StatusBadge } from "@/components/StatusBadge";
 import { MOCK_DEMANDS, TEAM_MEMBERS } from "@/lib/mock-data";
@@ -40,9 +41,61 @@ export default function DemandsPage() {
   const [filterAssignee, setFilterAssignee] = usePersistedFilter<string>("demandas", "assignee", "all");
   const [createOpen, setCreateOpen] = useState(false);
   const [localDemands, setLocalDemands] = useState<Demand[]>(MOCK_DEMANDS);
+  const [statusEntries, setStatusEntries] = useState<Record<string, DemandStatus>>({});
 
+  // Fetch demand_status_entries to derive demand status from closing panel
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from("demand_status_entries")
+        .select("client_name, month, year, demand_type, status");
+      if (data) {
+        const map: Record<string, DemandStatus> = {};
+        data.forEach((d: any) => {
+          const key = `${d.client_name}|${d.month}/${d.year}|${d.demand_type}`;
+          map[key] = d.status as DemandStatus;
+        });
+        setStatusEntries(map);
+      }
+    };
+    load();
+  }, []);
+
+  // Derive demand status from closing panel entries
+  const demandsWithDerivedStatus = useMemo(() => {
+    return localDemands.map((d) => {
+      // Only derive for types tracked in the closing panel
+      const closingTypes = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"];
+      const relevantTypes = d.types.filter((t) => closingTypes.includes(t));
+      if (relevantTypes.length === 0 || d.competencias.length === 0) return d;
+
+      const allStatuses: DemandStatus[] = [];
+      d.competencias.forEach((comp) => {
+        // comp format: "MM/YYYY" — split to get month
+        relevantTypes.forEach((type) => {
+          const key = `${d.client}|${comp}|${type}`;
+          allStatuses.push(statusEntries[key] || "not_started");
+        });
+      });
+
+      let derivedStatus: DemandStatus;
+      if (allStatuses.every((s) => s === "completed")) {
+        derivedStatus = "completed";
+      } else if (allStatuses.some((s) => s === "waiting_info")) {
+        derivedStatus = "waiting_info";
+      } else if (allStatuses.some((s) => s === "blocked")) {
+        derivedStatus = "blocked";
+      } else if (allStatuses.some((s) => s !== "not_started")) {
+        derivedStatus = "in_progress";
+      } else {
+        derivedStatus = "not_started";
+      }
+
+      return { ...d, status: derivedStatus };
+    });
+  }, [localDemands, statusEntries]);
   const filtered = useMemo(() => {
-    return localDemands
+    return demandsWithDerivedStatus
       .filter((d) => {
         if (search && !d.client.toLowerCase().includes(search.toLowerCase()) && !d.description.toLowerCase().includes(search.toLowerCase())) return false;
         if (filterType !== "all" && !d.types.includes(filterType as DemandType)) return false;
@@ -51,7 +104,7 @@ export default function DemandsPage() {
         return true;
       })
       .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
-  }, [search, filterType, filterPriority, filterAssignee, localDemands]);
+  }, [search, filterType, filterPriority, filterAssignee, demandsWithDerivedStatus]);
 
   const getMember = (id: string) => TEAM_MEMBERS.find((m) => m.id === id);
 

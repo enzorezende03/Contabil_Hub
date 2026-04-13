@@ -70,9 +70,9 @@ serve(async (req) => {
       });
     }
 
-    // Step 3: Fetch filed documents from NIBO (status 4 = Recebido)
-    // First try without filter to see what's available, then we'll filter client-side
-    const filedsUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${accountingFirmId}/fileds?$top=500&$orderby=filedDate desc`;
+    // Step 3: Fetch filed documents from NIBO
+    const filedsUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${accountingFirmId}/fileds?$top=500`;
+    console.log("Fetching fileds from:", filedsUrl);
 
     const filedsRes = await fetch(filedsUrl, {
       headers: niboHeaders,

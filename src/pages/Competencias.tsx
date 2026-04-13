@@ -338,6 +338,7 @@ export default function CompetenciasPage() {
             <option value="all">Todas as unidades</option>
             <option value="2m_contabilidade">2M Contabilidade</option>
             <option value="2m_saude">2M Saúde</option>
+          </select>
           <select value={selectedPerfil} onChange={(e) => setSelectedPerfil(e.target.value)} className={selectClass}>
             <option value="all">Todos os perfis</option>
             <option value="vip">VIP</option>

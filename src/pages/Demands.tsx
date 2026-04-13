@@ -1,9 +1,11 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
 import AppLayout from "@/components/AppLayout";
 import { StatusBadge } from "@/components/StatusBadge";
-import { MOCK_DEMANDS, TEAM_MEMBERS } from "@/lib/mock-data";
+import { TEAM_MEMBERS } from "@/lib/mock-data";
 import {
   DEMAND_TYPE_LABELS,
   DemandStatus,
@@ -39,31 +41,40 @@ export default function DemandsPage() {
   const [filterType, setFilterType] = usePersistedFilter<string>("demandas", "type", "all");
   const [filterPriority, setFilterPriority] = usePersistedFilter<string>("demandas", "priority", "all");
   const [filterAssignee, setFilterAssignee] = usePersistedFilter<string>("demandas", "assignee", "all");
-  const [createOpen, setCreateOpen] = useState(false);
-  const [localDemands, setLocalDemands] = useState<Demand[]>(MOCK_DEMANDS);
-  const [statusEntries, setStatusEntries] = useState<Record<string, DemandStatus>>({});
+  const { user } = useAuth();
 
-  // Fetch demand_status_entries to derive demand status from closing panel
-  useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase
-        .from("demand_status_entries")
-        .select("client_name, month, year, demand_type, status");
-      if (data) {
-        const map: Record<string, DemandStatus> = {};
-        data.forEach((d: any) => {
-          const key = `${d.client_name}|${d.month}/${d.year}|${d.demand_type}`;
-          map[key] = d.status as DemandStatus;
-        });
-        setStatusEntries(map);
-      }
-    };
-    load();
-  }, []);
+  // Load demands from DB
+  const { data: dbDemands = [], refetch: refetchDemands } = useQuery({
+    queryKey: ["demands"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("demands").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []).map((d: any): Demand => ({
+        id: d.id,
+        client: d.client,
+        competencias: d.competencias,
+        types: d.types,
+        description: d.description,
+        assignee: d.assignee,
+        complexity: d.complexity,
+        weight: d.weight,
+        priority: d.priority,
+        internalDeadline: d.internal_deadline,
+        clientDeadline: d.client_deadline,
+        status: d.status,
+        timeSpentMinutes: d.time_spent_minutes,
+        notes: d.notes,
+        isLegacy: d.is_legacy,
+        createdAt: d.created_at,
+      }));
+    },
+  });
+
+  const [statusEntries, setStatusEntries] = useState<Record<string, DemandStatus>>({});
 
   // Derive demand status from closing panel entries
   const demandsWithDerivedStatus = useMemo(() => {
-    return localDemands.map((d) => {
+    return dbDemands.map((d) => {
       // Only derive for types tracked in the closing panel
       const closingTypes = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"];
       const relevantTypes = d.types.filter((t) => closingTypes.includes(t));
@@ -93,7 +104,7 @@ export default function DemandsPage() {
 
       return { ...d, status: derivedStatus };
     });
-  }, [localDemands, statusEntries]);
+  }, [dbDemands, statusEntries]);
   const filtered = useMemo(() => {
     return demandsWithDerivedStatus
       .filter((d) => {
@@ -289,8 +300,8 @@ export default function DemandsPage() {
       <CreateDemandDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        onCreated={(demand) => {
-          setLocalDemands((prev) => [demand, ...prev]);
+        onCreated={() => {
+          refetchDemands();
           toast.success("Demanda criada com sucesso!");
         }}
       />

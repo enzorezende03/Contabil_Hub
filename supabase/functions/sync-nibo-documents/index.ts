@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
-const NIBO_BASE_URL = "https://api.nibo.com.br/accountant/api/v1";
+const NIBO_ACCOUNTANT_URL = "https://api.nibo.com.br/accountant/api/v1";
+const NIBO_EMPRESAS_URL = "https://api.nibo.com.br/empresas/v1";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -20,11 +21,14 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Step 1: Get accounting firm ID
-    const firmsRes = await fetch(`${NIBO_BASE_URL}/accountingfirms`, {
-      headers: {
-        "X-API-Key": niboApiKey,
-        "Accept": "application/json",
-      },
+    // Use ApiToken header as per NIBO docs
+    const niboHeaders = {
+      "ApiToken": niboApiKey,
+      "Accept": "application/json",
+    };
+
+    const firmsRes = await fetch(`${NIBO_ACCOUNTANT_URL}/accountingfirms`, {
+      headers: niboHeaders,
     });
 
     if (!firmsRes.ok) {
@@ -56,13 +60,10 @@ serve(async (req) => {
 
     // Step 3: Fetch filed documents from NIBO (status 4 = Recebido)
     // Filter by "documentos contábil" department/obligation
-    const filedsUrl = `${NIBO_BASE_URL}/accountingfirms/${accountingFirmId}/fileds?$filter=Status eq 4&$top=500`;
+    const filedsUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${accountingFirmId}/fileds?$filter=Status eq 4&$top=500`;
 
     const filedsRes = await fetch(filedsUrl, {
-      headers: {
-        "X-API-Key": niboApiKey,
-        "Accept": "application/json",
-      },
+      headers: niboHeaders,
     });
 
     if (!filedsRes.ok) {

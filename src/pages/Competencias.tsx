@@ -392,7 +392,7 @@ export default function CompetenciasPage() {
                   const tribShort: Record<string, string> = { simples_nacional: "SN", lucro_presumido: "LP", lucro_real: "LR" };
                   const tribLabel = tribShort[clientsMap[client]?.tributacao] || "—";
                   const unidade = clientsMap[client]?.unidade || "2m_contabilidade";
-                  const unidadeLabel = unidade === "2m_saude" ? "Saúde" : "Contab.";
+                  const unidadeLabel = unidade === "2m_saude" ? "2MS" : "2MC";
                   return (
                     <tr key={client} className="hover:bg-muted/20">
                       <td

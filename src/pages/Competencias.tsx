@@ -351,7 +351,8 @@ export default function CompetenciasPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {clients.map((client) => {
-                  const tribLabel = TRIBUTACAO_LABELS_MAP[clientsMap[client]?.tributacao] || "—";
+                  const tribShort: Record<string, string> = { simples_nacional: "SN", lucro_presumido: "LP", lucro_real: "LR" };
+                  const tribLabel = tribShort[clientsMap[client]?.tributacao] || "—";
                   const unidade = clientsMap[client]?.unidade || "2m_contabilidade";
                   const unidadeLabel = unidade === "2m_saude" ? "Saúde" : "Contab.";
                   return (

@@ -152,6 +152,54 @@ export type Database = {
         }
         Relationships: []
       }
+      plannings: {
+        Row: {
+          assignee: string
+          client: string
+          competencias: string[]
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          internal_deadline: string
+          notes: string
+          priority: string
+          status: string
+          types: string[]
+          updated_at: string
+        }
+        Insert: {
+          assignee: string
+          client: string
+          competencias: string[]
+          created_at?: string
+          created_by: string
+          description?: string
+          id?: string
+          internal_deadline: string
+          notes?: string
+          priority?: string
+          status?: string
+          types: string[]
+          updated_at?: string
+        }
+        Update: {
+          assignee?: string
+          client?: string
+          competencias?: string[]
+          created_at?: string
+          created_by?: string
+          description?: string
+          id?: string
+          internal_deadline?: string
+          notes?: string
+          priority?: string
+          status?: string
+          types?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

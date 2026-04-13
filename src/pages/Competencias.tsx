@@ -337,7 +337,7 @@ export default function CompetenciasPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="text-left px-3 py-2 font-medium text-muted-foreground sticky left-0 bg-muted/50 z-10 min-w-[180px]">
+                  <th className="text-left px-2 py-2 font-medium text-muted-foreground sticky left-0 bg-muted/50 z-10 w-[140px] max-w-[140px]">
                     Empresa
                   </th>
                   <th className="text-left px-2 py-2 font-medium text-muted-foreground text-xs">Unidade</th>
@@ -357,8 +357,9 @@ export default function CompetenciasPage() {
                   return (
                     <tr key={client} className="hover:bg-muted/20">
                       <td
-                        className="px-3 py-2 font-medium text-sm whitespace-nowrap sticky left-0 bg-card z-10 cursor-pointer hover:text-primary transition-colors"
+                        className="px-2 py-2 font-medium text-xs whitespace-nowrap overflow-hidden text-ellipsis sticky left-0 bg-card z-10 cursor-pointer hover:text-primary transition-colors w-[140px] max-w-[140px]"
                         onClick={() => setPanelClient(client)}
+                        title={client}
                       >
                         {client}
                       </td>

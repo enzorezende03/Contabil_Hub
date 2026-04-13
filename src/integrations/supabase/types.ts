@@ -22,6 +22,7 @@ export type Database = {
           created_by: string
           id: string
           obrigatoriedade_ecd: boolean
+          perfil: string
           razao_social: string
           tributacao: string
           unidade: string
@@ -34,6 +35,7 @@ export type Database = {
           created_by: string
           id?: string
           obrigatoriedade_ecd?: boolean
+          perfil?: string
           razao_social: string
           tributacao?: string
           unidade?: string
@@ -46,6 +48,7 @@ export type Database = {
           created_by?: string
           id?: string
           obrigatoriedade_ecd?: boolean
+          perfil?: string
           razao_social?: string
           tributacao?: string
           unidade?: string

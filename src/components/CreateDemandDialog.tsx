@@ -208,11 +208,16 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
               </div>
               <div>
                 <Label>Prazo Interno *</Label>
-                <Input type="date" value={internalDeadline} onChange={(e) => setInternalDeadline(e.target.value)} required />
+                <Input type="date" value={internalDeadline} onChange={(e) => {
+                  setInternalDeadline(e.target.value);
+                  if (clientDeadline && e.target.value > clientDeadline) {
+                    setClientDeadline(e.target.value);
+                  }
+                }} required />
               </div>
               <div>
                 <Label>Prazo Cliente</Label>
-                <Input type="date" value={clientDeadline} onChange={(e) => setClientDeadline(e.target.value)} />
+                <Input type="date" value={clientDeadline} min={internalDeadline || undefined} onChange={(e) => setClientDeadline(e.target.value)} />
               </div>
             </div>
 

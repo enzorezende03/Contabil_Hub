@@ -119,6 +119,7 @@ export default function Clients() {
         unidade: payload.unidade,
         obrigatoriedade_ecd: payload.obrigatoriedade_ecd,
         competencia_inicio: payload.competencia_inicio,
+        perfil: payload.perfil,
         created_by: session!.user.id,
       };
 
@@ -230,6 +231,7 @@ export default function Clients() {
                      <TableRow>
                       <TableHead>Razão Social</TableHead>
                       <TableHead>CNPJ</TableHead>
+                      <TableHead>Perfil</TableHead>
                       <TableHead>Unidade</TableHead>
                       <TableHead>Tributação</TableHead>
                       <TableHead>Responsabilidade desde</TableHead>
@@ -241,6 +243,11 @@ export default function Clients() {
                       <TableRow key={c.id}>
                         <TableCell className="font-medium">{c.razao_social}</TableCell>
                         <TableCell className="font-mono text-sm">{formatCnpj(c.cnpj)}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${PERFIL_COLORS[c.perfil] || PERFIL_COLORS.standard}`}>
+                            {PERFIL_LABELS[c.perfil] || c.perfil}
+                          </span>
+                        </TableCell>
                         <TableCell>
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                             c.unidade === "2m_saude" ? "bg-emerald-500/15 text-emerald-600" : "bg-blue-500/15 text-blue-600"
@@ -348,6 +355,21 @@ export default function Clients() {
                   {UNIDADE_OPTIONS.map((u) => (
                     <SelectItem key={u.value} value={u.value}>
                       {u.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Perfil do Cliente</Label>
+              <Select value={form.perfil} onValueChange={(v) => setForm({ ...form, perfil: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PERFIL_OPTIONS.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>
+                      {p.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

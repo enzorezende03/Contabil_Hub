@@ -89,6 +89,69 @@ export type Database = {
         }
         Relationships: []
       }
+      demands: {
+        Row: {
+          assignee: string
+          client: string
+          client_deadline: string
+          competencias: string[]
+          complexity: string
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          internal_deadline: string
+          is_legacy: boolean
+          notes: string
+          priority: string
+          status: string
+          time_spent_minutes: number
+          types: string[]
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          assignee: string
+          client: string
+          client_deadline: string
+          competencias: string[]
+          complexity?: string
+          created_at?: string
+          created_by: string
+          description?: string
+          id?: string
+          internal_deadline: string
+          is_legacy?: boolean
+          notes?: string
+          priority?: string
+          status?: string
+          time_spent_minutes?: number
+          types: string[]
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          assignee?: string
+          client?: string
+          client_deadline?: string
+          competencias?: string[]
+          complexity?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          id?: string
+          internal_deadline?: string
+          is_legacy?: boolean
+          notes?: string
+          priority?: string
+          status?: string
+          time_spent_minutes?: number
+          types?: string[]
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

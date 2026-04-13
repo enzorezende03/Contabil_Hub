@@ -137,13 +137,27 @@ serve(async (req) => {
       }
     } catch(e) { console.log("obligations error:", e); }
 
-    // Try reports with filter for current year
-    let reportsComplete: any[] = [];
+    // Try reports with different approaches
     try {
-      const reportsRes = await fetch(`${baseUrl}/reports/obligations/complete?$top=10`, { headers: niboHeaders });
-      const reportsBody = await reportsRes.text();
-      console.log("Reports complete raw:", reportsBody.substring(0, 1000));
-    } catch(e) { console.log("reports error:", e); }
+      // Try without any OData params
+      const r1 = await fetch(`${baseUrl}/reports/obligations/complete`, { headers: niboHeaders });
+      const b1 = await r1.text();
+      console.log("Reports no-params:", r1.status, b1.substring(0, 500));
+      
+      // Try with customer filter (matched customer)
+      const { data: dbClients2 } = await supabase.from("clients").select("cnpj, razao_social").limit(1);
+      if (dbClients2?.[0]) {
+        // Find the NIBO customer ID for this client
+        const customersUrl2 = `${baseUrl}/customers`;
+        const custRes = await fetch(`${customersUrl2}?$top=5&$filter=documentNumber eq '${dbClients2[0].cnpj.replace(/\D/g, "")}'`, { headers: niboHeaders });
+        const custBody = await custRes.text();
+        console.log("Customer filter result:", custRes.status, custBody.substring(0, 500));
+
+        // Also try the fileds endpoint with the specific beta format
+        const r3 = await fetch(`${baseUrl}/fileds?$top=5`, { headers: niboHeaders });
+        console.log("Fileds with top:", r3.status, (await r3.text()).substring(0, 500));
+      }
+    } catch(e) { console.log("reports exploration error:", e); }
 
     return new Response(
       JSON.stringify({

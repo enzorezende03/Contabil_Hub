@@ -17,6 +17,7 @@ import Users from "./pages/Users.tsx";
 import Login from "./pages/Login.tsx";
 import Setup from "./pages/Setup.tsx";
 import Clients from "./pages/Clients.tsx";
+import Planejamento from "./pages/Planejamento.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const AppRoutes = () => (
     <Route path="/setup" element={<Setup />} />
     <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
     <Route path="/demandas" element={<RoleRoute page="/demandas"><Demands /></RoleRoute>} />
+    <Route path="/planejamento" element={<RoleRoute page="/planejamento"><Planejamento /></RoleRoute>} />
     <Route path="/equipe" element={<RoleRoute page="/equipe"><Team /></RoleRoute>} />
     <Route path="/competencias" element={<RoleRoute page="/competencias"><Competencias /></RoleRoute>} />
     <Route path="/alertas" element={<RoleRoute page="/alertas"><Alerts /></RoleRoute>} />

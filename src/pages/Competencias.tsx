@@ -493,24 +493,33 @@ export default function CompetenciasPage() {
                         const cfg = LEVEL_CONFIG[level];
                         const isDisabled = level === "disabled";
                         const canToggle = !isDisabled && (level === "none" || level === "sem_movimento");
+                        const niboAlert = niboAlertMap.get(`${client}|${m}`);
                         const statusLabel: Record<string, string> = {
                           not_started: "Não Iniciada", in_progress: "Em Andamento",
                           waiting_info: "Aguardando Doc.", completed: "Concluída",
                           blocked: "Bloqueada", late: "Em Atraso", in_review: "Em Revisão",
                         };
+                        const niboLine = niboAlert ? `\n📄 NIBO: ${niboAlert.document_count} doc(s) recebido(s)` : "";
                         const tooltip = isDisabled
                           ? "Fora da responsabilidade"
-                          : `${MONTH_FULL[m]}/${year}\nLançamentos: ${statusLabel[demandStatuses[`${client}|${m}|lancamentos`]] || "Não Iniciada"}\nConc. Bancária: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_bancaria`]] || "Não Iniciada"}\nConc. Contábil: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_contabil`]] || "Não Iniciada"}`;
+                          : `${MONTH_FULL[m]}/${year}\nLançamentos: ${statusLabel[demandStatuses[`${client}|${m}|lancamentos`]] || "Não Iniciada"}\nConc. Bancária: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_bancaria`]] || "Não Iniciada"}\nConc. Contábil: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_contabil`]] || "Não Iniciada"}${niboLine}`;
                         return (
                           <td key={m} className="text-center px-1 py-2">
-                            <div
-                              className={`mx-auto w-8 h-8 rounded flex items-center justify-center ${cfg.bg} ${
-                                isDisabled ? "cursor-not-allowed opacity-40" : canToggle ? "cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all" : ""
-                              }`}
-                              onClick={canToggle ? () => toggleSemMovimento(client, m) : undefined}
-                              title={tooltip}
-                            >
-                              <span className={`font-semibold text-[10px] ${cfg.text}`}>{cfg.label}</span>
+                            <div className="relative mx-auto w-8 h-8">
+                              <div
+                                className={`w-full h-full rounded flex items-center justify-center ${cfg.bg} ${
+                                  isDisabled ? "cursor-not-allowed opacity-40" : canToggle ? "cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all" : ""
+                                }`}
+                                onClick={canToggle ? () => toggleSemMovimento(client, m) : undefined}
+                                title={tooltip}
+                              >
+                                <span className={`font-semibold text-[10px] ${cfg.text}`}>{cfg.label}</span>
+                              </div>
+                              {niboAlert && !isDisabled && (
+                                <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-500 flex items-center justify-center" title={`NIBO: ${niboAlert.document_count} doc(s)`}>
+                                  <FileText className="w-2 h-2 text-white" />
+                                </div>
+                              )}
                             </div>
                           </td>
                         );

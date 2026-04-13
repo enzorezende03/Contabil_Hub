@@ -73,6 +73,24 @@ export default function DemandsPage() {
 
   const [statusEntries, setStatusEntries] = useState<Record<string, DemandStatus>>({});
 
+  // Fetch demand_status_entries to derive demand status from closing panel
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from("demand_status_entries")
+        .select("client_name, month, year, demand_type, status");
+      if (data) {
+        const map: Record<string, DemandStatus> = {};
+        data.forEach((d: any) => {
+          const key = `${d.client_name}|${d.month}/${d.year}|${d.demand_type}`;
+          map[key] = d.status as DemandStatus;
+        });
+        setStatusEntries(map);
+      }
+    };
+    load();
+  }, []);
+
   // Derive demand status from closing panel entries
   const demandsWithDerivedStatus = useMemo(() => {
     return dbDemands.map((d) => {

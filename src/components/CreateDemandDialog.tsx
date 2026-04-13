@@ -84,16 +84,15 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
     setClientDeadline("");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!client || !assignee || !internalDeadline) return;
+    if (!client || !assignee || !internalDeadline || !user) return;
 
     const typesArr = [...selectedTypes];
     const competencias = [...selectedMonths].sort().map((m) => `${m}/${compYear}`);
     const maxWeight = Math.max(...typesArr.map(getWeightForType));
 
-    const demand: Demand = {
-      id: `d-${Date.now()}`,
+    const { error } = await supabase.from("demands").insert({
       client,
       competencias,
       types: typesArr,
@@ -102,16 +101,22 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
       complexity: "media",
       weight: maxWeight,
       priority,
-      internalDeadline,
-      clientDeadline: clientDeadline || internalDeadline,
+      internal_deadline: internalDeadline,
+      client_deadline: clientDeadline || internalDeadline,
       status: "not_started",
-      timeSpentMinutes: 0,
+      time_spent_minutes: 0,
       notes: "",
-      isLegacy: false,
-      createdAt: new Date().toISOString().split("T")[0],
-    };
+      is_legacy: false,
+      created_by: user.id,
+    });
 
-    onCreated(demand);
+    if (error) {
+      const { toast } = await import("sonner");
+      toast.error("Erro ao criar demanda");
+      return;
+    }
+
+    onCreated();
     resetForm();
     onOpenChange(false);
   };

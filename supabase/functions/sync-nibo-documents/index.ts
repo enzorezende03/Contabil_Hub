@@ -7,7 +7,7 @@ const NIBO_ACCOUNTANT_URL = "https://api.nibo.com.br/accountant/api/v1";
 async function fetchAllPages(url: string, headers: Record<string, string>, maxPages = 10): Promise<any[]> {
   const allItems: any[] = [];
   let skip = 0;
-  const top = 500;
+  const top = 100; // NIBO API limit is 100 per page
   
   for (let page = 0; page < maxPages; page++) {
     const separator = url.includes("?") ? "&" : "?";

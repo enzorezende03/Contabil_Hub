@@ -4,26 +4,27 @@ import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 const NIBO_ACCOUNTANT_URL = "https://api.nibo.com.br/accountant/api/v1";
 
-async function fetchAllPages(url: string, headers: Record<string, string>, maxPages = 10): Promise<any[]> {
+async function fetchAllPages(url: string, headers: Record<string, string>, maxPages = 20): Promise<any[]> {
   const allItems: any[] = [];
   let skip = 0;
   const top = 100; // NIBO API limit is 100 per page
   
   for (let page = 0; page < maxPages; page++) {
     const separator = url.includes("?") ? "&" : "?";
-    const pageUrl = `${url}${separator}$top=${top}&$skip=${skip}`;
+    const pageUrl = `${url}${separator}$top=${top}&$skip=${skip}&$orderby=name`;
     const res = await fetch(pageUrl, { headers });
     if (!res.ok) {
       const body = await res.text();
-      throw new Error(`API error [${res.status}] for ${url}: ${body}`);
+      throw new Error(`API error [${res.status}] for ${pageUrl}: ${body}`);
     }
     const data = await res.json();
     const items = data.items || data.value || (Array.isArray(data) ? data : []);
     allItems.push(...items);
     
+    console.log(`Page ${page + 1}: fetched ${items.length} items (total: ${allItems.length})`);
+    
     // Check if there are more pages
-    const count = data.count ?? data["@odata.count"] ?? items.length;
-    if (allItems.length >= count || items.length < top) break;
+    if (items.length < top) break;
     skip += top;
   }
   

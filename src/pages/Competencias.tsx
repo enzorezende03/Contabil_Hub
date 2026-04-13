@@ -82,6 +82,9 @@ export default function CompetenciasPage() {
   const [demandStatuses, setDemandStatuses] = useState<Record<string, DemandStatus>>({});
   const [filledByMap, setFilledByMap] = useState<Record<string, string>>({});
 
+  const [syncing, setSyncing] = useState(false);
+  const queryClient = useQueryClient();
+
   // Fetch clients from DB
   const { data: dbClients = [] } = useQuery({
     queryKey: ["clients"],
@@ -91,6 +94,50 @@ export default function CompetenciasPage() {
       return data;
     },
   });
+
+  // Fetch NIBO document alerts
+  const { data: niboAlerts = [] } = useQuery({
+    queryKey: ["nibo-alerts", year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("nibo_document_alerts")
+        .select("*")
+        .eq("year", year);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Build NIBO alerts lookup: "clientName|month" -> alert data
+  const niboAlertMap = useMemo(() => {
+    const map = new Map<string, { document_count: number; last_filed_date: string | null; nibo_status: string }>();
+    niboAlerts.forEach((a: any) => {
+      map.set(`${a.client_name}|${a.month}`, {
+        document_count: a.document_count,
+        last_filed_date: a.last_filed_date,
+        nibo_status: a.nibo_status,
+      });
+    });
+    return map;
+  }, [niboAlerts]);
+
+  const syncNibo = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-nibo-documents");
+      if (error) throw error;
+      if (data?.success) {
+        toast.success(`Sincronização NIBO concluída: ${data.synced} documentos encontrados`);
+        queryClient.invalidateQueries({ queryKey: ["nibo-alerts"] });
+      } else {
+        toast.error(data?.error || "Erro na sincronização NIBO");
+      }
+    } catch (e: any) {
+      toast.error(`Erro ao sincronizar com NIBO: ${e.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // Load saved statuses from DB
   useEffect(() => {

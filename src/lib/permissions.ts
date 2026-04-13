@@ -6,6 +6,7 @@ export type ProfileRole = "coordenacao" | "analista" | "assistente" | "estagiari
 export type AppPage =
   | "/"
   | "/demandas"
+  | "/planejamento"
   | "/equipe"
   | "/competencias"
   | "/alertas"
@@ -14,10 +15,10 @@ export type AppPage =
   | "/usuarios";
 
 const ROLE_PAGES: Record<ProfileRole, AppPage[]> = {
-  coordenacao: ["/", "/demandas", "/equipe", "/competencias", "/alertas", "/clientes", "/configuracoes", "/usuarios"],
-  analista: ["/", "/demandas", "/equipe", "/competencias", "/alertas", "/clientes"],
-  assistente: ["/", "/demandas", "/competencias", "/clientes"],
-  estagiario: ["/", "/demandas", "/competencias", "/clientes"],
+  coordenacao: ["/", "/demandas", "/planejamento", "/equipe", "/competencias", "/alertas", "/clientes", "/configuracoes", "/usuarios"],
+  analista: ["/", "/demandas", "/planejamento", "/equipe", "/competencias", "/alertas", "/clientes"],
+  assistente: ["/", "/demandas", "/planejamento", "/competencias", "/clientes"],
+  estagiario: ["/", "/demandas", "/planejamento", "/competencias", "/clientes"],
 };
 
 export function canAccessPage(role: string | undefined, path: AppPage): boolean {

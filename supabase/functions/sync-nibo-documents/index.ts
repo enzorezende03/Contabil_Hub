@@ -21,11 +21,16 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Step 1: Get accounting firm ID
-    // Use ApiToken header as per NIBO docs
-    const niboHeaders = {
-      "ApiToken": niboApiKey,
+    // Nibo Obrigações API uses X-API-Key header
+    // If token is not linked to a user, X-User-Id is also needed
+    const niboUserId = Deno.env.get("NIBO_USER_ID");
+    const niboHeaders: Record<string, string> = {
+      "X-API-Key": niboApiKey,
       "Accept": "application/json",
     };
+    if (niboUserId) {
+      niboHeaders["X-User-Id"] = niboUserId;
+    }
 
     const firmsRes = await fetch(`${NIBO_ACCOUNTANT_URL}/accountingfirms`, {
       headers: niboHeaders,

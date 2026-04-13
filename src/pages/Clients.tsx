@@ -30,6 +30,24 @@ const UNIDADE_OPTIONS = [
   { value: "2m_saude", label: "2M Saúde" },
 ];
 
+const PERFIL_OPTIONS = [
+  { value: "vip", label: "VIP" },
+  { value: "premium", label: "Premium" },
+  { value: "standard", label: "Standard" },
+  { value: "basico", label: "Básico" },
+];
+
+const PERFIL_LABELS: Record<string, string> = Object.fromEntries(
+  PERFIL_OPTIONS.map((p) => [p.value, p.label])
+);
+
+const PERFIL_COLORS: Record<string, string> = {
+  vip: "bg-yellow-500/15 text-yellow-600",
+  premium: "bg-purple-500/15 text-purple-600",
+  standard: "bg-blue-500/15 text-blue-600",
+  basico: "bg-gray-500/15 text-gray-600",
+};
+
 const TRIBUTACAO_LABELS: Record<string, string> = Object.fromEntries(
   TRIBUTACAO_OPTIONS.map((t) => [t.value, t.label])
 );
@@ -45,6 +63,7 @@ interface ClientForm {
   unidade: string;
   obrigatoriedade_ecd: boolean;
   competencia_inicio: string;
+  perfil: string;
 }
 
 const emptyForm: ClientForm = {
@@ -54,6 +73,7 @@ const emptyForm: ClientForm = {
   unidade: "2m_contabilidade",
   obrigatoriedade_ecd: false,
   competencia_inicio: "",
+  perfil: "standard",
 };
 
 function formatCnpj(value: string) {

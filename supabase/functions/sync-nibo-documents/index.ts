@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
-const NIBO_BASE_URL = "https://api.nibo.com.br/accountant/api/v1";
+const NIBO_ACCOUNTANT_URL = "https://api.nibo.com.br/accountant/api/v1";
+const NIBO_EMPRESAS_URL = "https://api.nibo.com.br/empresas/v1";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

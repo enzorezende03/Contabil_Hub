@@ -143,7 +143,7 @@ serve(async (req) => {
     if (filedsAvailable && allFileds.length > 0) {
       // Use fileds data for detailed alerts
       for (const filed of allFileds) {
-        const custCnpj = (filed.customer?.document || filed.customer?.cnpj || "").replace(/\D/g, "");
+        const custCnpj = (filed.customer?.documentNumber || filed.customer?.document || filed.customer?.cnpj || "").replace(/\D/g, "");
         const clientName = cnpjMap.get(custCnpj);
         if (!clientName) continue;
 

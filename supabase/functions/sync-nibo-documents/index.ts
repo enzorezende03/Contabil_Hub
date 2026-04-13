@@ -41,14 +41,21 @@ serve(async (req) => {
       throw new Error(`Failed to fetch accounting firms [${firmsRes.status}]: ${body}`);
     }
 
-    const firms = await firmsRes.json();
-    if (!firms || (Array.isArray(firms) && firms.length === 0)) {
-      throw new Error("No accounting firms found in NIBO");
+    const firmsData = await firmsRes.json();
+    console.log("NIBO firms response:", JSON.stringify(firmsData));
+    
+    // Handle various response formats: { items: [...] }, { value: [...] }, [...], or single object
+    const firms = Array.isArray(firmsData) 
+      ? firmsData 
+      : firmsData.items || firmsData.value || firmsData.data || (firmsData.id ? [firmsData] : []);
+    
+    if (!firms || firms.length === 0) {
+      throw new Error(`No accounting firms found in NIBO. Raw response: ${JSON.stringify(firmsData).substring(0, 500)}`);
     }
 
-    const accountingFirmId = Array.isArray(firms) ? firms[0].id : firms.id;
+    const accountingFirmId = firms[0].id || firms[0].accountingFirmId || firms[0].Id;
     if (!accountingFirmId) {
-      throw new Error("Could not determine accountingFirmId from NIBO response");
+      throw new Error(`Could not determine accountingFirmId. First firm object: ${JSON.stringify(firms[0]).substring(0, 500)}`);
     }
 
     // Step 2: Get all clients from our DB to match by CNPJ

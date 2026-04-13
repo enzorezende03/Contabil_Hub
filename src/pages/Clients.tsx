@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,8 +16,9 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Pencil, Trash2, Building2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Search, Upload, Download } from "lucide-react";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 const TRIBUTACAO_OPTIONS = [
   { value: "simples_nacional", label: "Simples Nacional" },
@@ -92,6 +93,7 @@ export default function Clients() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ClientForm>(emptyForm);
   const [search, setSearch] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ["clients"],
@@ -182,6 +184,116 @@ export default function Clients() {
     setDialogOpen(true);
   };
 
+  const TRIBUTACAO_MAP: Record<string, string> = {
+    "simples nacional": "simples_nacional",
+    "lucro presumido": "lucro_presumido",
+    "lucro real": "lucro_real",
+  };
+
+  const UNIDADE_MAP: Record<string, string> = {
+    "2m contabilidade": "2m_contabilidade",
+    "2m saude": "2m_saude",
+    "2m saúde": "2m_saude",
+  };
+
+  const PERFIL_MAP: Record<string, string> = {
+    vip: "vip",
+    premium: "premium",
+    standard: "standard",
+    "básico": "basico",
+    basico: "basico",
+  };
+
+  const downloadTemplate = () => {
+    const templateData = [
+      {
+        "CNPJ": "00.000.000/0000-00",
+        "Razão Social": "Empresa Exemplo LTDA",
+        "Tributação": "Simples Nacional",
+        "Unidade": "2M Contabilidade",
+        "Perfil": "Standard",
+        "Obrigatoriedade ECD": "Não",
+        "Competência Início": "01/2025",
+      },
+    ];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    ws["!cols"] = [
+      { wch: 22 }, { wch: 35 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 20 }, { wch: 18 },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Clientes");
+    XLSX.writeFile(wb, "modelo_importacao_clientes.xlsx");
+    toast.success("Modelo baixado com sucesso!");
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !session) return;
+
+    try {
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(ws);
+
+      if (rows.length === 0) {
+        toast.error("A planilha está vazia.");
+        return;
+      }
+
+      const records = rows.map((row, idx) => {
+        const cnpj = String(row["CNPJ"] || "").replace(/\D/g, "");
+        if (cnpj.length !== 14) throw new Error(`Linha ${idx + 2}: CNPJ inválido "${row["CNPJ"]}"`);
+
+        const razao = String(row["Razão Social"] || "").trim();
+        if (!razao) throw new Error(`Linha ${idx + 2}: Razão Social vazia`);
+
+        const comp = String(row["Competência Início"] || "").trim();
+        if (!comp) throw new Error(`Linha ${idx + 2}: Competência Início vazia`);
+
+        const tribRaw = String(row["Tributação"] || "").toLowerCase().trim();
+        const tributacao = TRIBUTACAO_MAP[tribRaw] || "simples_nacional";
+
+        const uniRaw = String(row["Unidade"] || "").toLowerCase().trim();
+        const unidade = UNIDADE_MAP[uniRaw] || "2m_contabilidade";
+
+        const perfilRaw = String(row["Perfil"] || "").toLowerCase().trim();
+        const perfil = PERFIL_MAP[perfilRaw] || "standard";
+
+        const ecdRaw = String(row["Obrigatoriedade ECD"] || "").toLowerCase().trim();
+        const ecd = ecdRaw === "sim" || ecdRaw === "s" || ecdRaw === "true" || ecdRaw === "1";
+
+        return {
+          cnpj,
+          razao_social: razao,
+          tributacao,
+          unidade,
+          perfil,
+          obrigatoriedade_ecd: ecd,
+          competencia_inicio: comp,
+          created_by: session.user.id,
+        };
+      });
+
+      const { error } = await supabase.from("clients").insert(records);
+      if (error) {
+        if (error.message?.includes("duplicate")) {
+          toast.error("Alguns CNPJs já estão cadastrados.");
+        } else {
+          toast.error("Erro ao importar: " + error.message);
+        }
+        return;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      toast.success(`${records.length} cliente(s) importado(s) com sucesso!`);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao processar planilha.");
+    }
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const filtered = clients.filter(
     (c) =>
       c.razao_social.toLowerCase().includes(search.toLowerCase()) ||
@@ -196,9 +308,24 @@ export default function Clients() {
             <h1 className="text-2xl font-bold text-foreground">Cadastro de Clientes</h1>
             <p className="text-sm text-muted-foreground">Gerencie a carteira de clientes do escritório</p>
           </div>
-          <Button onClick={openNew} className="gap-2">
-            <Plus className="w-4 h-4" /> Novo Cliente
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={downloadTemplate} className="gap-2" size="sm">
+              <Download className="w-4 h-4" /> Modelo
+            </Button>
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-2" size="sm">
+              <Upload className="w-4 h-4" /> Importar
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={handleImport}
+            />
+            <Button onClick={openNew} className="gap-2" size="sm">
+              <Plus className="w-4 h-4" /> Novo Cliente
+            </Button>
+          </div>
         </div>
 
         <Card>

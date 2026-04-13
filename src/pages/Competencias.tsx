@@ -70,6 +70,7 @@ export default function CompetenciasPage() {
   const { user } = useAuth();
   const currentYear = new Date().getFullYear().toString();
   const [year, setYear] = usePersistedFilter("competencias", "year", currentYear);
+  const [yearConfirmed, setYearConfirmed] = useState(false);
   const [selectedClient, setSelectedClient] = usePersistedFilter("competencias", "client", "all");
   const [selectedTributacao, setSelectedTributacao] = usePersistedFilter("competencias", "tributacao", "all");
   const [selectedUnidade, setSelectedUnidade] = usePersistedFilter("competencias", "unidade", "all");

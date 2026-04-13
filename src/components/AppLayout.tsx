@@ -22,7 +22,7 @@ import {
 
 const NAV_ITEMS = [
   { label: "Dashboard", path: "/" as AppPage, icon: LayoutDashboard },
-  { label: "Fila de Trabalho", path: "/demandas" as AppPage, icon: ListTodo },
+  { label: "Solicitação de Clientes", path: "/demandas" as AppPage, icon: ListTodo },
   { label: "Planejamento", path: "/planejamento" as AppPage, icon: ClipboardList },
   { label: "Produtividade Equipe", path: "/equipe" as AppPage, icon: Users },
   { label: "Fechamento Contábil", path: "/competencias" as AppPage, icon: Calendar },

@@ -60,14 +60,10 @@ serve(async (req) => {
 
     // Step 3: Fetch filed documents from NIBO (status 4 = Recebido)
     // Filter by "documentos contábil" department/obligation
-    const filedsUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${accountingFirmId}/fileds?$filter=Status eq 4&$top=500&apitoken=${niboApiKey}`;
+    const filedsUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${accountingFirmId}/fileds?$filter=Status eq 4&$top=500`;
 
     const filedsRes = await fetch(filedsUrl, {
-      headers: {
-        "ApiToken": niboApiKey,
-        "X-API-Key": niboApiKey,
-        "Accept": "application/json",
-      },
+      headers: niboHeaders,
     });
 
     if (!filedsRes.ok) {

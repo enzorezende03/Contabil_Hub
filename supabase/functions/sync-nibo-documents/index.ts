@@ -101,40 +101,50 @@ serve(async (req) => {
     const cnpjMap = new Map<string, string>();
     dbClients.forEach((c: any) => cnpjMap.set(c.cnpj.replace(/\D/g, ""), c.razao_social));
 
-    // Step 3: Try multiple endpoints to find "Documentos recebidos"
+    // Step 3: Explore available data
     const baseUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${firm.id}`;
-    const endpointsToTry = [
-      { name: "reports/obligations/complete", url: `${baseUrl}/reports/obligations/complete` },
-      { name: "reports/obligations", url: `${baseUrl}/reports/obligations` },
-      { name: "protocols", url: `${baseUrl}/protocols` },
-      { name: "fileds", url: `${baseUrl}/fileds` },
-      { name: "receiveddocuments", url: `${baseUrl}/receiveddocuments` },
-      { name: "documents", url: `${baseUrl}/documents` },
-    ];
+    
+    // Check all accounting firms
+    const allFirmsRes = await fetch(`${NIBO_ACCOUNTANT_URL}/accountingfirms`, { headers: niboHeaders });
+    const allFirmsBody = await allFirmsRes.text();
+    console.log("All firms:", allFirmsBody.substring(0, 2000));
 
-    const endpointResults: Record<string, any> = {};
-
-    for (const ep of endpointsToTry) {
-      try {
-        const res = await fetch(ep.url, { headers: niboHeaders });
-        const body = await res.text();
-        endpointResults[ep.name] = {
-          status: res.status,
-          preview: body.substring(0, 500),
-        };
-        console.log(`Endpoint ${ep.name}: status=${res.status}, body=${body.substring(0, 500)}`);
-      } catch (e) {
-        endpointResults[ep.name] = { status: "error", preview: String(e) };
-        console.log(`Endpoint ${ep.name}: error=${e}`);
+    // Check obligation groups
+    let obligationGroups: any[] = [];
+    try {
+      obligationGroups = await fetchAllPages(`${baseUrl}/obligationgroups`, niboHeaders);
+      console.log(`Obligation groups: ${obligationGroups.length}`);
+      if (obligationGroups.length > 0) {
+        console.log("Sample group:", JSON.stringify(obligationGroups[0]).substring(0, 500));
       }
-    }
+    } catch(e) { console.log("obligationgroups error:", e); }
+
+    // Check obligations
+    let obligations: any[] = [];
+    try {
+      obligations = await fetchAllPages(`${baseUrl}/obligations`, niboHeaders);
+      console.log(`Obligations: ${obligations.length}`);
+      if (obligations.length > 0) {
+        console.log("Sample obligation:", JSON.stringify(obligations[0]).substring(0, 500));
+        console.log("Sample obligation 2:", JSON.stringify(obligations[1] || {}).substring(0, 500));
+      }
+    } catch(e) { console.log("obligations error:", e); }
+
+    // Try reports with filter for current year
+    let reportsComplete: any[] = [];
+    try {
+      const reportsRes = await fetch(`${baseUrl}/reports/obligations/complete?$top=10`, { headers: niboHeaders });
+      const reportsBody = await reportsRes.text();
+      console.log("Reports complete raw:", reportsBody.substring(0, 1000));
+    } catch(e) { console.log("reports error:", e); }
 
     return new Response(
       JSON.stringify({
         success: true,
-        accounting_firm_id: firm.id,
-        accounting_firm_name: firm.name,
-        endpoint_results: endpointResults,
+        firm,
+        obligation_groups: obligationGroups.length,
+        obligations_count: obligations.length,
+        sample_obligations: obligations.slice(0, 3),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

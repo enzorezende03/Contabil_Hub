@@ -21,12 +21,33 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Step 1: Get accounting firm ID
-    const firmsRes = await fetch(`${NIBO_BASE_URL}/accountingfirms`, {
+    // Try accountant API first with X-API-Key, then with ApiToken header
+    let firmsRes = await fetch(`${NIBO_ACCOUNTANT_URL}/accountingfirms`, {
       headers: {
         "X-API-Key": niboApiKey,
         "Accept": "application/json",
       },
     });
+
+    // If 403, retry with ApiToken header (empresas API style)
+    if (firmsRes.status === 403) {
+      await firmsRes.text(); // consume body
+      firmsRes = await fetch(`${NIBO_ACCOUNTANT_URL}/accountingfirms?apitoken=${niboApiKey}`, {
+        headers: {
+          "Accept": "application/json",
+        },
+      });
+    }
+
+    if (firmsRes.status === 403) {
+      await firmsRes.text();
+      firmsRes = await fetch(`${NIBO_ACCOUNTANT_URL}/accountingfirms`, {
+        headers: {
+          "ApiToken": niboApiKey,
+          "Accept": "application/json",
+        },
+      });
+    }
 
     if (!firmsRes.ok) {
       const body = await firmsRes.text();

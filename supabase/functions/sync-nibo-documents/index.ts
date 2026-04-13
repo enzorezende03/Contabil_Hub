@@ -84,7 +84,12 @@ serve(async (req) => {
     }
 
     const filedsData = await filedsRes.json();
-    const fileds = Array.isArray(filedsData) ? filedsData : filedsData.items || filedsData.value || [];
+    console.log("NIBO fileds response keys:", JSON.stringify(Object.keys(filedsData)));
+    console.log("NIBO fileds sample:", JSON.stringify(filedsData).substring(0, 1000));
+    const allFileds = Array.isArray(filedsData) ? filedsData : filedsData.items || filedsData.value || [];
+    // Filter status 4 (Recebido) client-side
+    const fileds = allFileds.filter((f: any) => f.status === 4);
+    console.log(`NIBO: ${allFileds.length} total docs, ${fileds.length} with status=4 (Recebido)`);
 
     // Step 4: Build CNPJ lookup from clients
     const cnpjMap = new Map<string, string>();

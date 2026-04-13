@@ -317,8 +317,8 @@ export default function CompetenciasPage() {
 
         {/* Filtros */}
         <div className="flex flex-wrap items-center gap-3">
-          <select value={year} onChange={(e) => setYear(e.target.value)} className={selectClass}>
-            {["2026", "2025", "2024", "2023", "2022", "2021", "2020", "2019", "2018"].map((y) => (
+          <select value={year} onChange={(e) => { setYear(e.target.value); setYearConfirmed(false); }} className={selectClass}>
+            {yearOptions.map((y) => (
               <option key={y} value={y}>{y}</option>
             ))}
           </select>

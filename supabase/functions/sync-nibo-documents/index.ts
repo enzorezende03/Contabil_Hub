@@ -99,7 +99,7 @@ serve(async (req) => {
     // Step 5: Match NIBO customers to our DB clients
     const matchedCustomers: { niboId: string; cnpj: string; clientName: string; niboName: string }[] = [];
     for (const cust of niboCustomers) {
-      const custCnpj = (cust.document || cust.cnpj || "").replace(/\D/g, "");
+      const custCnpj = (cust.documentNumber || cust.document || cust.cnpj || "").replace(/\D/g, "");
       const dbName = cnpjMap.get(custCnpj);
       if (dbName) {
         matchedCustomers.push({
@@ -108,6 +108,7 @@ serve(async (req) => {
           clientName: dbName,
           niboName: cust.name || cust.tradingName || "",
         });
+        console.log(`Matched: NIBO "${cust.name}" <-> DB "${dbName}" (${custCnpj})`);
       }
     }
     console.log(`Matched ${matchedCustomers.length} NIBO customers to DB clients`);

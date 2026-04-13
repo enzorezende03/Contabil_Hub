@@ -253,7 +253,7 @@ export default function CompetenciasPage() {
     });
 
     return { clients: clientSet, matrix };
-  }, [year, selectedClient, selectedTributacao, selectedUnidade, allClientNames, clientsMap, semMovimento, demandStatuses]);
+  }, [year, selectedClient, selectedTributacao, selectedUnidade, selectedPerfil, allClientNames, clientsMap, semMovimento, demandStatuses]);
 
   const panelData = useMemo(() => {
     if (!panelClient) return null;
@@ -338,6 +338,12 @@ export default function CompetenciasPage() {
             <option value="all">Todas as unidades</option>
             <option value="2m_contabilidade">2M Contabilidade</option>
             <option value="2m_saude">2M Saúde</option>
+          <select value={selectedPerfil} onChange={(e) => setSelectedPerfil(e.target.value)} className={selectClass}>
+            <option value="all">Todos os perfis</option>
+            <option value="vip">VIP</option>
+            <option value="premium">Premium</option>
+            <option value="standard">Standard</option>
+            <option value="basico">Básico</option>
           </select>
         </div>
 
@@ -381,6 +387,7 @@ export default function CompetenciasPage() {
                     Empresa
                   </th>
                   <th className="text-left px-2 py-2 font-medium text-muted-foreground text-xs">Unidade</th>
+                  <th className="text-left px-2 py-2 font-medium text-muted-foreground text-xs">Perfil</th>
                   <th className="text-left px-2 py-2 font-medium text-muted-foreground text-xs">Trib.</th>
                   {MONTHS.map((m) => (
                     <th key={m} className="text-center px-1 py-2 font-medium text-muted-foreground min-w-[44px]">
@@ -395,6 +402,9 @@ export default function CompetenciasPage() {
                   const tribLabel = tribShort[clientsMap[client]?.tributacao] || "—";
                   const unidade = clientsMap[client]?.unidade || "2m_contabilidade";
                   const unidadeLabel = unidade === "2m_saude" ? "2MS" : "2MC";
+                  const perfil = clientsMap[client]?.perfil || "standard";
+                  const perfilLabels: Record<string, string> = { vip: "VIP", premium: "Premium", standard: "Standard", basico: "Básico" };
+                  const perfilColors: Record<string, string> = { vip: "bg-yellow-500/15 text-yellow-600", premium: "bg-purple-500/15 text-purple-600", standard: "bg-blue-500/15 text-blue-600", basico: "bg-gray-500/15 text-gray-600" };
                   return (
                     <tr key={client} className="hover:bg-muted/20">
                       <td
@@ -409,6 +419,11 @@ export default function CompetenciasPage() {
                           unidade === "2m_saude" ? "bg-emerald-500/15 text-emerald-600" : "bg-blue-500/15 text-blue-600"
                         }`}>
                           {unidadeLabel}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${perfilColors[perfil] || perfilColors.standard}`}>
+                          {perfilLabels[perfil] || perfil}
                         </span>
                       </td>
                       <td className="px-2 py-2 text-[10px] text-muted-foreground whitespace-nowrap">{tribLabel}</td>

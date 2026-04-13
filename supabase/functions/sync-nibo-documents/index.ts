@@ -3,7 +3,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 const NIBO_ACCOUNTANT_URL = "https://api.nibo.com.br/accountant/api/v1";
-const NIBO_EMPRESAS_URL = "https://api.nibo.com.br/empresas/v1";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -20,9 +19,6 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Step 1: Get accounting firm ID
-    // Nibo Obrigações API uses X-API-Key header
-    // If token is not linked to a user, X-User-Id is also needed
     const niboUserId = Deno.env.get("NIBO_USER_ID");
     const niboHeaders: Record<string, string> = {
       "X-API-Key": niboApiKey,
@@ -32,81 +28,75 @@ serve(async (req) => {
       niboHeaders["X-User-Id"] = niboUserId;
     }
 
+    // Step 1: Get accounting firm ID
     const firmsRes = await fetch(`${NIBO_ACCOUNTANT_URL}/accountingfirms`, {
       headers: niboHeaders,
     });
-
     if (!firmsRes.ok) {
       const body = await firmsRes.text();
       throw new Error(`Failed to fetch accounting firms [${firmsRes.status}]: ${body}`);
     }
-
     const firmsData = await firmsRes.json();
-    console.log("NIBO firms response:", JSON.stringify(firmsData));
-    
-    // Handle various response formats: { items: [...] }, { value: [...] }, [...], or single object
     const firms = Array.isArray(firmsData) 
       ? firmsData 
       : firmsData.items || firmsData.value || firmsData.data || (firmsData.id ? [firmsData] : []);
-    
     if (!firms || firms.length === 0) {
-      throw new Error(`No accounting firms found in NIBO. Raw response: ${JSON.stringify(firmsData).substring(0, 500)}`);
+      throw new Error("No accounting firms found in NIBO");
+    }
+    const accountingFirmId = firms[0].id || firms[0].Id;
+    console.log("Accounting firm:", firms[0].name, "ID:", accountingFirmId);
+
+    // Step 2: Get all obligation groups
+    const groupsRes = await fetch(
+      `${NIBO_ACCOUNTANT_URL}/accountingfirms/${accountingFirmId}/obligationgroups?$top=500`,
+      { headers: niboHeaders }
+    );
+    if (!groupsRes.ok) {
+      const body = await groupsRes.text();
+      throw new Error(`Failed to fetch obligation groups [${groupsRes.status}]: ${body}`);
+    }
+    const groupsData = await groupsRes.json();
+    const groups = groupsData.items || groupsData.value || (Array.isArray(groupsData) ? groupsData : []);
+    console.log(`Found ${groups.length} obligation groups`);
+
+    // Step 3: For each group, fetch obligations
+    const allObligations: any[] = [];
+    for (const group of groups) {
+      const groupId = group.id || group.Id;
+      const oblRes = await fetch(
+        `${NIBO_ACCOUNTANT_URL}/accountingfirms/${accountingFirmId}/obligationgroups/${groupId}/obligations?$top=500`,
+        { headers: niboHeaders }
+      );
+      if (!oblRes.ok) {
+        console.warn(`Failed to fetch obligations for group ${group.name} [${oblRes.status}]`);
+        continue;
+      }
+      const oblData = await oblRes.json();
+      const obligations = oblData.items || oblData.value || (Array.isArray(oblData) ? oblData : []);
+      console.log(`Group "${group.name}": ${obligations.length} obligations`);
+      for (const obl of obligations) {
+        allObligations.push({ ...obl, groupName: group.name, groupId });
+      }
     }
 
-    const accountingFirmId = firms[0].id || firms[0].accountingFirmId || firms[0].Id;
-    if (!accountingFirmId) {
-      throw new Error(`Could not determine accountingFirmId. First firm object: ${JSON.stringify(firms[0]).substring(0, 500)}`);
+    console.log(`Total obligations fetched: ${allObligations.length}`);
+    if (allObligations.length > 0) {
+      console.log("Sample obligation:", JSON.stringify(allObligations[0]).substring(0, 800));
     }
 
-    // Step 2: Get all clients from our DB to match by CNPJ
+    // Step 4: Get clients from DB for matching
     const { data: clients, error: clientsError } = await supabase
       .from("clients")
       .select("cnpj, razao_social");
-
     if (clientsError) throw new Error(`Failed to fetch clients: ${clientsError.message}`);
-    if (!clients || clients.length === 0) {
-      return new Response(JSON.stringify({ success: true, message: "No clients to sync", synced: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
-    // Step 3: Try to list obligation groups first to validate API access
-    const testUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${accountingFirmId}/obligationgroups?$top=5`;
-    console.log("Testing API access with:", testUrl);
-    const testRes = await fetch(testUrl, { headers: niboHeaders });
-    console.log("Obligation groups response status:", testRes.status);
-    const testBody = await testRes.text();
-    console.log("Obligation groups response:", testBody.substring(0, 500));
-
-    // Step 3b: Fetch filed documents from NIBO
-    const filedsUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${accountingFirmId}/fileds?$top=500`;
-    console.log("Fetching fileds from:", filedsUrl);
-
-    const filedsRes = await fetch(filedsUrl, {
-      headers: niboHeaders,
-    });
-
-    if (!filedsRes.ok) {
-      const body = await filedsRes.text();
-      throw new Error(`Failed to fetch filed documents [${filedsRes.status}]: ${body}`);
-    }
-
-    const filedsData = await filedsRes.json();
-    console.log("NIBO fileds response keys:", JSON.stringify(Object.keys(filedsData)));
-    console.log("NIBO fileds sample:", JSON.stringify(filedsData).substring(0, 1000));
-    const allFileds = Array.isArray(filedsData) ? filedsData : filedsData.items || filedsData.value || [];
-    // Filter status 4 (Recebido) client-side
-    const fileds = allFileds.filter((f: any) => f.status === 4);
-    console.log(`NIBO: ${allFileds.length} total docs, ${fileds.length} with status=4 (Recebido)`);
-
-    // Step 4: Build CNPJ lookup from clients
     const cnpjMap = new Map<string, string>();
-    clients.forEach((c: any) => {
+    (clients || []).forEach((c: any) => {
       const cleanCnpj = c.cnpj.replace(/\D/g, "");
       cnpjMap.set(cleanCnpj, c.razao_social);
     });
 
-    // Step 5: Group filed docs by client CNPJ + month/year (accrual)
+    // Step 5: Match obligations to our clients and build alerts
     const alertsMap = new Map<string, {
       client_cnpj: string;
       client_name: string;
@@ -117,17 +107,20 @@ serve(async (req) => {
       nibo_status: string;
     }>();
 
-    for (const filed of fileds) {
-      // Try to match customer CNPJ
-      const customerCnpj = (filed.customer?.cnpj || filed.customer?.document || "").replace(/\D/g, "");
+    for (const obl of allObligations) {
+      // Try to match by customer/client CNPJ
+      const customerCnpj = (
+        obl.customer?.cnpj || obl.customer?.document || 
+        obl.client?.cnpj || obl.client?.document || ""
+      ).replace(/\D/g, "");
+      
       const clientName = cnpjMap.get(customerCnpj);
-      if (!clientName) continue; // Skip if not our client
+      if (!clientName) continue;
 
-      // Parse accrual (competência) - format varies: "2025-03" or "2025-03-01T00:00:00"
-      const accrual = filed.accrual || "";
+      // Parse accrual/competência
+      const accrual = obl.accrual || obl.competence || obl.dueDate || "";
       let month = "";
       let year = "";
-
       if (accrual) {
         const date = new Date(accrual);
         if (!isNaN(date.getTime())) {
@@ -135,13 +128,18 @@ serve(async (req) => {
           year = String(date.getFullYear());
         }
       }
-
       if (!month || !year) continue;
+
+      // Map NIBO status
+      let status = "pending";
+      const oblStatus = obl.status;
+      if (oblStatus === 4 || oblStatus === "Recebido") status = "received";
+      else if (oblStatus === 6 || oblStatus === "Ativo") status = "active";
+      else if (oblStatus === 3 || oblStatus === "Não Recebido") status = "not_received";
 
       const key = `${customerCnpj}|${month}|${year}`;
       const existing = alertsMap.get(key);
-
-      const filedDate = filed.filedDate || filed.createdDate || null;
+      const filedDate = obl.filedDate || obl.createdDate || null;
 
       if (existing) {
         existing.document_count++;
@@ -156,7 +154,7 @@ serve(async (req) => {
           year,
           document_count: 1,
           last_filed_date: filedDate,
-          nibo_status: "received",
+          nibo_status: status,
         });
       }
     }
@@ -180,7 +178,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       accounting_firm_id: accountingFirmId,
-      total_filed_docs: fileds.length,
+      total_groups: groups.length,
+      total_obligations: allObligations.length,
       matched_clients: synced,
       synced,
     }), {

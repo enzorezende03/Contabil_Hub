@@ -1,0 +1,1 @@
+ALTER TABLE public.clients ADD COLUMN perfil text NOT NULL DEFAULT 'standard';

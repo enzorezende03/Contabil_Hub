@@ -32,6 +32,7 @@ const MONTH_NAMES: Record<string, string> = {
 };
 
 export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDemandDialogProps) {
+  const { user } = useAuth();
   const now = new Date();
   const [client, setClient] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<Set<DemandType>>(new Set(["lancamentos"]));

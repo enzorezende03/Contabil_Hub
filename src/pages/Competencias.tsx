@@ -74,6 +74,7 @@ export default function CompetenciasPage() {
   const [selectedClient, setSelectedClient] = usePersistedFilter("competencias", "client", "all");
   const [selectedTributacao, setSelectedTributacao] = usePersistedFilter("competencias", "tributacao", "all");
   const [selectedUnidade, setSelectedUnidade] = usePersistedFilter("competencias", "unidade", "all");
+  const [selectedPerfil, setSelectedPerfil] = usePersistedFilter("competencias", "perfil", "all");
   const [semMovimento, setSemMovimento] = useState<Set<string>>(new Set());
   const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
   const [panelClient, setPanelClient] = useState<string | null>(null);

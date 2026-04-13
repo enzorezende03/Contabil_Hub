@@ -41,6 +41,7 @@ export default function DemandsPage() {
   const [filterType, setFilterType] = usePersistedFilter<string>("demandas", "type", "all");
   const [filterPriority, setFilterPriority] = usePersistedFilter<string>("demandas", "priority", "all");
   const [filterAssignee, setFilterAssignee] = usePersistedFilter<string>("demandas", "assignee", "all");
+  const [createOpen, setCreateOpen] = useState(false);
   const { user } = useAuth();
 
   // Load demands from DB

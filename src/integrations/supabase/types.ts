@@ -155,6 +155,48 @@ export type Database = {
         }
         Relationships: []
       }
+      nibo_document_alerts: {
+        Row: {
+          client_cnpj: string
+          client_name: string
+          created_at: string
+          document_count: number
+          id: string
+          last_filed_date: string | null
+          month: string
+          nibo_status: string
+          synced_at: string
+          updated_at: string
+          year: string
+        }
+        Insert: {
+          client_cnpj: string
+          client_name: string
+          created_at?: string
+          document_count?: number
+          id?: string
+          last_filed_date?: string | null
+          month: string
+          nibo_status?: string
+          synced_at?: string
+          updated_at?: string
+          year: string
+        }
+        Update: {
+          client_cnpj?: string
+          client_name?: string
+          created_at?: string
+          document_count?: number
+          id?: string
+          last_filed_date?: string | null
+          month?: string
+          nibo_status?: string
+          synced_at?: string
+          updated_at?: string
+          year?: string
+        }
+        Relationships: []
+      }
       plannings: {
         Row: {
           assignee: string

@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { FileText, RefreshCw, Loader2 } from "lucide-react";
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
 const MONTH_SHORT: Record<string, string> = {
@@ -81,6 +82,9 @@ export default function CompetenciasPage() {
   const [demandStatuses, setDemandStatuses] = useState<Record<string, DemandStatus>>({});
   const [filledByMap, setFilledByMap] = useState<Record<string, string>>({});
 
+  const [syncing, setSyncing] = useState(false);
+  const queryClient = useQueryClient();
+
   // Fetch clients from DB
   const { data: dbClients = [] } = useQuery({
     queryKey: ["clients"],
@@ -90,6 +94,50 @@ export default function CompetenciasPage() {
       return data;
     },
   });
+
+  // Fetch NIBO document alerts
+  const { data: niboAlerts = [] } = useQuery({
+    queryKey: ["nibo-alerts", year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("nibo_document_alerts")
+        .select("*")
+        .eq("year", year);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Build NIBO alerts lookup: "clientName|month" -> alert data
+  const niboAlertMap = useMemo(() => {
+    const map = new Map<string, { document_count: number; last_filed_date: string | null; nibo_status: string }>();
+    niboAlerts.forEach((a: any) => {
+      map.set(`${a.client_name}|${a.month}`, {
+        document_count: a.document_count,
+        last_filed_date: a.last_filed_date,
+        nibo_status: a.nibo_status,
+      });
+    });
+    return map;
+  }, [niboAlerts]);
+
+  const syncNibo = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-nibo-documents");
+      if (error) throw error;
+      if (data?.success) {
+        toast.success(`Sincronização NIBO concluída: ${data.synced} documentos encontrados`);
+        queryClient.invalidateQueries({ queryKey: ["nibo-alerts"] });
+      } else {
+        toast.error(data?.error || "Erro na sincronização NIBO");
+      }
+    } catch (e: any) {
+      toast.error(`Erro ao sincronizar com NIBO: ${e.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   // Load saved statuses from DB
   useEffect(() => {
@@ -313,8 +361,20 @@ export default function CompetenciasPage() {
     <AppLayout>
       <div className="p-6 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Fechamento Contábil {year}</h1>
-          <p className="text-sm text-muted-foreground mt-1">Evolução contábil por empresa e mês</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Fechamento Contábil {year}</h1>
+              <p className="text-sm text-muted-foreground mt-1">Evolução contábil por empresa e mês</p>
+            </div>
+            <button
+              onClick={syncNibo}
+              disabled={syncing}
+              className="flex items-center gap-2 h-9 px-4 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              Sincronizar NIBO
+            </button>
+          </div>
         </div>
 
         {/* Filtros */}
@@ -373,6 +433,12 @@ export default function CompetenciasPage() {
               </div>
             );
           })}
+          <div className="flex items-center gap-1">
+            <div className="w-3.5 h-3.5 rounded-full bg-green-500 flex items-center justify-center">
+              <FileText className="w-2 h-2 text-white" />
+            </div>
+            <span className="text-muted-foreground text-[10px]">Doc. NIBO</span>
+          </div>
           <div className="ml-auto text-muted-foreground">
             {totalClients} empresas · {pctDone}% conciliado
           </div>
@@ -433,24 +499,33 @@ export default function CompetenciasPage() {
                         const cfg = LEVEL_CONFIG[level];
                         const isDisabled = level === "disabled";
                         const canToggle = !isDisabled && (level === "none" || level === "sem_movimento");
+                        const niboAlert = niboAlertMap.get(`${client}|${m}`);
                         const statusLabel: Record<string, string> = {
                           not_started: "Não Iniciada", in_progress: "Em Andamento",
                           waiting_info: "Aguardando Doc.", completed: "Concluída",
                           blocked: "Bloqueada", late: "Em Atraso", in_review: "Em Revisão",
                         };
+                        const niboLine = niboAlert ? `\n📄 NIBO: ${niboAlert.document_count} doc(s) recebido(s)` : "";
                         const tooltip = isDisabled
                           ? "Fora da responsabilidade"
-                          : `${MONTH_FULL[m]}/${year}\nLançamentos: ${statusLabel[demandStatuses[`${client}|${m}|lancamentos`]] || "Não Iniciada"}\nConc. Bancária: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_bancaria`]] || "Não Iniciada"}\nConc. Contábil: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_contabil`]] || "Não Iniciada"}`;
+                          : `${MONTH_FULL[m]}/${year}\nLançamentos: ${statusLabel[demandStatuses[`${client}|${m}|lancamentos`]] || "Não Iniciada"}\nConc. Bancária: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_bancaria`]] || "Não Iniciada"}\nConc. Contábil: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_contabil`]] || "Não Iniciada"}${niboLine}`;
                         return (
                           <td key={m} className="text-center px-1 py-2">
-                            <div
-                              className={`mx-auto w-8 h-8 rounded flex items-center justify-center ${cfg.bg} ${
-                                isDisabled ? "cursor-not-allowed opacity-40" : canToggle ? "cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all" : ""
-                              }`}
-                              onClick={canToggle ? () => toggleSemMovimento(client, m) : undefined}
-                              title={tooltip}
-                            >
-                              <span className={`font-semibold text-[10px] ${cfg.text}`}>{cfg.label}</span>
+                            <div className="relative mx-auto w-8 h-8">
+                              <div
+                                className={`w-full h-full rounded flex items-center justify-center ${cfg.bg} ${
+                                  isDisabled ? "cursor-not-allowed opacity-40" : canToggle ? "cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all" : ""
+                                }`}
+                                onClick={canToggle ? () => toggleSemMovimento(client, m) : undefined}
+                                title={tooltip}
+                              >
+                                <span className={`font-semibold text-[10px] ${cfg.text}`}>{cfg.label}</span>
+                              </div>
+                              {niboAlert && !isDisabled && (
+                                <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-green-500 flex items-center justify-center" title={`NIBO: ${niboAlert.document_count} doc(s)`}>
+                                  <FileText className="w-2 h-2 text-white" />
+                                </div>
+                              )}
                             </div>
                           </td>
                         );

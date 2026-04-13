@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   DEMAND_TYPE_LABELS,
   PRIORITY_LABELS,
@@ -16,6 +17,7 @@ import { TEAM_MEMBERS } from "@/lib/mock-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { ChevronDown, Search, X } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -41,6 +43,8 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated }: Props) {
   const [assignee, setAssignee] = useState("");
   const [description, setDescription] = useState("");
   const [internalDeadline, setInternalDeadline] = useState("");
+  const [clientSearch, setClientSearch] = useState("");
+  const [clientPopoverOpen, setClientPopoverOpen] = useState(false);
 
   const { data: dbClients = [] } = useQuery({
     queryKey: ["clients"],
@@ -50,6 +54,10 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated }: Props) {
       return data;
     },
   });
+
+  const filteredClients = dbClients.filter((c: any) =>
+    c.razao_social.toLowerCase().includes(clientSearch.toLowerCase())
+  );
 
   const toggleClient = (name: string) => {
     setSelectedClients((prev) => {
@@ -88,6 +96,7 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated }: Props) {
     setAssignee("");
     setDescription("");
     setInternalDeadline("");
+    setClientSearch("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,7 +107,6 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated }: Props) {
     const competencias = [...selectedMonths].sort().map((m) => `${m}/${compYear}`);
     const desc = description || typesArr.map((t) => DEMAND_TYPE_LABELS[t]).join(", ");
 
-    // Create one planning per client
     const rows = [...selectedClients].map((clientName) => ({
       client: clientName,
       competencias,
@@ -133,28 +141,77 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated }: Props) {
           <DialogTitle>Novo Planejamento</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Multi-select: Empresas */}
+          {/* Empresas - Popover selector */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <Label className="mb-0">Empresas *</Label>
-              <button type="button" onClick={selectAllClients} className="text-[10px] text-primary hover:underline">
-                Selecionar todas
-              </button>
-            </div>
-            <div className="grid grid-cols-1 gap-1 rounded-md border p-2 max-h-36 overflow-y-auto">
-              {dbClients.map((c: any) => (
-                <label key={c.id} className="flex items-center gap-1.5 cursor-pointer text-xs hover:bg-muted/50 rounded px-1 py-0.5">
-                  <Checkbox
-                    checked={selectedClients.has(c.razao_social)}
-                    onCheckedChange={() => toggleClient(c.razao_social)}
-                  />
-                  <span>{c.razao_social}</span>
-                </label>
-              ))}
-              {dbClients.length === 0 && (
-                <span className="text-xs text-muted-foreground">Nenhum cliente cadastrado</span>
-              )}
-            </div>
+            <Label className="mb-1.5">Empresas *</Label>
+            <Popover open={clientPopoverOpen} onOpenChange={setClientPopoverOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="w-full h-9 px-3 text-sm border rounded-md bg-card flex items-center justify-between hover:bg-muted/50 transition-colors"
+                >
+                  <span className={selectedClients.size === 0 ? "text-muted-foreground" : ""}>
+                    {selectedClients.size === 0
+                      ? "Selecionar empresas..."
+                      : `${selectedClients.size} empresa${selectedClients.size !== 1 ? "s" : ""} selecionada${selectedClients.size !== 1 ? "s" : ""}`}
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                <div className="p-2 border-b">
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-2 top-2 text-muted-foreground" />
+                    <input
+                      placeholder="Buscar empresa..."
+                      value={clientSearch}
+                      onChange={(e) => setClientSearch(e.target.value)}
+                      className="w-full h-8 pl-7 pr-3 text-sm border rounded-md bg-card focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between px-3 py-1.5 border-b">
+                  <button type="button" onClick={selectAllClients} className="text-[10px] text-primary hover:underline">
+                    Selecionar todas
+                  </button>
+                  {selectedClients.size > 0 && (
+                    <button type="button" onClick={() => setSelectedClients(new Set())} className="text-[10px] text-destructive hover:underline">
+                      Limpar
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-52 overflow-y-auto p-1">
+                  {filteredClients.map((c: any) => (
+                    <label key={c.id} className="flex items-center gap-1.5 cursor-pointer text-xs hover:bg-muted/50 rounded px-2 py-1.5">
+                      <Checkbox
+                        checked={selectedClients.has(c.razao_social)}
+                        onCheckedChange={() => toggleClient(c.razao_social)}
+                      />
+                      <span>{c.razao_social}</span>
+                    </label>
+                  ))}
+                  {filteredClients.length === 0 && (
+                    <span className="text-xs text-muted-foreground px-2 py-2 block">Nenhum resultado</span>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+            {/* Selected chips */}
+            {selectedClients.size > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                {[...selectedClients].slice(0, 5).map((name) => (
+                  <span key={name} className="inline-flex items-center gap-1 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+                    {name.length > 20 ? name.slice(0, 20) + "…" : name}
+                    <button type="button" onClick={() => toggleClient(name)} className="hover:text-destructive">
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </span>
+                ))}
+                {selectedClients.size > 5 && (
+                  <span className="text-[10px] text-muted-foreground px-1.5 py-0.5">+{selectedClients.size - 5} mais</span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Multi-select: Atividades */}

@@ -206,6 +206,7 @@ export default function CompetenciasPage() {
     if (selectedClient !== "all") clientSet = clientSet.filter((c) => c === selectedClient);
     if (selectedTributacao !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.tributacao === selectedTributacao);
     if (selectedUnidade !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.unidade === selectedUnidade);
+    if (selectedPerfil !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.perfil === selectedPerfil);
 
     const matrix: Record<string, Record<string, CellLevel>> = {};
 

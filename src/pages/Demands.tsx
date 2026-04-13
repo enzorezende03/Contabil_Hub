@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
+import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { StatusBadge } from "@/components/StatusBadge";
 import { MOCK_DEMANDS, TEAM_MEMBERS } from "@/lib/mock-data";

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 interface CreateDemandDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreated: (demand: Demand) => void;
+  onCreated: () => void;
 }
 
 const MONTHS = ["01","02","03","04","05","06","07","08","09","10","11","12"];
@@ -31,6 +32,7 @@ const MONTH_NAMES: Record<string, string> = {
 };
 
 export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDemandDialogProps) {
+  const { user } = useAuth();
   const now = new Date();
   const [client, setClient] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<Set<DemandType>>(new Set(["lancamentos"]));
@@ -82,16 +84,15 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
     setClientDeadline("");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!client || !assignee || !internalDeadline) return;
+    if (!client || !assignee || !internalDeadline || !user) return;
 
     const typesArr = [...selectedTypes];
     const competencias = [...selectedMonths].sort().map((m) => `${m}/${compYear}`);
     const maxWeight = Math.max(...typesArr.map(getWeightForType));
 
-    const demand: Demand = {
-      id: `d-${Date.now()}`,
+    const { error } = await supabase.from("demands").insert({
       client,
       competencias,
       types: typesArr,
@@ -100,16 +101,22 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
       complexity: "media",
       weight: maxWeight,
       priority,
-      internalDeadline,
-      clientDeadline: clientDeadline || internalDeadline,
+      internal_deadline: internalDeadline,
+      client_deadline: clientDeadline || internalDeadline,
       status: "not_started",
-      timeSpentMinutes: 0,
+      time_spent_minutes: 0,
       notes: "",
-      isLegacy: false,
-      createdAt: new Date().toISOString().split("T")[0],
-    };
+      is_legacy: false,
+      created_by: user.id,
+    });
 
-    onCreated(demand);
+    if (error) {
+      const { toast } = await import("sonner");
+      toast.error("Erro ao criar demanda");
+      return;
+    }
+
+    onCreated();
     resetForm();
     onOpenChange(false);
   };

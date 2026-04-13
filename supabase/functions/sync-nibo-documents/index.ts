@@ -41,14 +41,21 @@ serve(async (req) => {
       throw new Error(`Failed to fetch accounting firms [${firmsRes.status}]: ${body}`);
     }
 
-    const firms = await firmsRes.json();
-    if (!firms || (Array.isArray(firms) && firms.length === 0)) {
-      throw new Error("No accounting firms found in NIBO");
+    const firmsData = await firmsRes.json();
+    console.log("NIBO firms response:", JSON.stringify(firmsData));
+    
+    // Handle various response formats: { items: [...] }, { value: [...] }, [...], or single object
+    const firms = Array.isArray(firmsData) 
+      ? firmsData 
+      : firmsData.items || firmsData.value || firmsData.data || (firmsData.id ? [firmsData] : []);
+    
+    if (!firms || firms.length === 0) {
+      throw new Error(`No accounting firms found in NIBO. Raw response: ${JSON.stringify(firmsData).substring(0, 500)}`);
     }
 
-    const accountingFirmId = Array.isArray(firms) ? firms[0].id : firms.id;
+    const accountingFirmId = firms[0].id || firms[0].accountingFirmId || firms[0].Id;
     if (!accountingFirmId) {
-      throw new Error("Could not determine accountingFirmId from NIBO response");
+      throw new Error(`Could not determine accountingFirmId. First firm object: ${JSON.stringify(firms[0]).substring(0, 500)}`);
     }
 
     // Step 2: Get all clients from our DB to match by CNPJ
@@ -63,9 +70,17 @@ serve(async (req) => {
       });
     }
 
-    // Step 3: Fetch filed documents from NIBO (status 4 = Recebido)
-    // Filter by "documentos contábil" department/obligation
-    const filedsUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${accountingFirmId}/fileds?$filter=Status eq 4&$top=500`;
+    // Step 3: Try to list obligation groups first to validate API access
+    const testUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${accountingFirmId}/obligationgroups?$top=5`;
+    console.log("Testing API access with:", testUrl);
+    const testRes = await fetch(testUrl, { headers: niboHeaders });
+    console.log("Obligation groups response status:", testRes.status);
+    const testBody = await testRes.text();
+    console.log("Obligation groups response:", testBody.substring(0, 500));
+
+    // Step 3b: Fetch filed documents from NIBO
+    const filedsUrl = `${NIBO_ACCOUNTANT_URL}/accountingfirms/${accountingFirmId}/fileds?$top=500`;
+    console.log("Fetching fileds from:", filedsUrl);
 
     const filedsRes = await fetch(filedsUrl, {
       headers: niboHeaders,
@@ -77,7 +92,12 @@ serve(async (req) => {
     }
 
     const filedsData = await filedsRes.json();
-    const fileds = Array.isArray(filedsData) ? filedsData : filedsData.items || filedsData.value || [];
+    console.log("NIBO fileds response keys:", JSON.stringify(Object.keys(filedsData)));
+    console.log("NIBO fileds sample:", JSON.stringify(filedsData).substring(0, 1000));
+    const allFileds = Array.isArray(filedsData) ? filedsData : filedsData.items || filedsData.value || [];
+    // Filter status 4 (Recebido) client-side
+    const fileds = allFileds.filter((f: any) => f.status === 4);
+    console.log(`NIBO: ${allFileds.length} total docs, ${fileds.length} with status=4 (Recebido)`);
 
     // Step 4: Build CNPJ lookup from clients
     const cnpjMap = new Map<string, string>();

@@ -81,6 +81,8 @@ export default function CompetenciasPage() {
   const [panelClient, setPanelClient] = useState<string | null>(null);
   const [demandStatuses, setDemandStatuses] = useState<Record<string, DemandStatus>>({});
   const [filledByMap, setFilledByMap] = useState<Record<string, string>>({});
+  const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
+  const [batchMonths, setBatchMonths] = useState<Set<string>>(new Set());
 
 
   // Fetch clients from DB

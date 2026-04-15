@@ -211,8 +211,8 @@ export default function CompetenciasPage() {
     });
   };
 
-  const toggleAllClients = () => {
-    setSelectedClients((prev) => prev.size === clients.length ? new Set() : new Set(clients));
+  const toggleAllClientsFor = (clientList: string[]) => {
+    setSelectedClients((prev) => prev.size === clientList.length ? new Set() : new Set(clientList));
   };
 
   const toggleBatchMonth = (m: string) => {

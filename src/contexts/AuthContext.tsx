@@ -77,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    sessionStorage.removeItem("competencias_year_confirmed");
     await supabase.auth.signOut();
   };
 

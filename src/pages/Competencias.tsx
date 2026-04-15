@@ -368,7 +368,12 @@ export default function CompetenciasPage() {
       });
     });
 
-    return { clients: clientSet, matrix };
+    // Remove clients where all months are disabled (no responsibility in this year)
+    const activeClients = clientSet.filter((client) =>
+      MONTHS.some((m) => matrix[client][m] !== "disabled")
+    );
+
+    return { clients: activeClients, matrix };
   }, [year, selectedClient, selectedTributacao, selectedUnidade, selectedPerfil, allClientNames, clientsMap, semMovimento, demandStatuses]);
 
   const panelData = useMemo(() => {

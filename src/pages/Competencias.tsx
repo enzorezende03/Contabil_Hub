@@ -83,7 +83,9 @@ export default function CompetenciasPage() {
   const [filledByMap, setFilledByMap] = useState<Record<string, string>>({});
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
   const [batchMonths, setBatchMonths] = useState<Set<string>>(new Set());
-
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   // Fetch clients from DB
   const { data: dbClients = [] } = useQuery({
@@ -95,6 +97,56 @@ export default function CompetenciasPage() {
     },
   });
 
+  // Fetch closing attachments
+  const { data: closingAttachments = [] } = useQuery({
+    queryKey: ["closing-attachments", year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("closing_attachments")
+        .select("*")
+        .eq("year", year);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const attachmentMap = useMemo(() => {
+    const map = new Map<string, { file_name: string; file_path: string }>();
+    closingAttachments.forEach((a: any) => {
+      map.set(a.client_name, { file_name: a.file_name, file_path: a.file_path });
+    });
+    return map;
+  }, [closingAttachments]);
+
+  const handleUploadAttachment = async (clientName: string, file: File) => {
+    if (!user) return;
+    setUploading(true);
+    try {
+      const filePath = `${year}/${clientName}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("demonstracoes-contabeis")
+        .upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { error: dbError } = await supabase
+        .from("closing_attachments")
+        .upsert({
+          client_name: clientName,
+          year,
+          file_path: filePath,
+          file_name: file.name,
+          uploaded_by: user.id,
+        }, { onConflict: "client_name,year" });
+      if (dbError) throw dbError;
+
+      queryClient.invalidateQueries({ queryKey: ["closing-attachments", year] });
+      toast.success("Demonstrações contábeis anexadas com sucesso");
+    } catch (e: any) {
+      toast.error(`Erro ao enviar arquivo: ${e.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // Load saved statuses from DB
   useEffect(() => {

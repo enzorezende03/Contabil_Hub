@@ -446,12 +446,72 @@ export default function CompetenciasPage() {
           </div>
         </div>
 
+        {/* Barra de ação em lote */}
+        {selectedClients.size > 0 && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Ação em Lote — {selectedClients.size} empresa(s) selecionada(s)</h3>
+              <button onClick={() => { setSelectedClients(new Set()); setBatchMonths(new Set()); }} className="text-xs text-muted-foreground hover:text-foreground">Limpar seleção</button>
+            </div>
+            <div className="flex flex-wrap gap-1.5 items-center">
+              <span className="text-xs text-muted-foreground mr-1">Meses:</span>
+              <button onClick={toggleAllBatchMonths} className="h-6 px-2 text-[10px] font-medium border rounded bg-card hover:bg-muted transition-colors">
+                {batchMonths.size === 12 ? "Limpar" : "Todos"}
+              </button>
+              {MONTHS.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => toggleBatchMonth(m)}
+                  className={`h-6 w-9 text-[10px] font-medium rounded transition-colors ${
+                    batchMonths.has(m) ? "bg-primary text-primary-foreground" : "bg-card border hover:bg-muted"
+                  }`}
+                >
+                  {MONTH_SHORT[m]}
+                </button>
+              ))}
+            </div>
+            {batchMonths.size > 0 && (
+              <div className="space-y-2">
+                {DEMAND_TYPES_FOR_PANEL.map((dt) => (
+                  <div key={dt.type} className="flex items-center gap-2">
+                    <span className="text-xs flex-1">{dt.label}</span>
+                    <select
+                      defaultValue=""
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setMultiClientBulkStatus(selectedClients, batchMonths, dt.type, e.target.value as DemandStatus);
+                          e.target.value = "";
+                        }
+                      }}
+                      className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px]"
+                    >
+                      <option value="" disabled>Aplicar status...</option>
+                      <option value="not_started">Não Iniciada</option>
+                      <option value="in_progress">Em Andamento</option>
+                      <option value="waiting_info">Aguardando Doc.</option>
+                      <option value="completed">Concluída</option>
+                    </select>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Matriz */}
         {clients.length > 0 ? (
           <div className="rounded-lg border bg-card overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
+                  <th className="px-2 py-2 w-8">
+                    <input
+                      type="checkbox"
+                      checked={selectedClients.size === clients.length && clients.length > 0}
+                      onChange={() => toggleAllClientsFor(clients)}
+                      className="rounded border-border"
+                    />
+                  </th>
                   <th className="text-left px-2 py-2 font-medium text-muted-foreground sticky left-0 bg-muted/50 z-10 w-[140px] max-w-[140px]">
                     Empresa
                   </th>

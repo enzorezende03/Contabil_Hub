@@ -2,6 +2,11 @@ import { ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { canAccessPage, type AppPage } from "@/lib/permissions";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { usePlanningAlerts } from "@/hooks/use-planning-alerts";
+import { PlanningNotifications } from "@/components/PlanningNotifications";
+import type { Demand } from "@/lib/types";
 
 import {
   LayoutDashboard,
@@ -42,6 +47,35 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const initials = profile?.display_name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "??";
   const userRole = profile?.role;
+
+  const { data: plannings = [] } = useQuery({
+    queryKey: ["plannings-alerts"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("plannings").select("*").neq("status", "completed");
+      if (error) throw error;
+      return (data || []).map((d: any): Demand => ({
+        id: d.id,
+        client: d.client,
+        competencias: d.competencias,
+        types: d.types,
+        description: d.description,
+        assignee: d.assignee,
+        complexity: "media",
+        weight: 1,
+        priority: d.priority,
+        internalDeadline: d.internal_deadline,
+        clientDeadline: d.internal_deadline,
+        status: d.status,
+        timeSpentMinutes: 0,
+        notes: d.notes,
+        isLegacy: false,
+        createdAt: d.created_at,
+      }));
+    },
+    refetchInterval: 5 * 60 * 1000, // refresh every 5 min
+  });
+
+  const alertData = usePlanningAlerts(plannings);
 
   const navItems = NAV_ITEMS.filter((item) => canAccessPage(userRole, item.path));
 

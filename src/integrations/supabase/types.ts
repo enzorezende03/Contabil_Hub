@@ -56,6 +56,39 @@ export type Database = {
         }
         Relationships: []
       }
+      closing_attachments: {
+        Row: {
+          client_name: string
+          created_at: string
+          file_name: string
+          file_path: string
+          id: string
+          updated_at: string
+          uploaded_by: string
+          year: string
+        }
+        Insert: {
+          client_name: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          id?: string
+          updated_at?: string
+          uploaded_by: string
+          year: string
+        }
+        Update: {
+          client_name?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          updated_at?: string
+          uploaded_by?: string
+          year?: string
+        }
+        Relationships: []
+      }
       demand_status_entries: {
         Row: {
           client_name: string

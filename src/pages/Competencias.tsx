@@ -601,8 +601,9 @@ export default function CompetenciasPage() {
                   const perfil = clientsMap[client]?.perfil || "standard";
                   const perfilLabels: Record<string, string> = { vip: "VIP", premium: "Premium", standard: "Standard", basico: "Básico" };
                   const perfilColors: Record<string, string> = { vip: "bg-yellow-500/15 text-yellow-600", premium: "bg-purple-500/15 text-purple-600", standard: "bg-blue-500/15 text-blue-600", basico: "bg-gray-500/15 text-gray-600" };
+                  const finalized = isClientFinalized(client);
                   return (
-                    <tr key={client} className={`hover:bg-muted/20 ${selectedClients.has(client) ? "bg-primary/5" : ""}`}>
+                    <tr key={client} className={`${finalized ? "bg-emerald-500/10 opacity-70" : selectedClients.has(client) ? "bg-primary/5" : "hover:bg-muted/20"}`}>
                       <td className="px-2 py-2 w-8">
                         <input
                           type="checkbox"

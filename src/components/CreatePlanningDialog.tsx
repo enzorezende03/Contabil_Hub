@@ -7,22 +7,26 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DEMAND_TYPE_LABELS,
   PRIORITY_LABELS,
   type DemandType,
   type Priority,
+  type Demand,
 } from "@/lib/types";
 import { TEAM_MEMBERS } from "@/lib/mock-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronDown, Search, X } from "lucide-react";
+import { ChevronDown, Search, X, Sparkles } from "lucide-react";
+import { suggestAssignee } from "@/components/WorkloadPanel";
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: () => void;
+  existingPlannings?: Demand[];
 }
 
 const MONTHS = ["01","02","03","04","05","06","07","08","09","10","11","12"];
@@ -32,7 +36,7 @@ const MONTH_NAMES: Record<string, string> = {
   "09":"Setembro","10":"Outubro","11":"Novembro","12":"Dezembro",
 };
 
-export function CreatePlanningDialog({ open, onOpenChange, onCreated }: Props) {
+export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPlannings = [] }: Props) {
   const { user } = useAuth();
   const now = new Date();
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
@@ -278,7 +282,32 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated }: Props) {
               </select>
             </div>
             <div>
-              <Label>Responsável *</Label>
+              <div className="flex items-center justify-between">
+                <Label>Responsável *</Label>
+                <TooltipProvider delayDuration={200}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
+                        onClick={() => {
+                          const suggestion = suggestAssignee(existingPlannings);
+                          if (suggestion) {
+                            setAssignee(suggestion.id);
+                            toast.info(`Sugerido: ${suggestion.name} (${suggestion.activeCount} ativos)`);
+                          }
+                        }}
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        Sugerir
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">
+                      <p className="text-xs">Sugere o membro com menor carga ativa</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className={selectClass} required>
                 <option value="">Selecione...</option>
                 {TEAM_MEMBERS.map((m) => (

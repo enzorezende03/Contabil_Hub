@@ -893,20 +893,26 @@ export default function CompetenciasPage() {
                       <>
                         <div className="flex items-center gap-2">
                           <span className="text-xs flex-1">Fechamento Contábil</span>
-                          {!hasAttachment ? (
-                            <span className="text-[10px] text-muted-foreground italic">Anexe as demonstrações primeiro</span>
-                          ) : (
-                            <select
-                              value={fechamentoStatus}
-                              disabled={finalized}
-                              onChange={(e) => setDemandStatus(panelData.client, "closing", "fechamento", e.target.value as DemandStatus)}
-                              className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px] disabled:opacity-50"
-                            >
-                              <option value="not_started">Não Iniciada</option>
-                              <option value="in_progress">Em Andamento</option>
-                              <option value="waiting_info">Aguardando Doc.</option>
-                              <option value="completed">Concluída</option>
-                            </select>
+                          <select
+                            value={fechamentoStatus}
+                            disabled={finalized}
+                            onChange={(e) => {
+                              const val = e.target.value as DemandStatus;
+                              if (val === "completed" && !hasAttachment) {
+                                toast.error("Anexe as demonstrações contábeis antes de concluir o fechamento");
+                                return;
+                              }
+                              setDemandStatus(panelData.client, "closing", "fechamento", val);
+                            }}
+                            className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px] disabled:opacity-50"
+                          >
+                            <option value="not_started">Não Iniciada</option>
+                            <option value="in_progress">Em Andamento</option>
+                            <option value="waiting_info">Aguardando Doc.</option>
+                            <option value="completed">Concluída</option>
+                          </select>
+                          {!hasAttachment && (
+                            <span className="text-[9px] text-muted-foreground italic">* Anexo necessário para concluir</span>
                           )}
                         </div>
 

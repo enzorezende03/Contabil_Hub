@@ -824,31 +824,122 @@ export default function CompetenciasPage() {
                 </div>
 
                 {/* Encerramento da empresa */}
-                <div className="space-y-3 border-t pt-4">
+                <div className="space-y-4 border-t pt-4">
                   <h3 className="text-sm font-semibold">Encerramento do Exercício</h3>
-                  {CLOSING_TYPES.map((dt) => {
-                    const statusKey = `${panelData.client}|closing|${dt.type}`;
-                    const currentStatus = demandStatuses[statusKey] || "not_started";
+
+                  {/* Anexo de Demonstrações Contábeis */}
+                  <div className="rounded-md border p-3 space-y-2">
+                    <span className="text-xs font-semibold">Demonstrações Contábeis</span>
+                    {(() => {
+                      const attachment = attachmentMap.get(panelData.client);
+                      if (attachment) {
+                        return (
+                          <div className="flex items-center gap-2">
+                            <FileCheck className="w-4 h-4 text-emerald-500" />
+                            <span className="text-xs text-emerald-600 font-medium truncate flex-1">{attachment.file_name}</span>
+                            <button
+                              onClick={() => {
+                                const { data } = supabase.storage.from("demonstracoes-contabeis").getPublicUrl(attachment.file_path);
+                                window.open(data.publicUrl, "_blank");
+                              }}
+                              className="text-[10px] text-primary hover:underline"
+                            >
+                              Visualizar
+                            </button>
+                            <button
+                              onClick={() => fileInputRef.current?.click()}
+                              className="text-[10px] text-muted-foreground hover:text-foreground"
+                            >
+                              Substituir
+                            </button>
+                          </div>
+                        );
+                      }
+                      return (
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploading}
+                          className="flex items-center gap-2 w-full h-9 px-3 text-xs border border-dashed rounded-md hover:bg-muted/50 transition-colors text-muted-foreground"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          {uploading ? "Enviando..." : "Anexar demonstrações contábeis"}
+                        </button>
+                      );
+                    })()}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.xlsx,.xls,.doc,.docx,.zip"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file && panelData) {
+                          handleUploadAttachment(panelData.client, file);
+                        }
+                        e.target.value = "";
+                      }}
+                    />
+                  </div>
+
+                  {/* Fechamento e Revisão */}
+                  {(() => {
+                    const hasAttachment = attachmentMap.has(panelData.client);
+                    const fechamentoKey = `${panelData.client}|closing|fechamento`;
+                    const fechamentoStatus = demandStatuses[fechamentoKey] || "not_started";
+                    const fechamentoDone = fechamentoStatus === "completed";
+                    const finalized = isClientFinalized(panelData.client);
 
                     return (
-                      <div key={dt.type} className="flex items-center gap-2">
-                        <span className="text-xs flex-1">{dt.label}</span>
-                        <select
-                          value={currentStatus}
-                          onChange={(e) => setDemandStatus(panelData.client, "closing", dt.type, e.target.value as DemandStatus)}
-                          className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px]"
-                        >
-                          <option value="not_started">Não Iniciada</option>
-                          <option value="in_progress">Em Andamento</option>
-                          <option value="in_review">Em Revisão</option>
-                          <option value="waiting_info">Aguardando Doc.</option>
-                          <option value="completed">Concluída</option>
-                          <option value="blocked">Bloqueada</option>
-                          <option value="late">Em Atraso</option>
-                        </select>
-                      </div>
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs flex-1">Fechamento Contábil</span>
+                          {!hasAttachment ? (
+                            <span className="text-[10px] text-muted-foreground italic">Anexe as demonstrações primeiro</span>
+                          ) : (
+                            <select
+                              value={fechamentoStatus}
+                              disabled={finalized}
+                              onChange={(e) => setDemandStatus(panelData.client, "closing", "fechamento", e.target.value as DemandStatus)}
+                              className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px] disabled:opacity-50"
+                            >
+                              <option value="not_started">Não Iniciada</option>
+                              <option value="in_progress">Em Andamento</option>
+                              <option value="waiting_info">Aguardando Doc.</option>
+                              <option value="completed">Concluída</option>
+                            </select>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs flex-1">Revisão</span>
+                          {!fechamentoDone ? (
+                            <span className="text-[10px] text-muted-foreground italic flex items-center gap-1">
+                              <Lock className="w-3 h-3" /> Conclua o fechamento primeiro
+                            </span>
+                          ) : (
+                            <select
+                              value={demandStatuses[`${panelData.client}|closing|revisao`] || "not_started"}
+                              disabled={finalized}
+                              onChange={(e) => setDemandStatus(panelData.client, "closing", "revisao", e.target.value as DemandStatus)}
+                              className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px] disabled:opacity-50"
+                            >
+                              <option value="not_started">Não Iniciada</option>
+                              <option value="in_progress">Em Andamento</option>
+                              <option value="in_review">Em Revisão</option>
+                              <option value="completed">Concluída</option>
+                            </select>
+                          )}
+                        </div>
+
+                        {finalized && (
+                          <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 border border-emerald-500/30 p-2 mt-2">
+                            <Lock className="w-4 h-4 text-emerald-600" />
+                            <span className="text-xs text-emerald-700 font-semibold">Escrita finalizada — Exercício {year} concluído</span>
+                          </div>
+                        )}
+                      </>
                     );
-                  })}
+                  })()}
                 </div>
               </div>
             </>

@@ -71,7 +71,7 @@ export default function CompetenciasPage() {
   const { user } = useAuth();
   const currentYear = new Date().getFullYear().toString();
   const [year, setYear] = usePersistedFilter("competencias", "year", currentYear);
-  const [yearConfirmed, setYearConfirmed] = useState(false);
+  const [yearConfirmed, setYearConfirmed] = useState(() => sessionStorage.getItem("competencias_year_confirmed") === "true");
   const [selectedClient, setSelectedClient] = usePersistedFilter("competencias", "client", "all");
   const [selectedTributacao, setSelectedTributacao] = usePersistedFilter("competencias", "tributacao", "all");
   const [selectedUnidade, setSelectedUnidade] = usePersistedFilter("competencias", "unidade", "all");
@@ -301,7 +301,7 @@ export default function CompetenciasPage() {
               Você está prestes a trabalhar no ano <strong className="text-foreground">{year}</strong>. Confirme para prosseguir.
             </p>
             <button
-              onClick={() => setYearConfirmed(true)}
+              onClick={() => { sessionStorage.setItem("competencias_year_confirmed", "true"); setYearConfirmed(true); }}
               className="w-full h-11 rounded-lg bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors"
             >
               Confirmar e Continuar

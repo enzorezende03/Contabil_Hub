@@ -228,6 +228,12 @@ export default function CompetenciasPage() {
   };
 
   const toggleMonth = (m: string) => {
+    setSelectedMonths((prev) => {
+      const next = new Set(prev);
+      if (next.has(m)) next.delete(m); else next.add(m);
+      return next;
+    });
+  };
 
   const toggleAllMonths = () => {
     setSelectedMonths((prev) => prev.size === 12 ? new Set() : new Set(MONTHS));

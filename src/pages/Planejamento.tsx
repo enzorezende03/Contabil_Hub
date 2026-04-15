@@ -16,12 +16,14 @@ import {
   type Demand,
 } from "@/lib/types";
 import { formatMinutes, getDeadlineUrgency } from "@/lib/demand-utils";
-import { Search, LayoutGrid, List, Clock, Plus } from "lucide-react";
+import { Search, LayoutGrid, List, Clock, Plus, CalendarRange } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreatePlanningDialog } from "@/components/CreatePlanningDialog";
+import { WorkloadPanel } from "@/components/WorkloadPanel";
+import { PlanningTimeline } from "@/components/PlanningTimeline";
 import { toast } from "sonner";
 
-type ViewMode = "list" | "kanban";
+type ViewMode = "list" | "kanban" | "timeline";
 
 const KANBAN_COLUMNS: DemandStatus[] = [
   "not_started",
@@ -151,6 +153,9 @@ export default function PlanejamentoPage() {
               </button>
               <button onClick={() => setView("list")} className={`p-1.5 rounded-md transition-colors ${view === "list" ? "bg-card shadow-sm" : ""}`}>
                 <List className="w-4 h-4" />
+              </button>
+              <button onClick={() => setView("timeline")} className={`p-1.5 rounded-md transition-colors ${view === "timeline" ? "bg-card shadow-sm" : ""}`}>
+                <CalendarRange className="w-4 h-4" />
               </button>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import AppLayout from "@/components/AppLayout";
 import { TRIBUTACAO_LABELS, Tributacao, DemandStatus } from "@/lib/types";
@@ -6,8 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
-
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Upload, FileCheck, Lock } from "lucide-react";
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
 const MONTH_SHORT: Record<string, string> = {
@@ -83,7 +83,9 @@ export default function CompetenciasPage() {
   const [filledByMap, setFilledByMap] = useState<Record<string, string>>({});
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
   const [batchMonths, setBatchMonths] = useState<Set<string>>(new Set());
-
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   // Fetch clients from DB
   const { data: dbClients = [] } = useQuery({
@@ -95,6 +97,56 @@ export default function CompetenciasPage() {
     },
   });
 
+  // Fetch closing attachments
+  const { data: closingAttachments = [] } = useQuery({
+    queryKey: ["closing-attachments", year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("closing_attachments")
+        .select("*")
+        .eq("year", year);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const attachmentMap = useMemo(() => {
+    const map = new Map<string, { file_name: string; file_path: string }>();
+    closingAttachments.forEach((a: any) => {
+      map.set(a.client_name, { file_name: a.file_name, file_path: a.file_path });
+    });
+    return map;
+  }, [closingAttachments]);
+
+  const handleUploadAttachment = async (clientName: string, file: File) => {
+    if (!user) return;
+    setUploading(true);
+    try {
+      const filePath = `${year}/${clientName}/${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("demonstracoes-contabeis")
+        .upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { error: dbError } = await supabase
+        .from("closing_attachments")
+        .upsert({
+          client_name: clientName,
+          year,
+          file_path: filePath,
+          file_name: file.name,
+          uploaded_by: user.id,
+        }, { onConflict: "client_name,year" });
+      if (dbError) throw dbError;
+
+      queryClient.invalidateQueries({ queryKey: ["closing-attachments", year] });
+      toast.success("Demonstrações contábeis anexadas com sucesso");
+    } catch (e: any) {
+      toast.error(`Erro ao enviar arquivo: ${e.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // Load saved statuses from DB
   useEffect(() => {
@@ -334,6 +386,21 @@ export default function CompetenciasPage() {
   );
   const pctDone = totalCells > 0 ? Math.round((doneCells / totalCells) * 100) : 0;
 
+  // Check if a client is fully finalized
+  const isClientFinalized = useCallback((client: string) => {
+    // All months must be conc_contabil, disabled, or sem_movimento
+    const allMonthsDone = MONTHS.every((m) => {
+      const level = matrix[client]?.[m];
+      return level === "conc_contabil" || level === "disabled" || level === "sem_movimento";
+    });
+    // Fechamento and revisão must be completed
+    const fechamentoDone = demandStatuses[`${client}|closing|fechamento`] === "completed";
+    const revisaoDone = demandStatuses[`${client}|closing|revisao`] === "completed";
+    // Attachment must exist
+    const hasAttachment = attachmentMap.has(client);
+    return allMonthsDone && fechamentoDone && revisaoDone && hasAttachment;
+  }, [matrix, demandStatuses, attachmentMap]);
+
   const selectClass = "h-8 px-3 text-sm border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary";
 
   const yearOptions = ["2026", "2025", "2024", "2023", "2022", "2021"];
@@ -534,8 +601,9 @@ export default function CompetenciasPage() {
                   const perfil = clientsMap[client]?.perfil || "standard";
                   const perfilLabels: Record<string, string> = { vip: "VIP", premium: "Premium", standard: "Standard", basico: "Básico" };
                   const perfilColors: Record<string, string> = { vip: "bg-yellow-500/15 text-yellow-600", premium: "bg-purple-500/15 text-purple-600", standard: "bg-blue-500/15 text-blue-600", basico: "bg-gray-500/15 text-gray-600" };
+                  const finalized = isClientFinalized(client);
                   return (
-                    <tr key={client} className={`hover:bg-muted/20 ${selectedClients.has(client) ? "bg-primary/5" : ""}`}>
+                    <tr key={client} className={`${finalized ? "bg-emerald-500/10 opacity-70" : selectedClients.has(client) ? "bg-primary/5" : "hover:bg-muted/20"}`}>
                       <td className="px-2 py-2 w-8">
                         <input
                           type="checkbox"
@@ -545,11 +613,14 @@ export default function CompetenciasPage() {
                         />
                       </td>
                       <td
-                        className="px-2 py-2 font-medium text-xs whitespace-nowrap overflow-hidden text-ellipsis sticky left-0 bg-card z-10 cursor-pointer hover:text-primary transition-colors w-[140px] max-w-[140px]"
+                        className={`px-2 py-2 font-medium text-xs whitespace-nowrap overflow-hidden text-ellipsis sticky left-0 z-10 cursor-pointer hover:text-primary transition-colors w-[140px] max-w-[140px] ${finalized ? "bg-emerald-500/10" : "bg-card"}`}
                         onClick={() => setPanelClient(client)}
-                        title={client}
+                        title={finalized ? `${client} — ✅ Finalizado` : client}
                       >
-                        {client}
+                        <span className="flex items-center gap-1">
+                          {finalized && <Lock className="w-3 h-3 text-emerald-600 flex-shrink-0" />}
+                          <span className="truncate">{client}</span>
+                        </span>
                       </td>
                       <td className="px-2 py-2 whitespace-nowrap">
                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${
@@ -753,31 +824,122 @@ export default function CompetenciasPage() {
                 </div>
 
                 {/* Encerramento da empresa */}
-                <div className="space-y-3 border-t pt-4">
+                <div className="space-y-4 border-t pt-4">
                   <h3 className="text-sm font-semibold">Encerramento do Exercício</h3>
-                  {CLOSING_TYPES.map((dt) => {
-                    const statusKey = `${panelData.client}|closing|${dt.type}`;
-                    const currentStatus = demandStatuses[statusKey] || "not_started";
+
+                  {/* Anexo de Demonstrações Contábeis */}
+                  <div className="rounded-md border p-3 space-y-2">
+                    <span className="text-xs font-semibold">Demonstrações Contábeis</span>
+                    {(() => {
+                      const attachment = attachmentMap.get(panelData.client);
+                      if (attachment) {
+                        return (
+                          <div className="flex items-center gap-2">
+                            <FileCheck className="w-4 h-4 text-emerald-500" />
+                            <span className="text-xs text-emerald-600 font-medium truncate flex-1">{attachment.file_name}</span>
+                            <button
+                              onClick={() => {
+                                const { data } = supabase.storage.from("demonstracoes-contabeis").getPublicUrl(attachment.file_path);
+                                window.open(data.publicUrl, "_blank");
+                              }}
+                              className="text-[10px] text-primary hover:underline"
+                            >
+                              Visualizar
+                            </button>
+                            <button
+                              onClick={() => fileInputRef.current?.click()}
+                              className="text-[10px] text-muted-foreground hover:text-foreground"
+                            >
+                              Substituir
+                            </button>
+                          </div>
+                        );
+                      }
+                      return (
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploading}
+                          className="flex items-center gap-2 w-full h-9 px-3 text-xs border border-dashed rounded-md hover:bg-muted/50 transition-colors text-muted-foreground"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          {uploading ? "Enviando..." : "Anexar demonstrações contábeis"}
+                        </button>
+                      );
+                    })()}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".pdf,.xlsx,.xls,.doc,.docx,.zip"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file && panelData) {
+                          handleUploadAttachment(panelData.client, file);
+                        }
+                        e.target.value = "";
+                      }}
+                    />
+                  </div>
+
+                  {/* Fechamento e Revisão */}
+                  {(() => {
+                    const hasAttachment = attachmentMap.has(panelData.client);
+                    const fechamentoKey = `${panelData.client}|closing|fechamento`;
+                    const fechamentoStatus = demandStatuses[fechamentoKey] || "not_started";
+                    const fechamentoDone = fechamentoStatus === "completed";
+                    const finalized = isClientFinalized(panelData.client);
 
                     return (
-                      <div key={dt.type} className="flex items-center gap-2">
-                        <span className="text-xs flex-1">{dt.label}</span>
-                        <select
-                          value={currentStatus}
-                          onChange={(e) => setDemandStatus(panelData.client, "closing", dt.type, e.target.value as DemandStatus)}
-                          className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px]"
-                        >
-                          <option value="not_started">Não Iniciada</option>
-                          <option value="in_progress">Em Andamento</option>
-                          <option value="in_review">Em Revisão</option>
-                          <option value="waiting_info">Aguardando Doc.</option>
-                          <option value="completed">Concluída</option>
-                          <option value="blocked">Bloqueada</option>
-                          <option value="late">Em Atraso</option>
-                        </select>
-                      </div>
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs flex-1">Fechamento Contábil</span>
+                          {!hasAttachment ? (
+                            <span className="text-[10px] text-muted-foreground italic">Anexe as demonstrações primeiro</span>
+                          ) : (
+                            <select
+                              value={fechamentoStatus}
+                              disabled={finalized}
+                              onChange={(e) => setDemandStatus(panelData.client, "closing", "fechamento", e.target.value as DemandStatus)}
+                              className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px] disabled:opacity-50"
+                            >
+                              <option value="not_started">Não Iniciada</option>
+                              <option value="in_progress">Em Andamento</option>
+                              <option value="waiting_info">Aguardando Doc.</option>
+                              <option value="completed">Concluída</option>
+                            </select>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs flex-1">Revisão</span>
+                          {!fechamentoDone ? (
+                            <span className="text-[10px] text-muted-foreground italic flex items-center gap-1">
+                              <Lock className="w-3 h-3" /> Conclua o fechamento primeiro
+                            </span>
+                          ) : (
+                            <select
+                              value={demandStatuses[`${panelData.client}|closing|revisao`] || "not_started"}
+                              disabled={finalized}
+                              onChange={(e) => setDemandStatus(panelData.client, "closing", "revisao", e.target.value as DemandStatus)}
+                              className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px] disabled:opacity-50"
+                            >
+                              <option value="not_started">Não Iniciada</option>
+                              <option value="in_progress">Em Andamento</option>
+                              <option value="in_review">Em Revisão</option>
+                              <option value="completed">Concluída</option>
+                            </select>
+                          )}
+                        </div>
+
+                        {finalized && (
+                          <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 border border-emerald-500/30 p-2 mt-2">
+                            <Lock className="w-4 h-4 text-emerald-600" />
+                            <span className="text-xs text-emerald-700 font-semibold">Escrita finalizada — Exercício {year} concluído</span>
+                          </div>
+                        )}
+                      </>
                     );
-                  })}
+                  })()}
                 </div>
               </div>
             </>

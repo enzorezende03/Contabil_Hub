@@ -168,13 +168,66 @@ export default function CompetenciasPage() {
     }
   }, [user, year]);
 
-  const toggleMonth = (m: string) => {
-    setSelectedMonths((prev) => {
+  const setMultiClientBulkStatus = useCallback(async (clients: Set<string>, months: Set<string>, type: string, status: DemandStatus) => {
+    if (!user) return;
+    if (clients.size === 0) { toast.error("Selecione ao menos uma empresa"); return; }
+    if (months.size === 0) { toast.error("Selecione ao menos um mês"); return; }
+
+    setDemandStatuses((prev) => {
+      const next = { ...prev };
+      clients.forEach((client) => {
+        months.forEach((m) => { next[`${client}|${m}|${type}`] = status; });
+      });
+      return next;
+    });
+
+    const rows = [...clients].flatMap((client) =>
+      [...months].map((m) => ({
+        client_name: client,
+        month: m,
+        year,
+        demand_type: type,
+        status,
+        filled_by: user.id,
+      }))
+    );
+
+    const { error } = await supabase
+      .from("demand_status_entries")
+      .upsert(rows, { onConflict: "client_name,month,year,demand_type" });
+
+    if (error) {
+      toast.error("Erro ao salvar em lote");
+    } else {
+      toast.success(`Status atualizado para ${clients.size} empresa(s) × ${months.size} mês(es)`);
+    }
+  }, [user, year]);
+
+  const toggleClient = (client: string) => {
+    setSelectedClients((prev) => {
+      const next = new Set(prev);
+      if (next.has(client)) next.delete(client); else next.add(client);
+      return next;
+    });
+  };
+
+  const toggleAllClients = () => {
+    setSelectedClients((prev) => prev.size === clients.length ? new Set() : new Set(clients));
+  };
+
+  const toggleBatchMonth = (m: string) => {
+    setBatchMonths((prev) => {
       const next = new Set(prev);
       if (next.has(m)) next.delete(m); else next.add(m);
       return next;
     });
   };
+
+  const toggleAllBatchMonths = () => {
+    setBatchMonths((prev) => prev.size === 12 ? new Set() : new Set(MONTHS));
+  };
+
+  const toggleMonth = (m: string) => {
 
   const toggleAllMonths = () => {
     setSelectedMonths((prev) => prev.size === 12 ? new Set() : new Set(MONTHS));

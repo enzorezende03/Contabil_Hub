@@ -185,6 +185,13 @@ export default function PlanejamentoPage() {
           </select>
         </div>
 
+        {/* Workload Panel */}
+        <WorkloadPanel
+          plannings={planningsWithDerivedStatus}
+          activeFilter={filterAssignee}
+          onFilterByAssignee={setFilterAssignee}
+        />
+
         {view === "kanban" && (
           <div className="flex gap-3 overflow-x-auto pb-4">
             {KANBAN_COLUMNS.map((status) => {
@@ -281,11 +288,15 @@ export default function PlanejamentoPage() {
             </table>
           </div>
         )}
+        {view === "timeline" && (
+          <PlanningTimeline plannings={filtered} />
+        )}
       </div>
 
       <CreatePlanningDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
+        existingPlannings={planningsWithDerivedStatus}
         onCreated={() => {
           refetch();
           toast.success("Planejamento criado com sucesso!");

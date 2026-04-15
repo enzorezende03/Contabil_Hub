@@ -386,6 +386,21 @@ export default function CompetenciasPage() {
   );
   const pctDone = totalCells > 0 ? Math.round((doneCells / totalCells) * 100) : 0;
 
+  // Check if a client is fully finalized
+  const isClientFinalized = useCallback((client: string) => {
+    // All months must be conc_contabil, disabled, or sem_movimento
+    const allMonthsDone = MONTHS.every((m) => {
+      const level = matrix[client]?.[m];
+      return level === "conc_contabil" || level === "disabled" || level === "sem_movimento";
+    });
+    // Fechamento and revisão must be completed
+    const fechamentoDone = demandStatuses[`${client}|closing|fechamento`] === "completed";
+    const revisaoDone = demandStatuses[`${client}|closing|revisao`] === "completed";
+    // Attachment must exist
+    const hasAttachment = attachmentMap.has(client);
+    return allMonthsDone && fechamentoDone && revisaoDone && hasAttachment;
+  }, [matrix, demandStatuses, attachmentMap]);
+
   const selectClass = "h-8 px-3 text-sm border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary";
 
   const yearOptions = ["2026", "2025", "2024", "2023", "2022", "2021"];

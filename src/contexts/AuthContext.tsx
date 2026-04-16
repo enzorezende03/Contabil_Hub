@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { setRolePermissions } from "@/lib/permissions";
 
 interface AuthContextType {
   session: Session | null;
@@ -44,12 +45,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile(session.user.id);
         fetchRole(session.user.id);
+        loadPermissions();
       }
       setLoading(false);
     });
@@ -74,6 +76,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq("role", "admin")
       .maybeSingle();
     setIsAdmin(!!data);
+  };
+
+  const loadPermissions = async () => {
+    const { data } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "role_permissions")
+      .maybeSingle();
+    if (data?.value) {
+      setRolePermissions(data.value as Record<string, string[]>);
+    }
   };
 
   const signOut = async () => {

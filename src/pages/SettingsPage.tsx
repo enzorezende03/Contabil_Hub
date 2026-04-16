@@ -50,7 +50,7 @@ export default function SettingsPage() {
     setSaving(true);
     const { error } = await supabase
       .from("settings")
-      .update({ value: draftWeights as unknown as Record<string, unknown>, updated_by: user?.id })
+      .update({ value: JSON.parse(JSON.stringify(draftWeights)), updated_by: user?.id })
       .eq("key", "demand_weights");
     if (error) {
       toast.error("Erro ao salvar pesos");
@@ -71,7 +71,7 @@ export default function SettingsPage() {
     setSaving(true);
     const { error } = await supabase
       .from("settings")
-      .update({ value: draftTeam as unknown as Record<string, unknown>, updated_by: user?.id })
+      .update({ value: JSON.parse(JSON.stringify(draftTeam)), updated_by: user?.id })
       .eq("key", "team_members");
     if (error) {
       toast.error("Erro ao salvar equipe");

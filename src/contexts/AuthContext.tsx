@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { setRolePermissions } from "@/lib/permissions";
+import { setActionPermissions } from "@/hooks/use-action-permissions";
 
 interface AuthContextType {
   session: Session | null;

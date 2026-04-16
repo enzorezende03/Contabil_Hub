@@ -336,6 +336,63 @@ export default function SettingsPage() {
             <p className="text-[11px] text-muted-foreground mt-2">* O Dashboard (/) é obrigatório para todos os cargos.</p>
           )}
         </div>
+
+        {/* Action Permissions */}
+        <div className="rounded-lg border bg-card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-semibold">Permissões de Ações</h3>
+            </div>
+            <EditButton editing={editingActions} onStart={startEditActions} onCancel={() => setEditingActions(false)} onSave={saveActions} />
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">Define quais cargos podem executar ações específicas no sistema.</p>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Ação</th>
+                  {PROFILE_ROLES.map((r) => (
+                    <th key={r.value} className="text-center px-3 py-2 font-medium text-muted-foreground text-xs">{r.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {ACTION_ITEMS.map((action) => {
+                  const data = editingActions ? draftActions : actionPerms;
+                  return (
+                    <tr key={action.key} className="hover:bg-muted/20">
+                      <td className="px-3 py-2">
+                        <div className="text-sm font-medium">{action.label}</div>
+                        <div className="text-[10px] text-muted-foreground">{action.description}</div>
+                      </td>
+                      {PROFILE_ROLES.map((r) => {
+                        const allowed = data[action.key]?.includes(r.value) ?? false;
+                        return (
+                          <td key={r.value} className="text-center px-3 py-2">
+                            {editingActions ? (
+                              <input
+                                type="checkbox"
+                                checked={allowed}
+                                onChange={() => toggleActionPerm(action.key, r.value)}
+                                className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                              />
+                            ) : (
+                              <span className={`inline-block w-5 h-5 rounded-full text-xs leading-5 ${allowed ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+                                {allowed ? "✓" : "—"}
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </AppLayout>
   );

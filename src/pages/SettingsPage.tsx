@@ -4,8 +4,9 @@ import { ROLE_LABELS, type TaskWeight, type TeamMember, type TeamRole } from "@/
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pencil, Save, Plus, Trash2, X, Shield } from "lucide-react";
+import { Pencil, Save, Plus, Trash2, X, Shield, Lock } from "lucide-react";
 import { ALL_PAGES, type ProfileRole, type AppPage, setRolePermissions } from "@/lib/permissions";
+import { type ActionPermissions, setActionPermissions } from "@/hooks/use-action-permissions";
 
 const ROLE_OPTIONS: { value: TeamRole; label: string }[] = [
   { value: "estagiario", label: "Estagiário" },
@@ -28,12 +29,15 @@ export default function SettingsPage() {
   const [weights, setWeights] = useState<TaskWeight[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [permissions, setPermissions] = useState<RolePerms>({} as RolePerms);
+  const [actionPerms, setActionPermsState] = useState<ActionPermissions>({ edit_dates: ["coordenacao"] });
   const [editingWeights, setEditingWeights] = useState(false);
   const [editingTeam, setEditingTeam] = useState(false);
   const [editingPerms, setEditingPerms] = useState(false);
+  const [editingActions, setEditingActions] = useState(false);
   const [draftWeights, setDraftWeights] = useState<TaskWeight[]>([]);
   const [draftTeam, setDraftTeam] = useState<TeamMember[]>([]);
   const [draftPerms, setDraftPerms] = useState<RolePerms>({} as RolePerms);
+  const [draftActions, setDraftActions] = useState<ActionPermissions>({ edit_dates: ["coordenacao"] });
   const [saving, setSaving] = useState(false);
 
   const [newName, setNewName] = useState("");

@@ -53,9 +53,11 @@ export default function SettingsPage() {
       const wRow = data.find((r) => r.key === "demand_weights");
       const tRow = data.find((r) => r.key === "team_members");
       const pRow = data.find((r) => r.key === "role_permissions");
+      const aRow = data.find((r) => r.key === "action_permissions");
       if (wRow) setWeights(wRow.value as unknown as TaskWeight[]);
       if (tRow) setTeam(tRow.value as unknown as TeamMember[]);
       if (pRow) setPermissions(pRow.value as unknown as RolePerms);
+      if (aRow) setActionPermsState(aRow.value as unknown as ActionPermissions);
     }
   };
 

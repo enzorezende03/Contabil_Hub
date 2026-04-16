@@ -318,7 +318,10 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
             </div>
             <div className="col-span-2">
               <Label>Prazo Interno *</Label>
-              <Input type="date" value={internalDeadline} onChange={(e) => setInternalDeadline(e.target.value)} required />
+              <Input type="date" value={internalDeadline} onChange={(e) => setInternalDeadline(e.target.value)} required disabled={!canPerformAction("edit_dates", profile?.role)} />
+              {!canPerformAction("edit_dates", profile?.role) && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">Seu cargo não tem permissão para definir datas</p>
+              )}
             </div>
           </div>
 

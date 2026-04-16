@@ -4,8 +4,9 @@ import { ROLE_LABELS, type TaskWeight, type TeamMember, type TeamRole } from "@/
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Pencil, Save, Plus, Trash2, X, Shield } from "lucide-react";
+import { Pencil, Save, Plus, Trash2, X, Shield, Lock } from "lucide-react";
 import { ALL_PAGES, type ProfileRole, type AppPage, setRolePermissions } from "@/lib/permissions";
+import { type ActionPermissions, setActionPermissions } from "@/hooks/use-action-permissions";
 
 const ROLE_OPTIONS: { value: TeamRole; label: string }[] = [
   { value: "estagiario", label: "Estagiário" },
@@ -28,12 +29,15 @@ export default function SettingsPage() {
   const [weights, setWeights] = useState<TaskWeight[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [permissions, setPermissions] = useState<RolePerms>({} as RolePerms);
+  const [actionPerms, setActionPermsState] = useState<ActionPermissions>({ edit_dates: ["coordenacao"] });
   const [editingWeights, setEditingWeights] = useState(false);
   const [editingTeam, setEditingTeam] = useState(false);
   const [editingPerms, setEditingPerms] = useState(false);
+  const [editingActions, setEditingActions] = useState(false);
   const [draftWeights, setDraftWeights] = useState<TaskWeight[]>([]);
   const [draftTeam, setDraftTeam] = useState<TeamMember[]>([]);
   const [draftPerms, setDraftPerms] = useState<RolePerms>({} as RolePerms);
+  const [draftActions, setDraftActions] = useState<ActionPermissions>({ edit_dates: ["coordenacao"] });
   const [saving, setSaving] = useState(false);
 
   const [newName, setNewName] = useState("");
@@ -49,9 +53,11 @@ export default function SettingsPage() {
       const wRow = data.find((r) => r.key === "demand_weights");
       const tRow = data.find((r) => r.key === "team_members");
       const pRow = data.find((r) => r.key === "role_permissions");
+      const aRow = data.find((r) => r.key === "action_permissions");
       if (wRow) setWeights(wRow.value as unknown as TaskWeight[]);
       if (tRow) setTeam(tRow.value as unknown as TeamMember[]);
       if (pRow) setPermissions(pRow.value as unknown as RolePerms);
+      if (aRow) setActionPermsState(aRow.value as unknown as ActionPermissions);
     }
   };
 
@@ -129,6 +135,39 @@ export default function SettingsPage() {
     setDraftPerms({
       ...draftPerms,
       [role]: has ? current.filter((p) => p !== page) : [...current, page],
+    });
+  };
+
+  // --- Action Permissions ---
+  const ACTION_ITEMS: { key: keyof ActionPermissions; label: string; description: string }[] = [
+    { key: "edit_dates", label: "Alterar Datas", description: "Permite definir/alterar prazos em planejamentos e solicitações de clientes" },
+  ];
+  const startEditActions = () => {
+    setDraftActions(JSON.parse(JSON.stringify(actionPerms)));
+    setEditingActions(true);
+  };
+  const saveActions = async () => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("settings")
+      .update({ value: JSON.parse(JSON.stringify(draftActions)), updated_by: user?.id })
+      .eq("key", "action_permissions");
+    if (error) {
+      toast.error("Erro ao salvar permissões de ações");
+    } else {
+      setActionPermsState(draftActions);
+      setActionPermissions(draftActions);
+      setEditingActions(false);
+      toast.success("Permissões de ações atualizadas!");
+    }
+    setSaving(false);
+  };
+  const toggleActionPerm = (action: keyof ActionPermissions, role: ProfileRole) => {
+    const current = draftActions[action] || [];
+    const has = current.includes(role);
+    setDraftActions({
+      ...draftActions,
+      [action]: has ? current.filter((r) => r !== role) : [...current, role],
     });
   };
 
@@ -296,6 +335,63 @@ export default function SettingsPage() {
           {editingPerms && (
             <p className="text-[11px] text-muted-foreground mt-2">* O Dashboard (/) é obrigatório para todos os cargos.</p>
           )}
+        </div>
+
+        {/* Action Permissions */}
+        <div className="rounded-lg border bg-card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-primary" />
+              <h3 className="text-sm font-semibold">Permissões de Ações</h3>
+            </div>
+            <EditButton editing={editingActions} onStart={startEditActions} onCancel={() => setEditingActions(false)} onSave={saveActions} />
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">Define quais cargos podem executar ações específicas no sistema.</p>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Ação</th>
+                  {PROFILE_ROLES.map((r) => (
+                    <th key={r.value} className="text-center px-3 py-2 font-medium text-muted-foreground text-xs">{r.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {ACTION_ITEMS.map((action) => {
+                  const data = editingActions ? draftActions : actionPerms;
+                  return (
+                    <tr key={action.key} className="hover:bg-muted/20">
+                      <td className="px-3 py-2">
+                        <div className="text-sm font-medium">{action.label}</div>
+                        <div className="text-[10px] text-muted-foreground">{action.description}</div>
+                      </td>
+                      {PROFILE_ROLES.map((r) => {
+                        const allowed = data[action.key]?.includes(r.value) ?? false;
+                        return (
+                          <td key={r.value} className="text-center px-3 py-2">
+                            {editingActions ? (
+                              <input
+                                type="checkbox"
+                                checked={allowed}
+                                onChange={() => toggleActionPerm(action.key, r.value)}
+                                className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                              />
+                            ) : (
+                              <span className={`inline-block w-5 h-5 rounded-full text-xs leading-5 ${allowed ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+                                {allowed ? "✓" : "—"}
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </AppLayout>

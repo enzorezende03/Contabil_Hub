@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { setRolePermissions } from "@/lib/permissions";
+import { setActionPermissions } from "@/hooks/use-action-permissions";
 
 interface AuthContextType {
   session: Session | null;
@@ -81,11 +82,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const loadPermissions = async () => {
     const { data } = await supabase
       .from("settings")
-      .select("value")
-      .eq("key", "role_permissions")
-      .maybeSingle();
-    if (data?.value) {
-      setRolePermissions(data.value as Record<string, string[]>);
+      .select("key, value")
+      .in("key", ["role_permissions", "action_permissions"]);
+    if (data) {
+      const roleRow = data.find((r) => r.key === "role_permissions");
+      const actionRow = data.find((r) => r.key === "action_permissions");
+      if (roleRow?.value) setRolePermissions(roleRow.value as Record<string, string[]>);
+      if (actionRow?.value) setActionPermissions(actionRow.value as Record<string, string[]>);
     }
   };
 

@@ -138,7 +138,39 @@ export default function SettingsPage() {
     });
   };
 
-  const EditButton = ({ editing, onStart, onCancel, onSave }: { editing: boolean; onStart: () => void; onCancel: () => void; onSave: () => void }) => (
+  // --- Action Permissions ---
+  const ACTION_ITEMS: { key: keyof ActionPermissions; label: string; description: string }[] = [
+    { key: "edit_dates", label: "Alterar Datas", description: "Permite definir/alterar prazos em planejamentos e solicitações de clientes" },
+  ];
+  const startEditActions = () => {
+    setDraftActions(JSON.parse(JSON.stringify(actionPerms)));
+    setEditingActions(true);
+  };
+  const saveActions = async () => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("settings")
+      .update({ value: JSON.parse(JSON.stringify(draftActions)), updated_by: user?.id })
+      .eq("key", "action_permissions");
+    if (error) {
+      toast.error("Erro ao salvar permissões de ações");
+    } else {
+      setActionPermsState(draftActions);
+      setActionPermissions(draftActions);
+      setEditingActions(false);
+      toast.success("Permissões de ações atualizadas!");
+    }
+    setSaving(false);
+  };
+  const toggleActionPerm = (action: keyof ActionPermissions, role: ProfileRole) => {
+    const current = draftActions[action] || [];
+    const has = current.includes(role);
+    setDraftActions({
+      ...draftActions,
+      [action]: has ? current.filter((r) => r !== role) : [...current, role],
+    });
+  };
+
     <>
       {isAdmin && !editing && (
         <button onClick={onStart} className="flex items-center gap-1 text-xs text-primary hover:underline">

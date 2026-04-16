@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { canPerformAction } from "@/hooks/use-action-permissions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -220,11 +221,14 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
                   if (clientDeadline && e.target.value > clientDeadline) {
                     setClientDeadline(e.target.value);
                   }
-                }} required />
+                }} required disabled={!canPerformAction("edit_dates", profile?.role)} />
+                {!canPerformAction("edit_dates", profile?.role) && (
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Seu cargo não tem permissão para definir datas</p>
+                )}
               </div>
               <div>
                 <Label>Prazo Cliente</Label>
-                <Input type="date" value={clientDeadline} min={internalDeadline || undefined} onChange={(e) => setClientDeadline(e.target.value)} />
+                <Input type="date" value={clientDeadline} min={internalDeadline || undefined} onChange={(e) => setClientDeadline(e.target.value)} disabled={!canPerformAction("edit_dates", profile?.role)} />
               </div>
             </div>
 

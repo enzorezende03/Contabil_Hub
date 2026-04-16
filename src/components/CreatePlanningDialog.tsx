@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { canPerformAction } from "@/hooks/use-action-permissions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +38,7 @@ const MONTH_NAMES: Record<string, string> = {
 };
 
 export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPlannings = [] }: Props) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const now = new Date();
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
   const [selectedTypes, setSelectedTypes] = useState<Set<DemandType>>(new Set(["lancamentos"]));

@@ -171,6 +171,7 @@ export default function SettingsPage() {
     });
   };
 
+  const EditButton = ({ editing, onStart, onCancel, onSave }: { editing: boolean; onStart: () => void; onCancel: () => void; onSave: () => void }) => (
     <>
       {isAdmin && !editing && (
         <button onClick={onStart} className="flex items-center gap-1 text-xs text-primary hover:underline">

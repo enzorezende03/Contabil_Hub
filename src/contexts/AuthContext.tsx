@@ -78,6 +78,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAdmin(!!data);
   };
 
+  const loadPermissions = async () => {
+    const { data } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "role_permissions")
+      .maybeSingle();
+    if (data?.value) {
+      setRolePermissions(data.value as Record<string, string[]>);
+    }
+  };
+
   const signOut = async () => {
     sessionStorage.removeItem("competencias_year_confirmed");
     await supabase.auth.signOut();

@@ -1075,10 +1075,34 @@ export default function CompetenciasPage() {
                           )}
                         </div>
 
+                        <div className="flex items-center gap-2 pt-2 border-t mt-2">
+                          {!isManuallyFinalized(panelData.client) ? (
+                            <button
+                              onClick={() => setManualFinalized(new Set([panelData.client]), true)}
+                              className="h-7 px-3 text-[11px] font-semibold rounded bg-slate-700 text-white hover:bg-slate-800 transition-colors flex items-center gap-1"
+                              title="Marca como finalizado mesmo sem todas as etapas concluídas"
+                            >
+                              <Lock className="w-3 h-3" />
+                              Forçar finalizado (sem etapas)
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setManualFinalized(new Set([panelData.client]), false)}
+                              className="h-7 px-3 text-[11px] font-semibold rounded border border-border bg-card hover:bg-muted transition-colors"
+                            >
+                              Reabrir finalizado manual
+                            </button>
+                          )}
+                        </div>
+
                         {finalized && (
                           <div className="flex items-center gap-2 rounded-md bg-emerald-500/10 border border-emerald-500/30 p-2 mt-2">
                             <Lock className="w-4 h-4 text-emerald-600" />
-                            <span className="text-xs text-emerald-700 font-semibold">Escrita finalizada — Exercício {year} concluído</span>
+                            <span className="text-xs text-emerald-700 font-semibold">
+                              {isManuallyFinalized(panelData.client)
+                                ? `Finalizado manualmente — Exercício ${year} concluído`
+                                : `Escrita finalizada — Exercício ${year} concluído`}
+                            </span>
                           </div>
                         )}
                       </>

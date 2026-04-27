@@ -293,7 +293,7 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
                         type="button"
                         className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
                         onClick={() => {
-                          const suggestion = suggestAssignee(existingPlannings);
+                          const suggestion = suggestAssignee(existingPlannings, teamMembers);
                           if (suggestion) {
                             setAssignee(suggestion.id);
                             toast.info(`Sugerido: ${suggestion.name} (${suggestion.activeCount} ativos)`);

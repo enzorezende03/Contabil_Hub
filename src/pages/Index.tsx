@@ -66,6 +66,15 @@ export default function Dashboard() {
     },
   });
 
+  const { data: plannings = [] } = useQuery({
+    queryKey: ["plannings_dashboard"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("plannings").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles"],
     queryFn: async () => {

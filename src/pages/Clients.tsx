@@ -86,6 +86,59 @@ function formatCnpj(value: string) {
     .replace(/(\d{4})(\d)/, "$1-$2");
 }
 
+/**
+ * Normaliza um valor de "Competência Início" para o formato MM/YYYY.
+ * Aceita: MM/YYYY, M/YYYY, YYYY-MM, YYYY-MM-DD, YYYY/MM/DD, datas Date e seriais Excel.
+ * Retorna null se não conseguir interpretar.
+ */
+export function normalizeCompetencia(input: unknown): string | null {
+  if (input == null || input === "") return null;
+
+  // Date object (xlsx pode entregar Date)
+  if (input instanceof Date && !isNaN(input.getTime())) {
+    const mm = String(input.getMonth() + 1).padStart(2, "0");
+    return `${mm}/${input.getFullYear()}`;
+  }
+
+  // Serial Excel (número)
+  if (typeof input === "number" && isFinite(input)) {
+    // Excel epoch: 1899-12-30
+    const ms = Math.round(input * 86400000) + Date.UTC(1899, 11, 30);
+    const d = new Date(ms);
+    if (!isNaN(d.getTime())) {
+      const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+      return `${mm}/${d.getUTCFullYear()}`;
+    }
+  }
+
+  const raw = String(input).trim();
+  if (!raw) return null;
+
+  // YYYY-MM-DD ou YYYY/MM/DD
+  let m = raw.match(/^(\d{4})[-/](\d{1,2})[-/]\d{1,2}/);
+  if (m) return `${m[2].padStart(2, "0")}/${m[1]}`;
+
+  // YYYY-MM ou YYYY/MM
+  m = raw.match(/^(\d{4})[-/](\d{1,2})$/);
+  if (m) return `${m[2].padStart(2, "0")}/${m[1]}`;
+
+  // MM/YYYY ou M/YYYY
+  m = raw.match(/^(\d{1,2})\/(\d{4})$/);
+  if (m) {
+    const mo = parseInt(m[1], 10);
+    if (mo >= 1 && mo <= 12) return `${String(mo).padStart(2, "0")}/${m[2]}`;
+  }
+
+  // DD/MM/YYYY
+  m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) {
+    const mo = parseInt(m[2], 10);
+    if (mo >= 1 && mo <= 12) return `${String(mo).padStart(2, "0")}/${m[3]}`;
+  }
+
+  return null;
+}
+
 export default function Clients() {
   const { session } = useAuth();
   const queryClient = useQueryClient();

@@ -244,7 +244,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {totalEntries === 0 && (
+        {totalUnits === 0 && (
           <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
             <p className="text-sm">Nenhum dado registrado ainda.</p>
             <p className="text-xs mt-1">Preencha o Fechamento Contábil e crie demandas para gerar dados no dashboard.</p>

@@ -577,8 +577,12 @@ export default function CompetenciasPage() {
               </div>
             );
           })}
-          <div className="ml-auto text-muted-foreground">
-            {totalClients} empresas · {pctDone}% conciliado
+          <div className="ml-auto text-muted-foreground flex items-center gap-3">
+            <span>{clients.filter(c => !isClientFinalized(c)).length} em aberto</span>
+            <span>·</span>
+            <span>{clients.filter(c => isClientFinalized(c)).length} finalizadas</span>
+            <span>·</span>
+            <span>{totalClients} total · {pctDone}% conciliado</span>
           </div>
         </div>
 

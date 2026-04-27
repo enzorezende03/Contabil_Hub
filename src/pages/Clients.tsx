@@ -86,6 +86,59 @@ function formatCnpj(value: string) {
     .replace(/(\d{4})(\d)/, "$1-$2");
 }
 
+/**
+ * Normaliza um valor de "Competência Início" para o formato MM/YYYY.
+ * Aceita: MM/YYYY, M/YYYY, YYYY-MM, YYYY-MM-DD, YYYY/MM/DD, datas Date e seriais Excel.
+ * Retorna null se não conseguir interpretar.
+ */
+export function normalizeCompetencia(input: unknown): string | null {
+  if (input == null || input === "") return null;
+
+  // Date object (xlsx pode entregar Date)
+  if (input instanceof Date && !isNaN(input.getTime())) {
+    const mm = String(input.getMonth() + 1).padStart(2, "0");
+    return `${mm}/${input.getFullYear()}`;
+  }
+
+  // Serial Excel (número)
+  if (typeof input === "number" && isFinite(input)) {
+    // Excel epoch: 1899-12-30
+    const ms = Math.round(input * 86400000) + Date.UTC(1899, 11, 30);
+    const d = new Date(ms);
+    if (!isNaN(d.getTime())) {
+      const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+      return `${mm}/${d.getUTCFullYear()}`;
+    }
+  }
+
+  const raw = String(input).trim();
+  if (!raw) return null;
+
+  // YYYY-MM-DD ou YYYY/MM/DD
+  let m = raw.match(/^(\d{4})[-/](\d{1,2})[-/]\d{1,2}/);
+  if (m) return `${m[2].padStart(2, "0")}/${m[1]}`;
+
+  // YYYY-MM ou YYYY/MM
+  m = raw.match(/^(\d{4})[-/](\d{1,2})$/);
+  if (m) return `${m[2].padStart(2, "0")}/${m[1]}`;
+
+  // MM/YYYY ou M/YYYY
+  m = raw.match(/^(\d{1,2})\/(\d{4})$/);
+  if (m) {
+    const mo = parseInt(m[1], 10);
+    if (mo >= 1 && mo <= 12) return `${String(mo).padStart(2, "0")}/${m[2]}`;
+  }
+
+  // DD/MM/YYYY
+  m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) {
+    const mo = parseInt(m[2], 10);
+    if (mo >= 1 && mo <= 12) return `${String(mo).padStart(2, "0")}/${m[3]}`;
+  }
+
+  return null;
+}
+
 export default function Clients() {
   const { session } = useAuth();
   const queryClient = useQueryClient();
@@ -113,6 +166,8 @@ export default function Clients() {
       if (cnpjDigits.length !== 14) throw new Error("CNPJ deve ter 14 dígitos");
       if (!payload.razao_social.trim()) throw new Error("Razão Social é obrigatória");
       if (!payload.competencia_inicio.trim()) throw new Error("Competência é obrigatória");
+      const compNorm = normalizeCompetencia(payload.competencia_inicio);
+      if (!compNorm) throw new Error("Competência inválida. Use o formato MM/AAAA.");
 
       const record = {
         cnpj: cnpjDigits,
@@ -120,7 +175,7 @@ export default function Clients() {
         tributacao: payload.tributacao,
         unidade: payload.unidade,
         obrigatoriedade_ecd: payload.obrigatoriedade_ecd,
-        competencia_inicio: payload.competencia_inicio,
+        competencia_inicio: compNorm,
         perfil: payload.perfil,
         created_by: session!.user.id,
       };
@@ -232,9 +287,9 @@ export default function Clients() {
 
     try {
       const data = await file.arrayBuffer();
-      const wb = XLSX.read(data);
+      const wb = XLSX.read(data, { cellDates: true });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows: any[] = XLSX.utils.sheet_to_json(ws);
+      const rows: any[] = XLSX.utils.sheet_to_json(ws, { raw: true });
 
       if (rows.length === 0) {
         toast.error("A planilha está vazia.");
@@ -248,8 +303,14 @@ export default function Clients() {
         const razao = String(row["Razão Social"] || "").trim();
         if (!razao) throw new Error(`Linha ${idx + 2}: Razão Social vazia`);
 
-        const comp = String(row["Competência Início"] || "").trim();
-        if (!comp) throw new Error(`Linha ${idx + 2}: Competência Início vazia`);
+        const compRaw = row["Competência Início"];
+        if (compRaw === undefined || compRaw === null || compRaw === "") {
+          throw new Error(`Linha ${idx + 2}: Competência Início vazia`);
+        }
+        const comp = normalizeCompetencia(compRaw);
+        if (!comp) {
+          throw new Error(`Linha ${idx + 2}: Competência Início inválida ("${compRaw}"). Use MM/AAAA, AAAA-MM ou AAAA-MM-DD.`);
+        }
 
         const tribRaw = String(row["Tributação"] || "").toLowerCase().trim();
         const tributacao = TRIBUTACAO_MAP[tribRaw] || "simples_nacional";

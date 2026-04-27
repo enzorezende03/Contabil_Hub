@@ -245,6 +245,44 @@ export default function CompetenciasPage() {
     }
   }, [user, year]);
 
+  const markFullClosingCompleted = useCallback(async (clientsSet: Set<string>) => {
+    if (!user) return;
+    if (clientsSet.size === 0) { toast.error("Selecione ao menos uma empresa"); return; }
+    if (!confirm(`Marcar fechamento contábil COMPLETO (todos os meses + fechamento + revisão) como CONCLUÍDO para ${clientsSet.size} empresa(s) em ${year}?`)) return;
+
+    const monthlyTypes = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"];
+    const closingTypes = ["fechamento", "revisao"];
+    const rows: any[] = [];
+    const localUpdates: Record<string, DemandStatus> = {};
+
+    clientsSet.forEach((client) => {
+      const compInicio = clientsMap[client]?.competencia_inicio || "01/2000";
+      MONTHS.forEach((m) => {
+        if (!isMonthEnabled(compInicio, m, year)) return;
+        monthlyTypes.forEach((t) => {
+          rows.push({ client_name: client, month: m, year, demand_type: t, status: "completed", filled_by: user.id });
+          localUpdates[`${client}|${m}|${t}`] = "completed";
+        });
+      });
+      closingTypes.forEach((t) => {
+        rows.push({ client_name: client, month: "closing", year, demand_type: t, status: "completed", filled_by: user.id });
+        localUpdates[`${client}|closing|${t}`] = "completed";
+      });
+    });
+
+    setDemandStatuses((prev) => ({ ...prev, ...localUpdates }));
+
+    const { error } = await supabase
+      .from("demand_status_entries")
+      .upsert(rows, { onConflict: "client_name,month,year,demand_type" });
+
+    if (error) {
+      toast.error("Erro ao marcar fechamento em lote");
+    } else {
+      toast.success(`Fechamento ${year} concluído para ${clientsSet.size} empresa(s)`);
+    }
+  }, [user, year, clientsMap]);
+
   const setMultiClientBulkStatus = useCallback(async (clients: Set<string>, months: Set<string>, type: string, status: DemandStatus) => {
     if (!user) return;
     if (clients.size === 0) { toast.error("Selecione ao menos uma empresa"); return; }

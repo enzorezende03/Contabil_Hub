@@ -247,8 +247,8 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <Label className="mb-0">Competências *</Label>
-              <button type="button" onClick={selectAllMonths} className="text-[10px] text-primary hover:underline">
-                Selecionar todos
+              <button type="button" onClick={toggleAllMonths} className="text-[10px] text-primary hover:underline">
+                {selectedMonths.size === MONTHS.length ? "Desmarcar todos" : "Selecionar todos"}
               </button>
             </div>
             <div className="flex items-center gap-2 mb-1.5">

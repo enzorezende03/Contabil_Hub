@@ -66,6 +66,15 @@ export default function Dashboard() {
     },
   });
 
+  const { data: plannings = [] } = useQuery({
+    queryKey: ["plannings_dashboard"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("plannings").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles"],
     queryFn: async () => {
@@ -75,39 +84,66 @@ export default function Dashboard() {
     },
   });
 
-  const totalEntries = entries.length;
-  const completedEntries = entries.filter((e: any) => e.status === "completed").length;
-  const inProgressEntries = entries.filter((e: any) => e.status === "in_progress").length;
-  const waitingEntries = entries.filter((e: any) => e.status === "waiting_info").length;
-  const completionRate = totalEntries > 0 ? Math.round((completedEntries / totalEntries) * 100) : 0;
 
-  // Status distribution for pie
+
+  // Build status map from entries: client|competencia|type -> status
+  const statusMap = useMemo(() => {
+    const map = new Map<string, string>();
+    entries.forEach((e: any) => {
+      map.set(`${e.client_name}|${e.month}/${e.year}|${e.demand_type}`, e.status);
+    });
+    return map;
+  }, [entries]);
+
+  // Expand plannings into individual units (client × competencia × type)
+  type Unit = { status: string; assignee: string; type: string };
+  const planningUnits = useMemo<Unit[]>(() => {
+    const units: Unit[] = [];
+    plannings.forEach((p: any) => {
+      (p.competencias || []).forEach((comp: string) => {
+        (p.types || []).forEach((t: string) => {
+          const key = `${p.client}|${comp}|${t}`;
+          const status = statusMap.get(key) || p.status || "not_started";
+          units.push({ status, assignee: p.assignee, type: t });
+        });
+      });
+    });
+    return units;
+  }, [plannings, statusMap]);
+
+  const totalUnits = planningUnits.length;
+  const completedUnits = planningUnits.filter((u) => u.status === "completed").length;
+  const inProgressUnits = planningUnits.filter((u) => u.status === "in_progress").length;
+  const completionRate = totalUnits > 0 ? Math.round((completedUnits / totalUnits) * 100) : 0;
+
+  // Status distribution
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    entries.forEach((e: any) => {
-      counts[e.status] = (counts[e.status] || 0) + 1;
+    planningUnits.forEach((u) => {
+      counts[u.status] = (counts[u.status] || 0) + 1;
     });
     return Object.entries(counts)
       .map(([status, value]) => ({ name: STATUS_LABELS[status] || status, value }))
       .filter((s) => s.value > 0);
-  }, [entries]);
+  }, [planningUnits]);
 
   // Type distribution
   const typeCounts = useMemo(() => {
     return Object.entries(TYPE_LABELS).map(([k, v]) => ({
       name: v,
-      value: entries.filter((e: any) => e.demand_type === k).length,
+      value: planningUnits.filter((u) => u.type === k).length,
     })).filter((t) => t.value > 0);
-  }, [entries]);
+  }, [planningUnits]);
 
-  // Team workload from entries
+  // Team workload from planning units
   const teamWorkload = useMemo(() => {
     const byUser = new Map<string, { completed: number; total: number }>();
-    entries.forEach((e: any) => {
-      if (!byUser.has(e.filled_by)) byUser.set(e.filled_by, { completed: 0, total: 0 });
-      const u = byUser.get(e.filled_by)!;
-      u.total++;
-      if (e.status === "completed") u.completed++;
+    planningUnits.forEach((u) => {
+      if (!u.assignee) return;
+      if (!byUser.has(u.assignee)) byUser.set(u.assignee, { completed: 0, total: 0 });
+      const s = byUser.get(u.assignee)!;
+      s.total++;
+      if (u.status === "completed") s.completed++;
     });
 
     const profileMap = new Map(profiles.map((p: any) => [p.user_id, p]));
@@ -122,7 +158,7 @@ export default function Dashboard() {
         concluidos: stats.completed,
         total: stats.total,
       })).sort((a, b) => b.concluidos - a.concluidos);
-  }, [entries, profiles]);
+  }, [planningUnits, profiles]);
 
   return (
     <AppLayout>
@@ -134,10 +170,10 @@ export default function Dashboard() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KpiCard title="Registros Totais" value={totalEntries} icon={ClipboardList} variant="info" />
-          <KpiCard title="Concluídos" value={completedEntries} subtitle={`${completionRate}% do total`} icon={CheckCircle2} variant="success" />
-          <KpiCard title="Em Andamento" value={inProgressEntries} icon={Clock} variant="info" />
-          <KpiCard title="Demandas Criadas" value={demands.length} icon={TrendingUp} variant="success" />
+          <KpiCard title="Atividades Planejadas" value={totalUnits} icon={ClipboardList} variant="info" />
+          <KpiCard title="Concluídas" value={completedUnits} subtitle={`${completionRate}% do total`} icon={CheckCircle2} variant="success" />
+          <KpiCard title="Em Andamento" value={inProgressUnits} icon={Clock} variant="info" />
+          <KpiCard title="Planejamentos" value={plannings.length} icon={TrendingUp} variant="success" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -208,7 +244,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {totalEntries === 0 && (
+        {totalUnits === 0 && (
           <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
             <p className="text-sm">Nenhum dado registrado ainda.</p>
             <p className="text-xs mt-1">Preencha o Fechamento Contábil e crie demandas para gerar dados no dashboard.</p>

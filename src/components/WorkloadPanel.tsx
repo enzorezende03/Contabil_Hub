@@ -21,7 +21,7 @@ const ROLE_PRIORITY: Record<TeamRole, number> = {
 };
 
 export function WorkloadPanel({ plannings, activeFilter, onFilterByAssignee }: Props) {
-  const { members } = useTeamMembers();
+  const { members } = useTeamMembers({ excludeCoordenacao: true });
 
   const workload = useMemo(() => {
     return [...members]

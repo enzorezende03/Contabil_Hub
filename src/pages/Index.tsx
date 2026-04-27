@@ -110,13 +110,18 @@ export default function Dashboard() {
       if (e.status === "completed") u.completed++;
     });
 
-    const profileMap = new Map(profiles.map((p: any) => [p.user_id, p.display_name]));
+    const profileMap = new Map(profiles.map((p: any) => [p.user_id, p]));
 
-    return [...byUser.entries()].map(([userId, stats]) => ({
-      name: (profileMap.get(userId) || "Usuário").split(" ")[0],
-      concluidos: stats.completed,
-      total: stats.total,
-    })).sort((a, b) => b.concluidos - a.concluidos);
+    return [...byUser.entries()]
+      .filter(([userId]) => {
+        const p: any = profileMap.get(userId);
+        return p && p.role !== "coordenacao";
+      })
+      .map(([userId, stats]) => ({
+        name: ((profileMap.get(userId) as any)?.display_name || "Usuário").split(" ")[0],
+        concluidos: stats.completed,
+        total: stats.total,
+      })).sort((a, b) => b.concluidos - a.concluidos);
   }, [entries, profiles]);
 
   return (

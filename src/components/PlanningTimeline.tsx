@@ -19,7 +19,7 @@ const PRIORITY_COLORS: Record<Priority, string> = {
 const MONTH_NAMES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
 export function PlanningTimeline({ plannings }: Props) {
-  const { members } = useTeamMembers();
+  const { members } = useTeamMembers({ excludeCoordenacao: true });
   const now = new Date();
   const [viewMonth, setViewMonth] = useState(now.getMonth());
   const [viewYear, setViewYear] = useState(now.getFullYear());

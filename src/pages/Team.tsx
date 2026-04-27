@@ -62,7 +62,9 @@ export default function TeamPage() {
       demandsByAssignee.get(d.assignee)!.push(d);
     });
 
-    return profiles.map((p: any) => {
+    return profiles
+      .filter((p: any) => p.role !== "coordenacao")
+      .map((p: any) => {
       const userEntries = byUser.get(p.user_id) || [];
       const totalEntries = userEntries.length;
       const completedEntries = userEntries.filter((e: any) => e.status === "completed").length;

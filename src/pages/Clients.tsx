@@ -287,9 +287,9 @@ export default function Clients() {
 
     try {
       const data = await file.arrayBuffer();
-      const wb = XLSX.read(data);
+      const wb = XLSX.read(data, { cellDates: true });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows: any[] = XLSX.utils.sheet_to_json(ws);
+      const rows: any[] = XLSX.utils.sheet_to_json(ws, { raw: true });
 
       if (rows.length === 0) {
         toast.error("A planilha está vazia.");
@@ -303,8 +303,14 @@ export default function Clients() {
         const razao = String(row["Razão Social"] || "").trim();
         if (!razao) throw new Error(`Linha ${idx + 2}: Razão Social vazia`);
 
-        const comp = String(row["Competência Início"] || "").trim();
-        if (!comp) throw new Error(`Linha ${idx + 2}: Competência Início vazia`);
+        const compRaw = row["Competência Início"];
+        if (compRaw === undefined || compRaw === null || compRaw === "") {
+          throw new Error(`Linha ${idx + 2}: Competência Início vazia`);
+        }
+        const comp = normalizeCompetencia(compRaw);
+        if (!comp) {
+          throw new Error(`Linha ${idx + 2}: Competência Início inválida ("${compRaw}"). Use MM/AAAA, AAAA-MM ou AAAA-MM-DD.`);
+        }
 
         const tribRaw = String(row["Tributação"] || "").toLowerCase().trim();
         const tributacao = TRIBUTACAO_MAP[tribRaw] || "simples_nacional";

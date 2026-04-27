@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import AppLayout from "@/components/AppLayout";
 import { StatusBadge } from "@/components/StatusBadge";
-import { TEAM_MEMBERS } from "@/lib/mock-data";
+import { useTeamMembers } from "@/hooks/use-team-members";
 import {
   DEMAND_TYPE_LABELS,
   DemandStatus,
@@ -42,6 +42,7 @@ export default function PlanejamentoPage() {
   const [filterType, setFilterType] = usePersistedFilter<string>("planejamento", "type", "all");
   const [filterAssignee, setFilterAssignee] = usePersistedFilter<string>("planejamento", "assignee", "all");
   const [createOpen, setCreateOpen] = useState(false);
+  const { members: teamMembers } = useTeamMembers();
 
   const { data: dbPlannings = [], refetch } = useQuery({
     queryKey: ["plannings"],
@@ -124,7 +125,7 @@ export default function PlanejamentoPage() {
       .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
   }, [search, filterType, filterAssignee, planningsWithDerivedStatus]);
 
-  const getMember = (id: string) => TEAM_MEMBERS.find((m) => m.id === id);
+  const getMember = (id: string) => teamMembers.find((m) => m.id === id);
 
   const urgencyClass = (deadline: string) => {
     const u = getDeadlineUrgency(deadline);
@@ -179,7 +180,7 @@ export default function PlanejamentoPage() {
           </select>
           <select value={filterAssignee} onChange={(e) => setFilterAssignee(e.target.value)} className="h-8 px-2 text-sm border rounded-md bg-card">
             <option value="all">Todos responsáveis</option>
-            {TEAM_MEMBERS.map((m) => (
+            {teamMembers.map((m) => (
               <option key={m.id} value={m.id}>{m.name}</option>
             ))}
           </select>

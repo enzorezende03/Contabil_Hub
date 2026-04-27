@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { TEAM_MEMBERS } from "@/lib/mock-data";
+import { useTeamMembers } from "@/hooks/use-team-members";
 import { PRIORITY_LABELS, type Demand, type Priority } from "@/lib/types";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ const PRIORITY_COLORS: Record<Priority, string> = {
 const MONTH_NAMES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
 
 export function PlanningTimeline({ plannings }: Props) {
+  const { members } = useTeamMembers();
   const now = new Date();
   const [viewMonth, setViewMonth] = useState(now.getMonth());
   const [viewYear, setViewYear] = useState(now.getFullYear());
@@ -36,7 +37,7 @@ export function PlanningTimeline({ plannings }: Props) {
     else setViewMonth((m) => m + 1);
   };
 
-  const getMember = (id: string) => TEAM_MEMBERS.find((m) => m.id === id);
+  const getMember = (id: string) => members.find((m) => m.id === id);
 
   const rows = useMemo(() => {
     const monthStart = new Date(viewYear, viewMonth, 1);

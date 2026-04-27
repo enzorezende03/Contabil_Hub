@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { TEAM_MEMBERS } from "@/lib/mock-data";
-import { ROLE_LABELS, type Demand, type TeamRole } from "@/lib/types";
+import { useTeamMembers } from "@/hooks/use-team-members";
+import { ROLE_LABELS, type Demand, type TeamMember, type TeamRole } from "@/lib/types";
 import { Progress } from "@/components/ui/progress";
 import { AlertTriangle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -21,8 +21,10 @@ const ROLE_PRIORITY: Record<TeamRole, number> = {
 };
 
 export function WorkloadPanel({ plannings, activeFilter, onFilterByAssignee }: Props) {
+  const { members } = useTeamMembers();
+
   const workload = useMemo(() => {
-    return TEAM_MEMBERS
+    return [...members]
       .sort((a, b) => ROLE_PRIORITY[a.role] - ROLE_PRIORITY[b.role])
       .map((member) => {
         const assigned = plannings.filter((p) => p.assignee === member.id);
@@ -30,7 +32,7 @@ export function WorkloadPanel({ plannings, activeFilter, onFilterByAssignee }: P
         const completed = assigned.filter((p) => p.status === "completed");
         return { member, active: active.length, completed: completed.length, total: assigned.length };
       });
-  }, [plannings]);
+  }, [plannings, members]);
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2">
@@ -81,9 +83,12 @@ export function WorkloadPanel({ plannings, activeFilter, onFilterByAssignee }: P
 }
 
 /** Returns the member ID with lowest active load, prioritizing analistas/assistentes */
-export function suggestAssignee(plannings: Demand[]): { id: string; name: string; activeCount: number } | null {
+export function suggestAssignee(
+  plannings: Demand[],
+  teamMembers: TeamMember[]
+): { id: string; name: string; activeCount: number } | null {
   const preferred: TeamRole[] = ["analista", "assistente"];
-  const candidates = TEAM_MEMBERS.filter((m) => preferred.includes(m.role));
+  const candidates = teamMembers.filter((m) => preferred.includes(m.role));
   if (candidates.length === 0) return null;
 
   const loads = candidates.map((m) => ({

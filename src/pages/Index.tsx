@@ -170,10 +170,10 @@ export default function Dashboard() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KpiCard title="Registros Totais" value={totalEntries} icon={ClipboardList} variant="info" />
-          <KpiCard title="Concluídos" value={completedEntries} subtitle={`${completionRate}% do total`} icon={CheckCircle2} variant="success" />
-          <KpiCard title="Em Andamento" value={inProgressEntries} icon={Clock} variant="info" />
-          <KpiCard title="Demandas Criadas" value={demands.length} icon={TrendingUp} variant="success" />
+          <KpiCard title="Atividades Planejadas" value={totalUnits} icon={ClipboardList} variant="info" />
+          <KpiCard title="Concluídas" value={completedUnits} subtitle={`${completionRate}% do total`} icon={CheckCircle2} variant="success" />
+          <KpiCard title="Em Andamento" value={inProgressUnits} icon={Clock} variant="info" />
+          <KpiCard title="Planejamentos" value={plannings.length} icon={TrendingUp} variant="success" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

@@ -640,6 +640,21 @@ export default function CompetenciasPage() {
                   <FileCheck className="w-3.5 h-3.5" />
                   Marcar fechamento {year} concluído
                 </button>
+                <button
+                  onClick={() => setManualFinalized(selectedClients, true)}
+                  className="h-7 px-3 text-[11px] font-semibold rounded bg-slate-700 text-white hover:bg-slate-800 transition-colors flex items-center gap-1"
+                  title="Marca como finalizado mesmo sem todas as etapas concluídas (útil para anos anteriores)"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  Forçar finalizado (sem etapas)
+                </button>
+                <button
+                  onClick={() => setManualFinalized(selectedClients, false)}
+                  className="h-7 px-3 text-[11px] font-semibold rounded border border-border bg-card hover:bg-muted transition-colors"
+                  title="Remove a marcação manual de finalizado"
+                >
+                  Reabrir finalizado manual
+                </button>
                 <button onClick={() => { setSelectedClients(new Set()); setBatchMonths(new Set()); }} className="text-xs text-muted-foreground hover:text-foreground">Limpar seleção</button>
               </div>
             </div>

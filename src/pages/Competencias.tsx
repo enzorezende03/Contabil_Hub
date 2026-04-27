@@ -570,38 +570,38 @@ export default function CompetenciasPage() {
         </div>
 
         {/* Filtros */}
-        <div className="flex flex-wrap items-center gap-3">
-          <select value={year} onChange={(e) => setYear(e.target.value)} className={selectClass}>
+        <div className="flex flex-nowrap items-center gap-2 overflow-x-auto">
+          <select value={year} onChange={(e) => setYear(e.target.value)} className={`${selectClass} h-8 text-xs px-2 w-[80px] flex-shrink-0`}>
             {yearOptions.map((y) => (
               <option key={y} value={y}>{y}</option>
             ))}
           </select>
-          <select value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)} className={selectClass}>
-            <option value="all">Todas as empresas</option>
+          <select value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)} className={`${selectClass} h-8 text-xs px-2 flex-1 min-w-[140px] max-w-[220px]`}>
+            <option value="all">Todas empresas</option>
             {allClientNames.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-          <select value={selectedTributacao} onChange={(e) => setSelectedTributacao(e.target.value)} className={selectClass}>
-            <option value="all">Todas as tributações</option>
+          <select value={selectedTributacao} onChange={(e) => setSelectedTributacao(e.target.value)} className={`${selectClass} h-8 text-xs px-2 w-[140px] flex-shrink-0`}>
+            <option value="all">Todas tributações</option>
             {allTributacoes.map((t) => (
               <option key={t} value={t}>{TRIBUTACAO_LABELS_MAP[t] || t}</option>
             ))}
           </select>
-          <select value={selectedUnidade} onChange={(e) => setSelectedUnidade(e.target.value)} className={selectClass}>
-            <option value="all">Todas as unidades</option>
+          <select value={selectedUnidade} onChange={(e) => setSelectedUnidade(e.target.value)} className={`${selectClass} h-8 text-xs px-2 w-[140px] flex-shrink-0`}>
+            <option value="all">Todas unidades</option>
             <option value="2m_contabilidade">2M Contabilidade</option>
             <option value="2m_saude">2M Saúde</option>
           </select>
-          <select value={selectedPerfil} onChange={(e) => setSelectedPerfil(e.target.value)} className={selectClass}>
-            <option value="all">Todos os perfis</option>
+          <select value={selectedPerfil} onChange={(e) => setSelectedPerfil(e.target.value)} className={`${selectClass} h-8 text-xs px-2 w-[120px] flex-shrink-0`}>
+            <option value="all">Todos perfis</option>
             <option value="vip">VIP</option>
             <option value="premium">Premium</option>
             <option value="standard">Standard</option>
             <option value="basico">Básico</option>
           </select>
-          <select value={selectedFinalStatus} onChange={(e) => setSelectedFinalStatus(e.target.value as "all" | "open" | "finalized")} className={selectClass}>
-            <option value="all">Todas (abertas + finalizadas)</option>
-            <option value="open">Apenas em aberto</option>
-            <option value="finalized">Apenas finalizadas</option>
+          <select value={selectedFinalStatus} onChange={(e) => setSelectedFinalStatus(e.target.value as "all" | "open" | "finalized")} className={`${selectClass} h-8 text-xs px-2 w-[150px] flex-shrink-0`}>
+            <option value="all">Todas (status)</option>
+            <option value="open">Em aberto</option>
+            <option value="finalized">Finalizadas</option>
           </select>
         </div>
 

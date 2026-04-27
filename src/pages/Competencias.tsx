@@ -55,11 +55,22 @@ const TRIBUTACAO_LABELS_MAP: Record<string, string> = {
 
 /** Returns true if the month (MM) in the given year is within responsibility */
 function isMonthEnabled(competenciaInicio: string, month: string, year: string): boolean {
-  // competenciaInicio format: MM/YYYY
-  const parts = competenciaInicio.split("/");
-  if (parts.length !== 2) return true;
-  const startMonth = parseInt(parts[0], 10);
-  const startYear = parseInt(parts[1], 10);
+  // Aceita: MM/YYYY, YYYY-MM, YYYY-MM-DD
+  let startMonth: number | null = null;
+  let startYear: number | null = null;
+
+  const raw = (competenciaInicio || "").trim();
+  let m = raw.match(/^(\d{1,2})\/(\d{4})$/);
+  if (m) {
+    startMonth = parseInt(m[1], 10);
+    startYear = parseInt(m[2], 10);
+  } else if ((m = raw.match(/^(\d{4})[-/](\d{1,2})(?:[-/]\d{1,2})?$/))) {
+    startYear = parseInt(m[1], 10);
+    startMonth = parseInt(m[2], 10);
+  }
+
+  if (!startMonth || !startYear) return true;
+
   const currentMonth = parseInt(month, 10);
   const currentYear = parseInt(year, 10);
   if (currentYear > startYear) return true;

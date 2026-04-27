@@ -55,7 +55,7 @@ const TRIBUTACAO_LABELS_MAP: Record<string, string> = {
 
 /** Piso global do quadro de Fechamento Contábil: clientes com responsabilidade
  *  anterior a esta data não aparecem em quadros antes deste ano. */
-const CLOSING_FLOOR_YEAR = 2021;
+const CLOSING_FLOOR_YEAR = 2022;
 const CLOSING_FLOOR_MONTH = 1;
 
 /** Returns true if the month (MM) in the given year is within responsibility */

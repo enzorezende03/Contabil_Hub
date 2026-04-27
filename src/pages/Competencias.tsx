@@ -598,6 +598,11 @@ export default function CompetenciasPage() {
             <option value="standard">Standard</option>
             <option value="basico">Básico</option>
           </select>
+          <select value={selectedFinalStatus} onChange={(e) => setSelectedFinalStatus(e.target.value as "all" | "open" | "finalized")} className={selectClass}>
+            <option value="all">Todas (abertas + finalizadas)</option>
+            <option value="open">Apenas em aberto</option>
+            <option value="finalized">Apenas finalizadas</option>
+          </select>
         </div>
 
         {/* Legenda */}

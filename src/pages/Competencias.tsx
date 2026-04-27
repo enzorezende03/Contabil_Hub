@@ -472,7 +472,7 @@ export default function CompetenciasPage() {
 
   const selectClass = "h-8 px-3 text-sm border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary";
 
-  const yearOptions = ["2026", "2025", "2024", "2023", "2022", "2021"];
+  const yearOptions = ["2026", "2025", "2024", "2023", "2022"];
 
   if (!yearConfirmed) {
     return (

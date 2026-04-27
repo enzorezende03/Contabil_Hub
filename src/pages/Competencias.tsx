@@ -477,6 +477,13 @@ export default function CompetenciasPage() {
     return allMonthsDone && fechamentoDone && revisaoDone && hasAttachment;
   }, [matrix, demandStatuses, attachmentMap, isManuallyFinalized]);
 
+  // Filter visible clients by closing status (does not affect totals)
+  const visibleClients = useMemo(() => {
+    if (selectedFinalStatus === "all") return clients;
+    if (selectedFinalStatus === "open") return clients.filter((c) => !isClientFinalized(c));
+    return clients.filter((c) => isClientFinalized(c));
+  }, [clients, selectedFinalStatus, isClientFinalized]);
+
   const setManualFinalized = useCallback(async (clientsSet: Set<string>, finalized: boolean) => {
     if (!user) return;
     if (clientsSet.size === 0) { toast.error("Selecione ao menos uma empresa"); return; }

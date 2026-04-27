@@ -245,6 +245,7 @@ export default function CompetenciasPage() {
     }
   }, [user, year]);
 
+  const setMultiClientBulkStatus = useCallback(async (clients: Set<string>, months: Set<string>, type: string, status: DemandStatus) => {
     if (!user) return;
     if (clients.size === 0) { toast.error("Selecione ao menos uma empresa"); return; }
     if (months.size === 0) { toast.error("Selecione ao menos um mês"); return; }

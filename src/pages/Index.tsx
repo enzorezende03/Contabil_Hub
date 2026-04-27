@@ -84,11 +84,7 @@ export default function Dashboard() {
     },
   });
 
-  const totalEntries = entries.length;
-  const completedEntries = entries.filter((e: any) => e.status === "completed").length;
-  const inProgressEntries = entries.filter((e: any) => e.status === "in_progress").length;
-  const waitingEntries = entries.filter((e: any) => e.status === "waiting_info").length;
-  const completionRate = totalEntries > 0 ? Math.round((completedEntries / totalEntries) * 100) : 0;
+
 
   // Build status map from entries: client|competencia|type -> status
   const statusMap = useMemo(() => {

@@ -16,7 +16,7 @@ import {
   type Priority,
   type Demand,
 } from "@/lib/types";
-import { TEAM_MEMBERS } from "@/lib/mock-data";
+import { useTeamMembers } from "@/hooks/use-team-members";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -39,6 +39,7 @@ const MONTH_NAMES: Record<string, string> = {
 
 export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPlannings = [] }: Props) {
   const { user, profile } = useAuth();
+  const { members: teamMembers } = useTeamMembers();
   const now = new Date();
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
   const [selectedTypes, setSelectedTypes] = useState<Set<DemandType>>(new Set(["lancamentos"]));
@@ -311,7 +312,7 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
               </div>
               <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className={selectClass} required>
                 <option value="">Selecione...</option>
-                {TEAM_MEMBERS.map((m) => (
+                {teamMembers.map((m) => (
                   <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>

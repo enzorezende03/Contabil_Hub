@@ -84,13 +84,15 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
   const toggleMonth = (m: string) => {
     setSelectedMonths((prev) => {
       const next = new Set(prev);
-      if (next.has(m)) { if (next.size > 1) next.delete(m); } else next.add(m);
+      if (next.has(m)) next.delete(m); else next.add(m);
       return next;
     });
   };
 
   const selectAllClients = () => setSelectedClients(new Set(dbClients.map((c: any) => c.razao_social)));
-  const selectAllMonths = () => setSelectedMonths(new Set(MONTHS));
+  const toggleAllMonths = () => {
+    setSelectedMonths((prev) => (prev.size === MONTHS.length ? new Set() : new Set(MONTHS)));
+  };
   const selectAllTypes = () => setSelectedTypes(new Set(Object.keys(DEMAND_TYPE_LABELS) as DemandType[]));
 
   const resetForm = () => {

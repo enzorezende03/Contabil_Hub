@@ -455,8 +455,14 @@ export default function CompetenciasPage() {
   );
   const pctDone = totalCells > 0 ? Math.round((doneCells / totalCells) * 100) : 0;
 
+  // Manual override: marks client as finalized regardless of step completion
+  const isManuallyFinalized = useCallback((client: string) => {
+    return demandStatuses[`${client}|closing|manual_finalized`] === "completed";
+  }, [demandStatuses]);
+
   // Check if a client is fully finalized
   const isClientFinalized = useCallback((client: string) => {
+    if (isManuallyFinalized(client)) return true;
     // All months must be conc_contabil, disabled, or sem_movimento
     const allMonthsDone = MONTHS.every((m) => {
       const level = matrix[client]?.[m];
@@ -468,7 +474,41 @@ export default function CompetenciasPage() {
     // Attachment must exist
     const hasAttachment = attachmentMap.has(client);
     return allMonthsDone && fechamentoDone && revisaoDone && hasAttachment;
-  }, [matrix, demandStatuses, attachmentMap]);
+  }, [matrix, demandStatuses, attachmentMap, isManuallyFinalized]);
+
+  const setManualFinalized = useCallback(async (clientsSet: Set<string>, finalized: boolean) => {
+    if (!user) return;
+    if (clientsSet.size === 0) { toast.error("Selecione ao menos uma empresa"); return; }
+    const action = finalized ? "marcar como FINALIZADO" : "REABRIR";
+    if (!confirm(`Deseja ${action} o fechamento ${year} para ${clientsSet.size} empresa(s)?\n\nEsta ação ignora as etapas pendentes.`)) return;
+
+    const status: DemandStatus = finalized ? "completed" : "not_started";
+    const rows = [...clientsSet].map((client) => ({
+      client_name: client,
+      month: "closing",
+      year,
+      demand_type: "manual_finalized",
+      status,
+      filled_by: user.id,
+    }));
+
+    setDemandStatuses((prev) => {
+      const next = { ...prev };
+      clientsSet.forEach((c) => { next[`${c}|closing|manual_finalized`] = status; });
+      return next;
+    });
+
+    const { error } = await supabase
+      .from("demand_status_entries")
+      .upsert(rows, { onConflict: "client_name,month,year,demand_type" });
+
+    if (error) {
+      toast.error("Erro ao atualizar fechamento manual");
+    } else {
+      toast.success(finalized ? `Fechamento ${year} finalizado para ${clientsSet.size} empresa(s)` : `Fechamento ${year} reaberto para ${clientsSet.size} empresa(s)`);
+      setSelectedClients(new Set());
+    }
+  }, [user, year]);
 
   const selectClass = "h-8 px-3 text-sm border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary";
 

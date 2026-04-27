@@ -174,21 +174,28 @@ export default function CompetenciasPage() {
     }
   };
 
-  // Load saved statuses from DB
+  // Load saved statuses from DB (paginated to bypass 1000-row default limit)
   useEffect(() => {
     const loadStatuses = async () => {
-      const { data } = await supabase
-        .from("demand_status_entries")
-        .select("client_name, month, year, demand_type, status")
-        .eq("year", year);
-      if (data) {
-        const statuses: Record<string, DemandStatus> = {};
+      const pageSize = 1000;
+      let from = 0;
+      const statuses: Record<string, DemandStatus> = {};
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { data, error } = await supabase
+          .from("demand_status_entries")
+          .select("client_name, month, year, demand_type, status")
+          .eq("year", year)
+          .range(from, from + pageSize - 1);
+        if (error || !data) break;
         data.forEach((d: any) => {
           const key = `${d.client_name}|${d.month}|${d.demand_type}`;
           statuses[key] = d.status as DemandStatus;
         });
-        setDemandStatuses(statuses);
+        if (data.length < pageSize) break;
+        from += pageSize;
       }
+      setDemandStatuses(statuses);
     };
     loadStatuses();
   }, [year]);

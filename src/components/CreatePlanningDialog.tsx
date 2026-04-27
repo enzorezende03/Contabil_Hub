@@ -39,7 +39,7 @@ const MONTH_NAMES: Record<string, string> = {
 
 export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPlannings = [] }: Props) {
   const { user, profile } = useAuth();
-  const { members: teamMembers } = useTeamMembers();
+  const { members: teamMembers } = useTeamMembers({ excludeCoordenacao: true });
   const now = new Date();
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
   const [selectedTypes, setSelectedTypes] = useState<Set<DemandType>>(new Set(["lancamentos"]));

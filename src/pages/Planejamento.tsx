@@ -42,7 +42,7 @@ export default function PlanejamentoPage() {
   const [filterType, setFilterType] = usePersistedFilter<string>("planejamento", "type", "all");
   const [filterAssignee, setFilterAssignee] = usePersistedFilter<string>("planejamento", "assignee", "all");
   const [createOpen, setCreateOpen] = useState(false);
-  const { members: teamMembers } = useTeamMembers();
+  const { members: teamMembers } = useTeamMembers({ excludeCoordenacao: true });
 
   const { data: dbPlannings = [], refetch } = useQuery({
     queryKey: ["plannings"],

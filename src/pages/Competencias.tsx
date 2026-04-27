@@ -53,6 +53,11 @@ const TRIBUTACAO_LABELS_MAP: Record<string, string> = {
   lucro_real: "Lucro Real",
 };
 
+/** Piso global do quadro de Fechamento Contábil: clientes com responsabilidade
+ *  anterior a esta data não aparecem em quadros antes deste ano. */
+const CLOSING_FLOOR_YEAR = 2021;
+const CLOSING_FLOOR_MONTH = 1;
+
 /** Returns true if the month (MM) in the given year is within responsibility */
 function isMonthEnabled(competenciaInicio: string, month: string, year: string): boolean {
   // Aceita: MM/YYYY, YYYY-MM, YYYY-MM-DD
@@ -70,6 +75,15 @@ function isMonthEnabled(competenciaInicio: string, month: string, year: string):
   }
 
   if (!startMonth || !startYear) return true;
+
+  // Aplica o piso: se a responsabilidade começou antes de CLOSING_FLOOR,
+  // tratamos como se tivesse começado no piso (clientes antigos já fechados
+  // ficam ocultos antes do ano-piso).
+  if (startYear < CLOSING_FLOOR_YEAR ||
+     (startYear === CLOSING_FLOOR_YEAR && startMonth < CLOSING_FLOOR_MONTH)) {
+    startYear = CLOSING_FLOOR_YEAR;
+    startMonth = CLOSING_FLOOR_MONTH;
+  }
 
   const currentMonth = parseInt(month, 10);
   const currentYear = parseInt(year, 10);

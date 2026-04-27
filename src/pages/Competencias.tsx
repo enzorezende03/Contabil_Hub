@@ -55,7 +55,7 @@ const TRIBUTACAO_LABELS_MAP: Record<string, string> = {
 
 /** Piso global do quadro de Fechamento Contábil: clientes com responsabilidade
  *  anterior a esta data não aparecem em quadros antes deste ano. */
-const CLOSING_FLOOR_YEAR = 2021;
+const CLOSING_FLOOR_YEAR = 2022;
 const CLOSING_FLOOR_MONTH = 1;
 
 /** Returns true if the month (MM) in the given year is within responsibility */
@@ -472,7 +472,7 @@ export default function CompetenciasPage() {
 
   const selectClass = "h-8 px-3 text-sm border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary";
 
-  const yearOptions = ["2026", "2025", "2024", "2023", "2022", "2021"];
+  const yearOptions = ["2026", "2025", "2024", "2023", "2022"];
 
   if (!yearConfirmed) {
     return (

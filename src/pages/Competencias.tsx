@@ -717,7 +717,7 @@ export default function CompetenciasPage() {
         )}
 
         {/* Matriz */}
-        {clients.length > 0 ? (
+        {visibleClients.length > 0 ? (
           <div className="rounded-lg border bg-card overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -725,8 +725,8 @@ export default function CompetenciasPage() {
                   <th className="px-2 py-2 w-8">
                     <input
                       type="checkbox"
-                      checked={selectedClients.size === clients.length && clients.length > 0}
-                      onChange={() => toggleAllClientsFor(clients)}
+                      checked={selectedClients.size === visibleClients.length && visibleClients.length > 0}
+                      onChange={() => toggleAllClientsFor(visibleClients)}
                       className="rounded border-border"
                     />
                   </th>
@@ -744,7 +744,7 @@ export default function CompetenciasPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {clients.map((client) => {
+                {visibleClients.map((client) => {
                   const tribShort: Record<string, string> = { simples_nacional: "SN", lucro_presumido: "LP", lucro_real: "LR" };
                   const tribLabel = tribShort[clientsMap[client]?.tributacao] || "—";
                   const unidade = clientsMap[client]?.unidade || "2m_contabilidade";

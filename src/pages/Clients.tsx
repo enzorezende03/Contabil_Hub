@@ -166,6 +166,8 @@ export default function Clients() {
       if (cnpjDigits.length !== 14) throw new Error("CNPJ deve ter 14 dígitos");
       if (!payload.razao_social.trim()) throw new Error("Razão Social é obrigatória");
       if (!payload.competencia_inicio.trim()) throw new Error("Competência é obrigatória");
+      const compNorm = normalizeCompetencia(payload.competencia_inicio);
+      if (!compNorm) throw new Error("Competência inválida. Use o formato MM/AAAA.");
 
       const record = {
         cnpj: cnpjDigits,
@@ -173,7 +175,7 @@ export default function Clients() {
         tributacao: payload.tributacao,
         unidade: payload.unidade,
         obrigatoriedade_ecd: payload.obrigatoriedade_ecd,
-        competencia_inicio: payload.competencia_inicio,
+        competencia_inicio: compNorm,
         perfil: payload.perfil,
         created_by: session!.user.id,
       };

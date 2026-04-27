@@ -577,8 +577,12 @@ export default function CompetenciasPage() {
               </div>
             );
           })}
-          <div className="ml-auto text-muted-foreground">
-            {totalClients} empresas · {pctDone}% conciliado
+          <div className="ml-auto text-muted-foreground flex items-center gap-3">
+            <span>{clients.filter(c => !isClientFinalized(c)).length} em aberto</span>
+            <span>·</span>
+            <span>{clients.filter(c => isClientFinalized(c)).length} finalizadas</span>
+            <span>·</span>
+            <span>{totalClients} total · {pctDone}% conciliado</span>
           </div>
         </div>
 
@@ -682,7 +686,7 @@ export default function CompetenciasPage() {
                   const perfilColors: Record<string, string> = { vip: "bg-yellow-500/15 text-yellow-600", premium: "bg-purple-500/15 text-purple-600", standard: "bg-blue-500/15 text-blue-600", basico: "bg-gray-500/15 text-gray-600" };
                   const finalized = isClientFinalized(client);
                   return (
-                    <tr key={client} className={`${finalized ? "bg-emerald-500/10 opacity-70" : selectedClients.has(client) ? "bg-primary/5" : "hover:bg-muted/20"}`}>
+                    <tr key={client} className={`${finalized ? "bg-muted/40 text-muted-foreground opacity-60 grayscale" : selectedClients.has(client) ? "bg-primary/5" : "hover:bg-muted/20"}`}>
                       <td className="px-2 py-2 w-8">
                         <input
                           type="checkbox"
@@ -692,12 +696,12 @@ export default function CompetenciasPage() {
                         />
                       </td>
                       <td
-                        className={`px-2 py-2 font-medium text-xs whitespace-nowrap overflow-hidden text-ellipsis sticky left-0 z-10 cursor-pointer hover:text-primary transition-colors w-[140px] max-w-[140px] ${finalized ? "bg-emerald-500/10" : "bg-card"}`}
+                        className={`px-2 py-2 font-medium text-xs whitespace-nowrap overflow-hidden text-ellipsis sticky left-0 z-10 cursor-pointer transition-colors w-[140px] max-w-[140px] ${finalized ? "bg-muted/40 text-muted-foreground hover:text-foreground" : "bg-card hover:text-primary"}`}
                         onClick={() => setPanelClient(client)}
-                        title={finalized ? `${client} — ✅ Finalizado` : client}
+                        title={finalized ? `${client} — 🔒 Fechamento concluído (desativada)` : client}
                       >
                         <span className="flex items-center gap-1">
-                          {finalized && <Lock className="w-3 h-3 text-emerald-600 flex-shrink-0" />}
+                          {finalized && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
                           <span className="truncate">{client}</span>
                         </span>
                       </td>

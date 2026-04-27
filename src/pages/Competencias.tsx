@@ -587,7 +587,17 @@ export default function CompetenciasPage() {
           <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">Ação em Lote — {selectedClients.size} empresa(s) selecionada(s)</h3>
-              <button onClick={() => { setSelectedClients(new Set()); setBatchMonths(new Set()); }} className="text-xs text-muted-foreground hover:text-foreground">Limpar seleção</button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => markFullClosingCompleted(selectedClients)}
+                  className="h-7 px-3 text-[11px] font-semibold rounded bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-1"
+                  title="Marca todos os meses, fechamento e revisão como concluídos para as empresas selecionadas"
+                >
+                  <FileCheck className="w-3.5 h-3.5" />
+                  Marcar fechamento {year} concluído
+                </button>
+                <button onClick={() => { setSelectedClients(new Set()); setBatchMonths(new Set()); }} className="text-xs text-muted-foreground hover:text-foreground">Limpar seleção</button>
+              </div>
             </div>
             <div className="flex flex-wrap gap-1.5 items-center">
               <span className="text-xs text-muted-foreground mr-1">Meses:</span>

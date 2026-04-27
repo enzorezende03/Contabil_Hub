@@ -341,6 +341,45 @@ export default function CompetenciasPage() {
     return [...set].sort();
   }, [allClientNames, clientsMap]);
 
+  const markFullClosingCompleted = useCallback(async (clientsSet: Set<string>) => {
+    if (!user) return;
+    if (clientsSet.size === 0) { toast.error("Selecione ao menos uma empresa"); return; }
+    if (!confirm(`Marcar fechamento contábil COMPLETO (todos os meses + fechamento + revisão) como CONCLUÍDO para ${clientsSet.size} empresa(s) em ${year}?`)) return;
+
+    const monthlyTypes = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"];
+    const closingTypes = ["fechamento", "revisao"];
+    const rows: any[] = [];
+    const localUpdates: Record<string, DemandStatus> = {};
+
+    clientsSet.forEach((client) => {
+      const compInicio = clientsMap[client]?.competencia_inicio || "01/2000";
+      MONTHS.forEach((m) => {
+        if (!isMonthEnabled(compInicio, m, year)) return;
+        monthlyTypes.forEach((t) => {
+          rows.push({ client_name: client, month: m, year, demand_type: t, status: "completed", filled_by: user.id });
+          localUpdates[`${client}|${m}|${t}`] = "completed";
+        });
+      });
+      closingTypes.forEach((t) => {
+        rows.push({ client_name: client, month: "closing", year, demand_type: t, status: "completed", filled_by: user.id });
+        localUpdates[`${client}|closing|${t}`] = "completed";
+      });
+    });
+
+    setDemandStatuses((prev) => ({ ...prev, ...localUpdates }));
+
+    const { error } = await supabase
+      .from("demand_status_entries")
+      .upsert(rows, { onConflict: "client_name,month,year,demand_type" });
+
+    if (error) {
+      toast.error("Erro ao marcar fechamento em lote");
+    } else {
+      toast.success(`Fechamento ${year} concluído para ${clientsSet.size} empresa(s)`);
+      setSelectedClients(new Set());
+    }
+  }, [user, year, clientsMap]);
+
   const { clients, matrix } = useMemo(() => {
     let clientSet = [...allClientNames];
 
@@ -548,7 +587,17 @@ export default function CompetenciasPage() {
           <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold">Ação em Lote — {selectedClients.size} empresa(s) selecionada(s)</h3>
-              <button onClick={() => { setSelectedClients(new Set()); setBatchMonths(new Set()); }} className="text-xs text-muted-foreground hover:text-foreground">Limpar seleção</button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => markFullClosingCompleted(selectedClients)}
+                  className="h-7 px-3 text-[11px] font-semibold rounded bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-1"
+                  title="Marca todos os meses, fechamento e revisão como concluídos para as empresas selecionadas"
+                >
+                  <FileCheck className="w-3.5 h-3.5" />
+                  Marcar fechamento {year} concluído
+                </button>
+                <button onClick={() => { setSelectedClients(new Set()); setBatchMonths(new Set()); }} className="text-xs text-muted-foreground hover:text-foreground">Limpar seleção</button>
+              </div>
             </div>
             <div className="flex flex-wrap gap-1.5 items-center">
               <span className="text-xs text-muted-foreground mr-1">Meses:</span>

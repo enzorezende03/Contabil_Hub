@@ -84,13 +84,15 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
   const toggleMonth = (m: string) => {
     setSelectedMonths((prev) => {
       const next = new Set(prev);
-      if (next.has(m)) { if (next.size > 1) next.delete(m); } else next.add(m);
+      if (next.has(m)) next.delete(m); else next.add(m);
       return next;
     });
   };
 
   const selectAllClients = () => setSelectedClients(new Set(dbClients.map((c: any) => c.razao_social)));
-  const selectAllMonths = () => setSelectedMonths(new Set(MONTHS));
+  const toggleAllMonths = () => {
+    setSelectedMonths((prev) => (prev.size === MONTHS.length ? new Set() : new Set(MONTHS)));
+  };
   const selectAllTypes = () => setSelectedTypes(new Set(Object.keys(DEMAND_TYPE_LABELS) as DemandType[]));
 
   const resetForm = () => {
@@ -245,8 +247,8 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <Label className="mb-0">Competências *</Label>
-              <button type="button" onClick={selectAllMonths} className="text-[10px] text-primary hover:underline">
-                Selecionar todos
+              <button type="button" onClick={toggleAllMonths} className="text-[10px] text-primary hover:underline">
+                {selectedMonths.size === MONTHS.length ? "Desmarcar todos" : "Selecionar todos"}
               </button>
             </div>
             <div className="flex items-center gap-2 mb-1.5">

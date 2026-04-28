@@ -11,7 +11,7 @@ import { Upload, FileCheck, Lock, Send, ShieldCheck } from "lucide-react";
 import { LiberarRevisaoDialog } from "@/components/LiberarRevisaoDialog";
 import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import { REVIEW_STATUS_LABEL, REVIEW_STATUS_BADGE, buildCompetenciaDate, type ReviewStatus } from "@/lib/review-utils";
-import { useAuth as useAuthCtx } from "@/contexts/AuthContext";
+
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
 const MONTH_SHORT: Record<string, string> = {
@@ -97,7 +97,7 @@ function isMonthEnabled(competenciaInicio: string, month: string, year: string):
 }
 
 export default function CompetenciasPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const currentYear = new Date().getFullYear().toString();
   const [year, setYear] = usePersistedFilter("competencias", "year", currentYear);
   const [yearConfirmed, setYearConfirmed] = useState(() => sessionStorage.getItem("competencias_year_confirmed") === "true");
@@ -117,7 +117,7 @@ export default function CompetenciasPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [liberarDialog, setLiberarDialog] = useState<{ clientName: string; clientId: string; tributacao: string; month: string } | null>(null);
-  const { profile } = useAuthCtx();
+  
   useActionPermissions();
   const canLiberar = canPerformAction("liberar_para_revisao", profile?.role);
   const canCancelar = canPerformAction("cancelar_submissao", profile?.role);

@@ -29,7 +29,12 @@ export default function SettingsPage() {
   const [weights, setWeights] = useState<TaskWeight[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [permissions, setPermissions] = useState<RolePerms>({} as RolePerms);
-  const [actionPerms, setActionPermsState] = useState<ActionPermissions>({ edit_dates: ["coordenacao"] });
+  const [actionPerms, setActionPermsState] = useState<ActionPermissions>({
+    edit_dates: ["coordenacao"],
+    liberar_para_revisao: ["coordenacao", "analista", "assistente"],
+    revisar_demonstrativos: ["coordenacao"],
+    cancelar_submissao: ["coordenacao"],
+  });
   const [editingWeights, setEditingWeights] = useState(false);
   const [editingTeam, setEditingTeam] = useState(false);
   const [editingPerms, setEditingPerms] = useState(false);
@@ -37,7 +42,12 @@ export default function SettingsPage() {
   const [draftWeights, setDraftWeights] = useState<TaskWeight[]>([]);
   const [draftTeam, setDraftTeam] = useState<TeamMember[]>([]);
   const [draftPerms, setDraftPerms] = useState<RolePerms>({} as RolePerms);
-  const [draftActions, setDraftActions] = useState<ActionPermissions>({ edit_dates: ["coordenacao"] });
+  const [draftActions, setDraftActions] = useState<ActionPermissions>({
+    edit_dates: ["coordenacao"],
+    liberar_para_revisao: ["coordenacao", "analista", "assistente"],
+    revisar_demonstrativos: ["coordenacao"],
+    cancelar_submissao: ["coordenacao"],
+  });
   const [saving, setSaving] = useState(false);
 
   const [newName, setNewName] = useState("");

@@ -1044,6 +1044,52 @@ export default function CompetenciasPage() {
                             })}
                           </div>
                         )}
+                        {!isSM && (() => {
+                          const active = getActiveSubmission(panelData.client, m);
+                          const latest = getLatestSubmission(panelData.client, m);
+                          const monthlyDone = DEMAND_TYPES_FOR_PANEL.every((dt) =>
+                            (demandStatuses[`${panelData.client}|${m}|${dt.type}`] || "not_started") === "completed"
+                          );
+                          const cid = clientIdByName[panelData.client];
+                          const trib = clientsMap[panelData.client]?.tributacao || "";
+                          const finalizedExercise = isClientFinalized(panelData.client);
+                          const showLiberar = canLiberar && !active && !finalizedExercise && cid;
+
+                          if (!active && !latest && !showLiberar) return null;
+
+                          return (
+                            <div className="mt-2 pt-2 border-t flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                                {active ? (
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${REVIEW_STATUS_BADGE[active.status]}`}>
+                                    Revisão: {REVIEW_STATUS_LABEL[active.status]} (#{active.cycle_number})
+                                  </span>
+                                ) : latest ? (
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${REVIEW_STATUS_BADGE[latest.status]}`}>
+                                    Última: {REVIEW_STATUS_LABEL[latest.status]} (#{latest.cycle_number})
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-muted-foreground italic">Sem revisão liberada</span>
+                                )}
+                              </div>
+                              {showLiberar && (
+                                <button
+                                  onClick={() => {
+                                    if (!monthlyDone) {
+                                      if (!confirm("Algumas etapas mensais ainda não estão concluídas. Liberar mesmo assim?")) return;
+                                    }
+                                    setLiberarDialog({ clientName: panelData.client, clientId: cid!, tributacao: trib, month: m });
+                                  }}
+                                  className="h-6 px-2 text-[10px] font-semibold rounded bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1"
+                                  title="Anexar demonstrativos do UNICO SCI e enviar para revisão técnica"
+                                >
+                                  <Send className="w-3 h-3" /> Liberar p/ revisão
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   })}

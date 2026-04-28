@@ -169,6 +169,7 @@ export function ReenviarRevisaoDialog({
       }
 
       toast.success(`Nova submissão #${nextCycle} enviada para revisão.`);
+      supabase.functions.invoke("notify-review-event", { body: { event: "submitted", submission_id: sub.id } }).catch(() => {});
       queryClient.invalidateQueries({ queryKey: ["review-submissions"] });
       queryClient.invalidateQueries({ queryKey: ["review-submissions-year"] });
       queryClient.invalidateQueries({ queryKey: ["review-badge"] });

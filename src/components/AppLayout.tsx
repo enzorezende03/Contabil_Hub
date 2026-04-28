@@ -1,11 +1,12 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { canAccessPage, type AppPage } from "@/lib/permissions";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { usePlanningAlerts } from "@/hooks/use-planning-alerts";
 import { PlanningNotifications } from "@/components/PlanningNotifications";
+import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import type { Demand } from "@/lib/types";
 
 import {
@@ -79,6 +80,52 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   const alertData = usePlanningAlerts(plannings);
 
+  // Review badge: count submissions where the current user should act
+  useActionPermissions();
+  const canReview = canPerformAction("revisar_demonstrativos", userRole);
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  const { data: reviewBadge = { count: 0, stale: false } } = useQuery({
+    queryKey: ["review-badge", user?.id, canReview],
+    enabled: !!user,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      if (!user) return { count: 0, stale: false };
+      let query;
+      if (canReview) {
+        query = supabase
+          .from("review_submissions")
+          .select("id, submitted_at, reviewer_id, status", { count: "exact" })
+          .in("status", ["aguardando", "em_revisao"])
+          .or(`reviewer_id.is.null,reviewer_id.eq.${user.id}`);
+      } else {
+        query = supabase
+          .from("review_submissions")
+          .select("id, submitted_at, status", { count: "exact" })
+          .eq("status", "devolvido")
+          .eq("submitted_by", user.id);
+      }
+      const { data } = await query;
+      const list = data || [];
+      const stale = list.some((r: any) => {
+        const ageH = (Date.now() - new Date(r.submitted_at).getTime()) / 3_600_000;
+        return ageH > 24;
+      });
+      return { count: list.length, stale };
+    },
+  });
+
+  useEffect(() => {
+    const ch = supabase
+      .channel("review-badge-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "review_submissions" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["review-badge"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [queryClient]);
+
   const navItems = NAV_ITEMS.filter((item) => canAccessPage(userRole, item.path));
 
   return (
@@ -109,6 +156,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
+            const showBadge = item.path === "/revisao" && reviewBadge.count > 0;
             return (
               <Link
                 key={item.path}
@@ -120,8 +168,22 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                 } ${collapsed ? "justify-center px-0" : ""}`}
               >
-                <item.icon className="w-4 h-4 flex-shrink-0" />
-                {!collapsed && item.label}
+                <span className="relative flex-shrink-0">
+                  <item.icon className="w-4 h-4" />
+                  {showBadge && collapsed && (
+                    <span className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${reviewBadge.stale ? "bg-destructive" : "bg-warning"}`} />
+                  )}
+                </span>
+                {!collapsed && (
+                  <span className="flex-1 flex items-center justify-between">
+                    {item.label}
+                    {showBadge && (
+                      <span className={`ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${reviewBadge.stale ? "bg-destructive text-destructive-foreground" : "bg-warning text-warning-foreground"}`}>
+                        {reviewBadge.count}
+                      </span>
+                    )}
+                  </span>
+                )}
               </Link>
             );
           })}

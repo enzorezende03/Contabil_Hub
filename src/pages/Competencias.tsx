@@ -120,7 +120,7 @@ export default function CompetenciasPage() {
   
   useActionPermissions();
   const canLiberar = canPerformAction("liberar_para_revisao", profile?.role);
-  const canCancelar = canPerformAction("cancelar_submissao", profile?.role);
+  
 
   // Fetch active review submissions for the current year
   const { data: yearSubmissions = [] } = useQuery({

@@ -1248,6 +1248,18 @@ export default function CompetenciasPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {liberarDialog && (
+        <LiberarRevisaoDialog
+          open={!!liberarDialog}
+          onOpenChange={(o) => { if (!o) setLiberarDialog(null); }}
+          clientName={liberarDialog.clientName}
+          clientId={liberarDialog.clientId}
+          tributacao={liberarDialog.tributacao}
+          year={year}
+          defaultMonth={liberarDialog.month}
+        />
+      )}
     </AppLayout>
   );
 }

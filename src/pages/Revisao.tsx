@@ -634,8 +634,10 @@ function SubmissionDetail({
         .upsert(rows, { onConflict: "client_name,month,year,demand_type" });
     }
 
+    supabase.functions.invoke("notify-review-event", { body: { event: "approved", submission_id: submissionId } }).catch(() => {});
     toast.success("Revisão aprovada e fechamento finalizado");
     queryClient.invalidateQueries({ queryKey: ["review-submissions"] });
+    queryClient.invalidateQueries({ queryKey: ["review-submissions-year"] });
     onClose();
   };
 

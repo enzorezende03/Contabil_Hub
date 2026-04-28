@@ -89,6 +89,75 @@ export type Database = {
         }
         Relationships: []
       }
+      closing_deliverables: {
+        Row: {
+          approved: boolean
+          arquivo_path: string
+          client_id: string
+          competencia: string
+          created_at: string
+          file_size_bytes: number | null
+          gerado_em: string
+          gerado_por: string | null
+          id: string
+          origem: string
+          review_submission_id: string | null
+          tipo_demonstrativo: string
+          titulo: string | null
+          updated_at: string
+          versao: number
+        }
+        Insert: {
+          approved?: boolean
+          arquivo_path: string
+          client_id: string
+          competencia: string
+          created_at?: string
+          file_size_bytes?: number | null
+          gerado_em?: string
+          gerado_por?: string | null
+          id?: string
+          origem?: string
+          review_submission_id?: string | null
+          tipo_demonstrativo: string
+          titulo?: string | null
+          updated_at?: string
+          versao?: number
+        }
+        Update: {
+          approved?: boolean
+          arquivo_path?: string
+          client_id?: string
+          competencia?: string
+          created_at?: string
+          file_size_bytes?: number | null
+          gerado_em?: string
+          gerado_por?: string | null
+          id?: string
+          origem?: string
+          review_submission_id?: string | null
+          tipo_demonstrativo?: string
+          titulo?: string | null
+          updated_at?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "closing_deliverables_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closing_deliverables_review_submission_id_fkey"
+            columns: ["review_submission_id"]
+            isOneToOne: false
+            referencedRelation: "review_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demand_status_entries: {
         Row: {
           client_name: string
@@ -304,6 +373,113 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      review_apontamentos: {
+        Row: {
+          conta_referencia: string | null
+          created_at: string
+          created_by: string
+          deliverable_id: string
+          descricao: string
+          id: string
+          resolved: boolean
+          submission_id: string
+          updated_at: string
+        }
+        Insert: {
+          conta_referencia?: string | null
+          created_at?: string
+          created_by: string
+          deliverable_id: string
+          descricao: string
+          id?: string
+          resolved?: boolean
+          submission_id: string
+          updated_at?: string
+        }
+        Update: {
+          conta_referencia?: string | null
+          created_at?: string
+          created_by?: string
+          deliverable_id?: string
+          descricao?: string
+          id?: string
+          resolved?: boolean
+          submission_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_apontamentos_deliverable_id_fkey"
+            columns: ["deliverable_id"]
+            isOneToOne: false
+            referencedRelation: "closing_deliverables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_apontamentos_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "review_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_submissions: {
+        Row: {
+          client_id: string
+          competencia: string
+          created_at: string
+          cycle_number: number
+          id: string
+          review_started_at: string | null
+          review_summary: string | null
+          reviewed_at: string | null
+          reviewer_id: string | null
+          status: string
+          submitted_at: string
+          submitted_by: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          competencia: string
+          created_at?: string
+          cycle_number?: number
+          id?: string
+          review_started_at?: string | null
+          review_summary?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          status?: string
+          submitted_at?: string
+          submitted_by: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          competencia?: string
+          created_at?: string
+          cycle_number?: number
+          id?: string
+          review_started_at?: string | null
+          review_summary?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          status?: string
+          submitted_at?: string
+          submitted_by?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_submissions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       settings: {
         Row: {

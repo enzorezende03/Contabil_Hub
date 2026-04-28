@@ -23,8 +23,9 @@ import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permi
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import {
   FileText, ExternalLink, CheckCircle2, MessageSquarePlus, X, ArrowLeft,
-  Send, Inbox, Reply, ShieldCheck,
+  Send, Inbox, Reply, ShieldCheck, History,
 } from "lucide-react";
+import { ReenviarRevisaoDialog } from "@/components/ReenviarRevisaoDialog";
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
 
@@ -465,6 +466,25 @@ function SubmissionDetail({
 
   const [aptDialog, setAptDialog] = useState<Deliverable | null>(null);
   const [reviewSummary, setReviewSummary] = useState("");
+  const [reenviarOpen, setReenviarOpen] = useState(false);
+
+  // Histórico: outras submissões da mesma client+competência (versões anteriores)
+  const { data: submissionHistory = [] } = useQuery({
+    queryKey: ["submission-history", submission?.client_id, submission?.competencia],
+    enabled: !!submission,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("review_submissions")
+        .select("*")
+        .eq("client_id", submission!.client_id)
+        .eq("competencia", submission!.competencia)
+        .neq("id", submissionId)
+        .order("cycle_number", { ascending: false });
+      if (error) throw error;
+      return data as Submission[];
+    },
+  });
+
 
   // Take ownership of the review on first interaction by the reviewer
   const ensureReviewerAssigned = async () => {
@@ -557,8 +577,10 @@ function SubmissionDetail({
       })
       .eq("id", submissionId);
     if (error) { toast.error("Erro ao devolver submissão"); return; }
+    supabase.functions.invoke("notify-review-event", { body: { event: "returned", submission_id: submissionId } }).catch(() => {});
     toast.success("Submissão devolvida ao time");
     queryClient.invalidateQueries({ queryKey: ["review-submissions"] });
+    queryClient.invalidateQueries({ queryKey: ["review-submissions-year"] });
     onClose();
   };
 
@@ -612,8 +634,10 @@ function SubmissionDetail({
         .upsert(rows, { onConflict: "client_name,month,year,demand_type" });
     }
 
+    supabase.functions.invoke("notify-review-event", { body: { event: "approved", submission_id: submissionId } }).catch(() => {});
     toast.success("Revisão aprovada e fechamento finalizado");
     queryClient.invalidateQueries({ queryKey: ["review-submissions"] });
+    queryClient.invalidateQueries({ queryKey: ["review-submissions-year"] });
     onClose();
   };
 
@@ -656,6 +680,35 @@ function SubmissionDetail({
             {REVIEW_STATUS_LABEL[submission.status]}
           </span>
         </div>
+
+        {/* Resumo da revisora (quando devolvido) */}
+        {submission.status === "devolvido" && submission.review_summary && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3">
+            <div className="text-[11px] font-semibold text-destructive mb-1">Resumo da revisora</div>
+            <div className="text-xs whitespace-pre-wrap">{submission.review_summary}</div>
+          </div>
+        )}
+
+        {/* Histórico de versões */}
+        {submissionHistory.length > 0 && (
+          <details className="rounded-md border bg-muted/20">
+            <summary className="cursor-pointer text-xs px-3 py-2 flex items-center gap-2 hover:bg-muted/40 rounded-md">
+              <History className="w-3.5 h-3.5 text-muted-foreground" />
+              Histórico de versões ({submissionHistory.length})
+            </summary>
+            <div className="px-3 pb-3 space-y-1.5">
+              {submissionHistory.map((h) => (
+                <div key={h.id} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] ${REVIEW_STATUS_BADGE[h.status]}`}>
+                    {REVIEW_STATUS_LABEL[h.status]}
+                  </span>
+                  <span>#{h.cycle_number} · {profileById[h.submitted_by]?.display_name || "—"}</span>
+                  <span className="ml-auto">há {timeAgo(h.submitted_at)}</span>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
 
         {/* Deliverables */}
         <div className="space-y-2">
@@ -781,11 +834,44 @@ function SubmissionDetail({
         </div>
       )}
 
+      {/* Sticky footer for submitter (devolução) */}
+      {isReturnedToMe && (
+        <div className="fixed bottom-0 left-0 right-0 ml-60 border-t bg-card px-6 py-3 flex items-center justify-between shadow-lg">
+          <div className="text-xs text-muted-foreground">
+            <span className="text-destructive font-medium">{openApontamentos.length}</span>{" "}
+            apontamento(s) aberto(s) para corrigir.
+          </div>
+          <Button
+            onClick={() => setReenviarOpen(true)}
+            size="sm"
+          >
+            <Reply className="w-3.5 h-3.5 mr-1" /> Reenviar com correções
+          </Button>
+        </div>
+      )}
+
       <ApontamentoDialog
         deliverable={aptDialog}
         onCancel={() => setAptDialog(null)}
         onConfirm={addApontamento}
       />
+
+      {client && (
+        <ReenviarRevisaoDialog
+          open={reenviarOpen}
+          onOpenChange={setReenviarOpen}
+          previousSubmissionId={submissionId}
+          clientId={submission.client_id}
+          clientName={client.razao_social}
+          competencia={submission.competencia}
+          tributacao={client.tributacao}
+          apontamentosAnteriores={openApontamentos.map((a) => ({
+            descricao: a.descricao,
+            conta_referencia: a.conta_referencia,
+          }))}
+          onSubmitted={onClose}
+        />
+      )}
     </AppLayout>
   );
 }

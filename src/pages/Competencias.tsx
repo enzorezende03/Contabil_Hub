@@ -7,7 +7,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Upload, FileCheck, Lock } from "lucide-react";
+import { Upload, FileCheck, Lock, Send, ShieldCheck } from "lucide-react";
+import { LiberarRevisaoDialog } from "@/components/LiberarRevisaoDialog";
+import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
+import { REVIEW_STATUS_LABEL, REVIEW_STATUS_BADGE, buildCompetenciaDate, type ReviewStatus } from "@/lib/review-utils";
+
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
 const MONTH_SHORT: Record<string, string> = {
@@ -93,7 +97,7 @@ function isMonthEnabled(competenciaInicio: string, month: string, year: string):
 }
 
 export default function CompetenciasPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const currentYear = new Date().getFullYear().toString();
   const [year, setYear] = usePersistedFilter("competencias", "year", currentYear);
   const [yearConfirmed, setYearConfirmed] = useState(() => sessionStorage.getItem("competencias_year_confirmed") === "true");
@@ -112,6 +116,38 @@ export default function CompetenciasPage() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [liberarDialog, setLiberarDialog] = useState<{ clientName: string; clientId: string; tributacao: string; month: string } | null>(null);
+  
+  useActionPermissions();
+  const canLiberar = canPerformAction("liberar_para_revisao", profile?.role);
+  
+
+  // Fetch active review submissions for the current year
+  const { data: yearSubmissions = [] } = useQuery({
+    queryKey: ["review-submissions-year", year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("review_submissions")
+        .select("id, client_id, competencia, status, cycle_number, submitted_at")
+        .gte("competencia", `${year}-01-01`)
+        .lte("competencia", `${year}-12-31`)
+        .order("submitted_at", { ascending: false });
+      if (error) throw error;
+      return data as Array<{ id: string; client_id: string; competencia: string; status: ReviewStatus; cycle_number: number; submitted_at: string }>;
+    },
+  });
+
+  // Realtime updates for submissions
+  useEffect(() => {
+    const ch = supabase
+      .channel("competencias-submissions-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "review_submissions" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["review-submissions-year", year] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [queryClient, year]);
+
 
   // Fetch clients from DB
   const { data: dbClients = [] } = useQuery({
@@ -447,6 +483,38 @@ export default function CompetenciasPage() {
 
     return { clients: activeClients, matrix };
   }, [year, selectedClient, selectedTributacao, selectedUnidade, selectedPerfil, allClientNames, clientsMap, semMovimento, demandStatuses]);
+
+  // Map razao_social -> client UUID for review submissions wiring
+  const clientIdByName = useMemo(() => {
+    const map: Record<string, string> = {};
+    dbClients.forEach((c: any) => { map[c.razao_social] = c.id; });
+    return map;
+  }, [dbClients]);
+
+  // Submissions indexed by `${clientId}|${MM}` (latest first, since query orders desc)
+  const submissionsByClientMonth = useMemo(() => {
+    const map: Record<string, typeof yearSubmissions[number][]> = {};
+    yearSubmissions.forEach((s) => {
+      const mm = s.competencia.split("-")[1];
+      const key = `${s.client_id}|${mm}`;
+      (map[key] = map[key] || []).push(s);
+    });
+    return map;
+  }, [yearSubmissions]);
+
+  const getActiveSubmission = useCallback((clientName: string, monthMM: string) => {
+    const cid = clientIdByName[clientName];
+    if (!cid) return null;
+    const list = submissionsByClientMonth[`${cid}|${monthMM}`] || [];
+    return list.find((s) => s.status === "aguardando" || s.status === "em_revisao") || null;
+  }, [clientIdByName, submissionsByClientMonth]);
+
+  const getLatestSubmission = useCallback((clientName: string, monthMM: string) => {
+    const cid = clientIdByName[clientName];
+    if (!cid) return null;
+    const list = submissionsByClientMonth[`${cid}|${monthMM}`] || [];
+    return list[0] || null;
+  }, [clientIdByName, submissionsByClientMonth]);
 
   const panelData = useMemo(() => {
     if (!panelClient) return null;
@@ -976,6 +1044,52 @@ export default function CompetenciasPage() {
                             })}
                           </div>
                         )}
+                        {!isSM && (() => {
+                          const active = getActiveSubmission(panelData.client, m);
+                          const latest = getLatestSubmission(panelData.client, m);
+                          const monthlyDone = DEMAND_TYPES_FOR_PANEL.every((dt) =>
+                            (demandStatuses[`${panelData.client}|${m}|${dt.type}`] || "not_started") === "completed"
+                          );
+                          const cid = clientIdByName[panelData.client];
+                          const trib = clientsMap[panelData.client]?.tributacao || "";
+                          const finalizedExercise = isClientFinalized(panelData.client);
+                          const showLiberar = canLiberar && !active && !finalizedExercise && cid;
+
+                          if (!active && !latest && !showLiberar) return null;
+
+                          return (
+                            <div className="mt-2 pt-2 border-t flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                                {active ? (
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${REVIEW_STATUS_BADGE[active.status]}`}>
+                                    Revisão: {REVIEW_STATUS_LABEL[active.status]} (#{active.cycle_number})
+                                  </span>
+                                ) : latest ? (
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${REVIEW_STATUS_BADGE[latest.status]}`}>
+                                    Última: {REVIEW_STATUS_LABEL[latest.status]} (#{latest.cycle_number})
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] text-muted-foreground italic">Sem revisão liberada</span>
+                                )}
+                              </div>
+                              {showLiberar && (
+                                <button
+                                  onClick={() => {
+                                    if (!monthlyDone) {
+                                      if (!confirm("Algumas etapas mensais ainda não estão concluídas. Liberar mesmo assim?")) return;
+                                    }
+                                    setLiberarDialog({ clientName: panelData.client, clientId: cid!, tributacao: trib, month: m });
+                                  }}
+                                  className="h-6 px-2 text-[10px] font-semibold rounded bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-1"
+                                  title="Anexar demonstrativos do UNICO SCI e enviar para revisão técnica"
+                                >
+                                  <Send className="w-3 h-3" /> Liberar p/ revisão
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   })}
@@ -1134,6 +1248,18 @@ export default function CompetenciasPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {liberarDialog && (
+        <LiberarRevisaoDialog
+          open={!!liberarDialog}
+          onOpenChange={(o) => { if (!o) setLiberarDialog(null); }}
+          clientName={liberarDialog.clientName}
+          clientId={liberarDialog.clientId}
+          tributacao={liberarDialog.tributacao}
+          year={year}
+          defaultMonth={liberarDialog.month}
+        />
+      )}
     </AppLayout>
   );
 }

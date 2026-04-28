@@ -29,7 +29,12 @@ export default function SettingsPage() {
   const [weights, setWeights] = useState<TaskWeight[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [permissions, setPermissions] = useState<RolePerms>({} as RolePerms);
-  const [actionPerms, setActionPermsState] = useState<ActionPermissions>({ edit_dates: ["coordenacao"] });
+  const [actionPerms, setActionPermsState] = useState<ActionPermissions>({
+    edit_dates: ["coordenacao"],
+    liberar_para_revisao: ["coordenacao", "analista", "assistente"],
+    revisar_demonstrativos: ["coordenacao"],
+    cancelar_submissao: ["coordenacao"],
+  });
   const [editingWeights, setEditingWeights] = useState(false);
   const [editingTeam, setEditingTeam] = useState(false);
   const [editingPerms, setEditingPerms] = useState(false);
@@ -37,7 +42,12 @@ export default function SettingsPage() {
   const [draftWeights, setDraftWeights] = useState<TaskWeight[]>([]);
   const [draftTeam, setDraftTeam] = useState<TeamMember[]>([]);
   const [draftPerms, setDraftPerms] = useState<RolePerms>({} as RolePerms);
-  const [draftActions, setDraftActions] = useState<ActionPermissions>({ edit_dates: ["coordenacao"] });
+  const [draftActions, setDraftActions] = useState<ActionPermissions>({
+    edit_dates: ["coordenacao"],
+    liberar_para_revisao: ["coordenacao", "analista", "assistente"],
+    revisar_demonstrativos: ["coordenacao"],
+    cancelar_submissao: ["coordenacao"],
+  });
   const [saving, setSaving] = useState(false);
 
   const [newName, setNewName] = useState("");
@@ -141,6 +151,9 @@ export default function SettingsPage() {
   // --- Action Permissions ---
   const ACTION_ITEMS: { key: keyof ActionPermissions; label: string; description: string }[] = [
     { key: "edit_dates", label: "Alterar Datas", description: "Permite definir/alterar prazos em planejamentos e solicitações de clientes" },
+    { key: "liberar_para_revisao", label: "Liberar para Revisão", description: "Permite liberar uma competência fechada para revisão da contadora (em /competencias)" },
+    { key: "revisar_demonstrativos", label: "Revisar Demonstrativos", description: "Permite aprovar, apontar e devolver demonstrativos contábeis na caixa de revisão" },
+    { key: "cancelar_submissao", label: "Cancelar Submissão", description: "Permite cancelar uma submissão de revisão ainda não revisada" },
   ];
   const startEditActions = () => {
     setDraftActions(JSON.parse(JSON.stringify(actionPerms)));

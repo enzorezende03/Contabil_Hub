@@ -9,6 +9,7 @@ export type AppPage =
   | "/planejamento"
   | "/equipe"
   | "/competencias"
+  | "/revisao"
   | "/alertas"
   | "/clientes"
   | "/configuracoes"
@@ -16,10 +17,10 @@ export type AppPage =
 
 // Default permissions (fallback when DB not loaded yet)
 const DEFAULT_ROLE_PAGES: Record<ProfileRole, AppPage[]> = {
-  coordenacao: ["/", "/demandas", "/planejamento", "/equipe", "/competencias", "/alertas", "/clientes", "/configuracoes", "/usuarios"],
-  analista: ["/", "/demandas", "/planejamento", "/equipe", "/competencias", "/alertas", "/clientes"],
-  assistente: ["/", "/demandas", "/planejamento", "/competencias", "/clientes"],
-  estagiario: ["/", "/demandas", "/planejamento", "/competencias", "/clientes"],
+  coordenacao: ["/", "/demandas", "/planejamento", "/equipe", "/competencias", "/revisao", "/alertas", "/clientes", "/configuracoes", "/usuarios"],
+  analista: ["/", "/demandas", "/planejamento", "/equipe", "/competencias", "/revisao", "/alertas", "/clientes"],
+  assistente: ["/", "/demandas", "/planejamento", "/competencias", "/revisao", "/clientes"],
+  estagiario: ["/", "/demandas", "/planejamento", "/competencias", "/revisao", "/clientes"],
 };
 
 // Runtime permissions – can be replaced by DB values
@@ -60,6 +61,7 @@ export const ALL_PAGES: { path: AppPage; label: string }[] = [
   { path: "/planejamento", label: "Planejamento" },
   { path: "/equipe", label: "Produtividade Equipe" },
   { path: "/competencias", label: "Fechamento Contábil" },
+  { path: "/revisao", label: "Revisão de Demonstrativos" },
   { path: "/alertas", label: "Alertas" },
   { path: "/clientes", label: "Clientes" },
   { path: "/configuracoes", label: "Configurações" },

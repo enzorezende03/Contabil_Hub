@@ -830,11 +830,44 @@ function SubmissionDetail({
         </div>
       )}
 
+      {/* Sticky footer for submitter (devolução) */}
+      {isReturnedToMe && (
+        <div className="fixed bottom-0 left-0 right-0 ml-60 border-t bg-card px-6 py-3 flex items-center justify-between shadow-lg">
+          <div className="text-xs text-muted-foreground">
+            <span className="text-destructive font-medium">{openApontamentos.length}</span>{" "}
+            apontamento(s) aberto(s) para corrigir.
+          </div>
+          <Button
+            onClick={() => setReenviarOpen(true)}
+            size="sm"
+          >
+            <Reply className="w-3.5 h-3.5 mr-1" /> Reenviar com correções
+          </Button>
+        </div>
+      )}
+
       <ApontamentoDialog
         deliverable={aptDialog}
         onCancel={() => setAptDialog(null)}
         onConfirm={addApontamento}
       />
+
+      {client && (
+        <ReenviarRevisaoDialog
+          open={reenviarOpen}
+          onOpenChange={setReenviarOpen}
+          previousSubmissionId={submissionId}
+          clientId={submission.client_id}
+          clientName={client.razao_social}
+          competencia={submission.competencia}
+          tributacao={client.tributacao}
+          apontamentosAnteriores={openApontamentos.map((a) => ({
+            descricao: a.descricao,
+            conta_referencia: a.conta_referencia,
+          }))}
+          onSubmitted={onClose}
+        />
+      )}
     </AppLayout>
   );
 }

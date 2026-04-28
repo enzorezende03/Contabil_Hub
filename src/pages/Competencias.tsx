@@ -116,6 +116,38 @@ export default function CompetenciasPage() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [liberarDialog, setLiberarDialog] = useState<{ clientName: string; clientId: string; tributacao: string; month: string } | null>(null);
+  const { profile } = useAuthCtx();
+  useActionPermissions();
+  const canLiberar = canPerformAction("liberar_para_revisao", profile?.role);
+  const canCancelar = canPerformAction("cancelar_submissao", profile?.role);
+
+  // Fetch active review submissions for the current year
+  const { data: yearSubmissions = [] } = useQuery({
+    queryKey: ["review-submissions-year", year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("review_submissions")
+        .select("id, client_id, competencia, status, cycle_number, submitted_at")
+        .gte("competencia", `${year}-01-01`)
+        .lte("competencia", `${year}-12-31`)
+        .order("submitted_at", { ascending: false });
+      if (error) throw error;
+      return data as Array<{ id: string; client_id: string; competencia: string; status: ReviewStatus; cycle_number: number; submitted_at: string }>;
+    },
+  });
+
+  // Realtime updates for submissions
+  useEffect(() => {
+    const ch = supabase
+      .channel("competencias-submissions-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "review_submissions" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["review-submissions-year", year] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [queryClient, year]);
+
 
   // Fetch clients from DB
   const { data: dbClients = [] } = useQuery({

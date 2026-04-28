@@ -23,8 +23,9 @@ import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permi
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import {
   FileText, ExternalLink, CheckCircle2, MessageSquarePlus, X, ArrowLeft,
-  Send, Inbox, Reply, ShieldCheck,
+  Send, Inbox, Reply, ShieldCheck, History,
 } from "lucide-react";
+import { ReenviarRevisaoDialog } from "@/components/ReenviarRevisaoDialog";
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
 

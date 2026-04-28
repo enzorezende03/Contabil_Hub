@@ -151,6 +151,9 @@ export default function SettingsPage() {
   // --- Action Permissions ---
   const ACTION_ITEMS: { key: keyof ActionPermissions; label: string; description: string }[] = [
     { key: "edit_dates", label: "Alterar Datas", description: "Permite definir/alterar prazos em planejamentos e solicitações de clientes" },
+    { key: "liberar_para_revisao", label: "Liberar para Revisão", description: "Permite liberar uma competência fechada para revisão da contadora (em /competencias)" },
+    { key: "revisar_demonstrativos", label: "Revisar Demonstrativos", description: "Permite aprovar, apontar e devolver demonstrativos contábeis na caixa de revisão" },
+    { key: "cancelar_submissao", label: "Cancelar Submissão", description: "Permite cancelar uma submissão de revisão ainda não revisada" },
   ];
   const startEditActions = () => {
     setDraftActions(JSON.parse(JSON.stringify(actionPerms)));

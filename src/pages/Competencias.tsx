@@ -7,7 +7,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Upload, FileCheck, Lock } from "lucide-react";
+import { Upload, FileCheck, Lock, Send, ShieldCheck } from "lucide-react";
+import { LiberarRevisaoDialog } from "@/components/LiberarRevisaoDialog";
+import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
+import { REVIEW_STATUS_LABEL, REVIEW_STATUS_BADGE, buildCompetenciaDate, type ReviewStatus } from "@/lib/review-utils";
+import { useAuth as useAuthCtx } from "@/contexts/AuthContext";
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
 const MONTH_SHORT: Record<string, string> = {

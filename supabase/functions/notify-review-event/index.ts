@@ -9,8 +9,12 @@
 // a função apenas registra o evento e retorna sucesso (no-op gracioso).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { corsHeaders } from "@supabase/supabase-js/cors";
 import { z } from "https://esm.sh/zod@3.23.8";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const BodySchema = z.object({
   event: z.enum(["submitted", "returned", "approved"]),

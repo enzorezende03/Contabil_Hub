@@ -484,6 +484,38 @@ export default function CompetenciasPage() {
     return { clients: activeClients, matrix };
   }, [year, selectedClient, selectedTributacao, selectedUnidade, selectedPerfil, allClientNames, clientsMap, semMovimento, demandStatuses]);
 
+  // Map razao_social -> client UUID for review submissions wiring
+  const clientIdByName = useMemo(() => {
+    const map: Record<string, string> = {};
+    dbClients.forEach((c: any) => { map[c.razao_social] = c.id; });
+    return map;
+  }, [dbClients]);
+
+  // Submissions indexed by `${clientId}|${MM}` (latest first, since query orders desc)
+  const submissionsByClientMonth = useMemo(() => {
+    const map: Record<string, typeof yearSubmissions[number][]> = {};
+    yearSubmissions.forEach((s) => {
+      const mm = s.competencia.split("-")[1];
+      const key = `${s.client_id}|${mm}`;
+      (map[key] = map[key] || []).push(s);
+    });
+    return map;
+  }, [yearSubmissions]);
+
+  const getActiveSubmission = useCallback((clientName: string, monthMM: string) => {
+    const cid = clientIdByName[clientName];
+    if (!cid) return null;
+    const list = submissionsByClientMonth[`${cid}|${monthMM}`] || [];
+    return list.find((s) => s.status === "aguardando" || s.status === "em_revisao") || null;
+  }, [clientIdByName, submissionsByClientMonth]);
+
+  const getLatestSubmission = useCallback((clientName: string, monthMM: string) => {
+    const cid = clientIdByName[clientName];
+    if (!cid) return null;
+    const list = submissionsByClientMonth[`${cid}|${monthMM}`] || [];
+    return list[0] || null;
+  }, [clientIdByName, submissionsByClientMonth]);
+
   const panelData = useMemo(() => {
     if (!panelClient) return null;
     const info = clientsMap[panelClient];

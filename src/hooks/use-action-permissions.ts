@@ -2,11 +2,17 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type ActionPermissions = {
-  edit_dates: string[]; // roles allowed to edit dates
+  edit_dates: string[];
+  liberar_para_revisao: string[];
+  revisar_demonstrativos: string[];
+  cancelar_submissao: string[];
 };
 
 const DEFAULTS: ActionPermissions = {
   edit_dates: ["coordenacao"],
+  liberar_para_revisao: ["coordenacao", "analista", "assistente"],
+  revisar_demonstrativos: ["coordenacao"],
+  cancelar_submissao: ["coordenacao"],
 };
 
 let cachedPerms: ActionPermissions = { ...DEFAULTS };
@@ -15,8 +21,8 @@ export function getActionPermissions(): ActionPermissions {
   return cachedPerms;
 }
 
-export function setActionPermissions(perms: Partial<ActionPermissions>) {
-  cachedPerms = { ...cachedPerms, ...perms };
+export function setActionPermissions(perms: Partial<ActionPermissions> | Record<string, string[]>) {
+  cachedPerms = { ...cachedPerms, ...(perms as Partial<ActionPermissions>) };
 }
 
 export function canPerformAction(action: keyof ActionPermissions, role: string | undefined): boolean {
@@ -35,7 +41,7 @@ export function useActionPermissions() {
         .eq("key", "action_permissions")
         .maybeSingle();
       if (data?.value) {
-        const val = data.value as unknown as ActionPermissions;
+        const val = { ...DEFAULTS, ...(data.value as unknown as ActionPermissions) };
         setActionPermissions(val);
         setPerms(val);
       }

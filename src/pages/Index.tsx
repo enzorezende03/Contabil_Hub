@@ -235,6 +235,65 @@ export default function Dashboard() {
           <KpiCard title="Planejamentos" value={plannings.length} icon={TrendingUp} variant="success" />
         </div>
 
+        {/* Revisão de Demonstrativos */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-primary" /> Revisão de Demonstrativos
+            </h2>
+            <Link to="/revisao" className="text-xs text-primary hover:underline">Abrir caixa de revisão →</Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <KpiCard
+              title="Aguardando revisão"
+              value={reviewKpis.aguardando}
+              subtitle={reviewKpis.stale > 0 ? `${reviewKpis.stale} > 24h` : "Em dia"}
+              icon={ShieldCheck}
+              variant="info"
+            />
+            <KpiCard title="Em revisão" value={reviewKpis.emRevisao} icon={Clock} variant="info" />
+            <KpiCard title="Devolvidas" value={reviewKpis.devolvidas} icon={Reply} variant="info" />
+            <KpiCard
+              title="Aprovação na 1ª"
+              value={`${reviewKpis.firstPassRate}%`}
+              subtitle={`${reviewKpis.totalResolved} resolvidas · ciclo médio ${reviewKpis.avgCycleH > 0 ? reviewKpis.avgCycleH.toFixed(1) + "h" : "—"}`}
+              icon={Repeat}
+              variant="success"
+            />
+          </div>
+
+          {recentReviews.length > 0 && (
+            <div className="rounded-lg border bg-card p-4">
+              <h3 className="text-sm font-semibold mb-2">Últimas movimentações</h3>
+              <div className="space-y-1.5">
+                {recentReviews.map((s) => {
+                  const ageH = (Date.now() - new Date(s.submitted_at).getTime()) / 3600_000;
+                  const stale = s.status === "aguardando" && ageH > 24;
+                  return (
+                    <Link
+                      to="/revisao"
+                      key={s.id}
+                      className="flex items-center gap-2 text-xs hover:bg-muted/50 rounded-md px-2 py-1.5"
+                    >
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${REVIEW_STATUS_BADGE[s.status]}`}>
+                        {REVIEW_STATUS_LABEL[s.status]}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {String(s.competencia).slice(0, 7).split("-").reverse().join("/")} · #{s.cycle_number}ª
+                      </span>
+                      {stale && (
+                        <span className="text-warning flex items-center gap-1 text-[10px]">
+                          <AlertTriangle className="w-3 h-3" /> {Math.round(ageH)}h
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Status Pie */}
           {statusCounts.length > 0 && (

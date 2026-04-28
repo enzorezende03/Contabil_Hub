@@ -9,7 +9,13 @@ import {
   CheckCircle2,
   Clock,
   TrendingUp,
+  ShieldCheck,
+  AlertTriangle,
+  Reply,
+  Repeat,
 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { REVIEW_STATUS_LABEL, REVIEW_STATUS_BADGE, type ReviewStatus } from "@/lib/review-utils";
 import {
   BarChart,
   Bar,
@@ -84,6 +90,59 @@ export default function Dashboard() {
     },
   });
 
+  // KPIs de revisão de demonstrativos
+  const { data: reviewSubs = [] } = useQuery({
+    queryKey: ["dashboard-review-subs"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("review_submissions")
+        .select("id, status, cycle_number, submitted_at, reviewed_at, client_id, competencia, submitted_by");
+      if (error) throw error;
+      return data as Array<{ id: string; status: ReviewStatus; cycle_number: number; submitted_at: string; reviewed_at: string | null; client_id: string; competencia: string; submitted_by: string }>;
+    },
+  });
+
+  const reviewKpis = useMemo(() => {
+    const aguardando = reviewSubs.filter((s) => s.status === "aguardando").length;
+    const emRevisao = reviewSubs.filter((s) => s.status === "em_revisao").length;
+    const devolvidas = reviewSubs.filter((s) => s.status === "devolvido").length;
+    const stale = reviewSubs.filter((s) => {
+      if (s.status !== "aguardando") return false;
+      return (Date.now() - new Date(s.submitted_at).getTime()) > 24 * 3600_000;
+    }).length;
+
+    // Ciclo médio (h) entre submitted_at e reviewed_at em submissões resolvidas
+    const resolved = reviewSubs.filter((s) => (s.status === "aprovado" || s.status === "devolvido") && s.reviewed_at);
+    const avgCycleH = resolved.length > 0
+      ? resolved.reduce((acc, s) => acc + (new Date(s.reviewed_at!).getTime() - new Date(s.submitted_at).getTime()), 0) / resolved.length / 3600_000
+      : 0;
+
+    // Taxa de aprovação na 1ª submissão: % de (client+competência) cuja submissão #1 foi aprovada sem ciclos extras
+    const byKey = new Map<string, typeof reviewSubs>();
+    reviewSubs.forEach((s) => {
+      const k = `${s.client_id}|${s.competencia}`;
+      const arr = byKey.get(k) || [];
+      arr.push(s);
+      byKey.set(k, arr);
+    });
+    let firstPassOk = 0; let firstPassTotal = 0;
+    byKey.forEach((arr) => {
+      const approved = arr.find((s) => s.status === "aprovado");
+      if (!approved) return;
+      firstPassTotal++;
+      if (approved.cycle_number === 1) firstPassOk++;
+    });
+    const firstPassRate = firstPassTotal > 0 ? Math.round((firstPassOk / firstPassTotal) * 100) : 0;
+
+    return { aguardando, emRevisao, devolvidas, stale, avgCycleH, firstPassRate, totalResolved: firstPassTotal };
+  }, [reviewSubs]);
+
+  const recentReviews = useMemo(() => {
+    return [...reviewSubs]
+      .filter((s) => s.status === "aguardando" || s.status === "em_revisao" || s.status === "devolvido")
+      .sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime())
+      .slice(0, 5);
+  }, [reviewSubs]);
 
 
   // Build status map from entries: client|competencia|type -> status

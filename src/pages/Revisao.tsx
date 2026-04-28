@@ -466,6 +466,25 @@ function SubmissionDetail({
 
   const [aptDialog, setAptDialog] = useState<Deliverable | null>(null);
   const [reviewSummary, setReviewSummary] = useState("");
+  const [reenviarOpen, setReenviarOpen] = useState(false);
+
+  // Histórico: outras submissões da mesma client+competência (versões anteriores)
+  const { data: submissionHistory = [] } = useQuery({
+    queryKey: ["submission-history", submission?.client_id, submission?.competencia],
+    enabled: !!submission,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("review_submissions")
+        .select("*")
+        .eq("client_id", submission!.client_id)
+        .eq("competencia", submission!.competencia)
+        .neq("id", submissionId)
+        .order("cycle_number", { ascending: false });
+      if (error) throw error;
+      return data as Submission[];
+    },
+  });
+
 
   // Take ownership of the review on first interaction by the reviewer
   const ensureReviewerAssigned = async () => {

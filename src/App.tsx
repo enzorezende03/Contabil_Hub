@@ -10,6 +10,7 @@ import Demands from "./pages/Demands.tsx";
 import Team from "./pages/Team.tsx";
 
 import Competencias from "./pages/Competencias.tsx";
+import Revisao from "./pages/Revisao.tsx";
 import Alerts from "./pages/Alerts.tsx";
 
 import SettingsPage from "./pages/SettingsPage.tsx";
@@ -46,6 +47,7 @@ const AppRoutes = () => (
     <Route path="/planejamento" element={<RoleRoute page="/planejamento"><Planejamento /></RoleRoute>} />
     <Route path="/equipe" element={<RoleRoute page="/equipe"><Team /></RoleRoute>} />
     <Route path="/competencias" element={<RoleRoute page="/competencias"><Competencias /></RoleRoute>} />
+    <Route path="/revisao" element={<RoleRoute page="/revisao"><Revisao /></RoleRoute>} />
     <Route path="/alertas" element={<RoleRoute page="/alertas"><Alerts /></RoleRoute>} />
     <Route path="/configuracoes" element={<RoleRoute page="/configuracoes"><SettingsPage /></RoleRoute>} />
     <Route path="/usuarios" element={<RoleRoute page="/usuarios"><Users /></RoleRoute>} />

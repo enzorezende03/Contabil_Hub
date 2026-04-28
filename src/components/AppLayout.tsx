@@ -23,6 +23,7 @@ import {
   ClipboardList,
   PanelLeftClose,
   PanelLeftOpen,
+  ShieldCheck,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -31,6 +32,7 @@ const NAV_ITEMS = [
   { label: "Planejamento", path: "/planejamento" as AppPage, icon: ClipboardList },
   { label: "Produtividade Equipe", path: "/equipe" as AppPage, icon: Users },
   { label: "Fechamento Contábil", path: "/competencias" as AppPage, icon: Calendar },
+  { label: "Revisão", path: "/revisao" as AppPage, icon: ShieldCheck },
   { label: "Alertas", path: "/alertas" as AppPage, icon: AlertTriangle },
   { label: "Clientes", path: "/clientes" as AppPage, icon: Building2 },
   { label: "Configurações", path: "/configuracoes" as AppPage, icon: Settings },

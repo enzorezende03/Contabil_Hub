@@ -285,6 +285,24 @@ export function LiberarRevisaoDialog({
             )}
           </div>
 
+          {/* Reviewer picker */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Analista responsável pela revisão *</Label>
+            <ReviewerPicker
+              value={reviewerId}
+              onChange={(id, name) => {
+                setReviewerId(id);
+                setReviewerName(name);
+              }}
+              placeholder="Escolha quem vai revisar..."
+            />
+            {reviewerName && (
+              <p className="text-[10px] text-muted-foreground">
+                A notificação será enviada apenas para <strong>{reviewerName}</strong>.
+              </p>
+            )}
+          </div>
+
           {/* Drop area */}
           <div>
             <button
@@ -347,7 +365,7 @@ export function LiberarRevisaoDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={submitting || pending.length === 0 || missing.length > 0}
+            disabled={submitting || pending.length === 0 || missing.length > 0 || !reviewerId}
           >
             {submitting ? "Enviando..." : "Liberar para revisão"}
           </Button>

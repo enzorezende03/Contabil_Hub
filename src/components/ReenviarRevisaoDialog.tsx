@@ -129,6 +129,10 @@ export function ReenviarRevisaoDialog({
       toast.error(`Faltando: ${missing.map((t) => TIPO_DEMONSTRATIVO_LABEL[t]).join(", ")}`);
       return;
     }
+    if (!reviewerId) {
+      toast.error("Selecione a analista responsável pela revisão.");
+      return;
+    }
     setSubmitting(true);
     try {
       // 1) Cancelar a submissão devolvida (mantém histórico mas libera o índice único).
@@ -156,6 +160,8 @@ export function ReenviarRevisaoDialog({
           status: "aguardando",
           submitted_by: user.id,
           review_summary: resumo || null,
+          reviewer_id: reviewerId,
+          reviewer_assigned_at: new Date().toISOString(),
         })
         .select("id")
         .single();

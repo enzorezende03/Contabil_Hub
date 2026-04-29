@@ -19,7 +19,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { RegistrarCobrancaDialog } from "@/components/RegistrarCobrancaDialog";
 import { CreatePendencyDialog } from "@/components/CreatePendencyDialog";
-import { AlertCircle, Clock, CheckCircle2, Inbox, Plus, Pause, Play, Building2, History } from "lucide-react";
+import { AlertCircle, Clock, CheckCircle2, Inbox, Plus, Pause, Play, Building2, History, ExternalLink, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ClientRow { id: string; razao_social: string; cnpj: string; }

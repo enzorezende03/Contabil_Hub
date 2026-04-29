@@ -259,6 +259,17 @@ export default function RevisaoPage() {
               <option value="2m_contabilidade">2M Contabilidade</option>
               <option value="2m_saude">2M Saúde</option>
             </select>
+            {canSupervise && (
+              <label className="flex items-center gap-1.5 ml-1 px-2 h-8 rounded-md border bg-card cursor-pointer">
+                <Eye className="w-3 h-3 text-muted-foreground" />
+                <span className="text-[11px]">Ver tudo</span>
+                <Switch
+                  checked={showAll === "yes"}
+                  onCheckedChange={(c) => setShowAll(c ? "yes" : "no")}
+                  className="scale-75 -my-1"
+                />
+              </label>
+            )}
             <span className="ml-auto text-xs text-muted-foreground">{filtered.length} item(ns)</span>
           </div>
 

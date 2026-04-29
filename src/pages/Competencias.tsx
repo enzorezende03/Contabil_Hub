@@ -107,7 +107,47 @@ function StatusPillGroup({ options, value, disabled, onChange, beforeChange }: S
     </div>
   );
 }
-import { LiberarRevisaoDialog } from "@/components/LiberarRevisaoDialog";
+
+interface StatusPillBulkProps {
+  options: StatusOption[];
+  disabled?: boolean;
+  onApply: (v: DemandStatus) => void;
+}
+
+/** Variant for the "apply to selected months" bar — no permanent selection,
+ *  just clickable colored chips that fire the action. */
+function StatusPillBulk({ options, disabled, onApply }: StatusPillBulkProps) {
+  return (
+    <div
+      className={cn(
+        "inline-flex items-center gap-0.5 rounded-lg border border-border bg-muted/40 p-0.5",
+        disabled && "opacity-50 pointer-events-none",
+      )}
+    >
+      {options.map((opt) => {
+        const Icon = opt.icon;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            title={`Aplicar: ${opt.label}`}
+            disabled={disabled}
+            onClick={() => onApply(opt.value)}
+            className={cn(
+              "inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium",
+              "transition-all duration-150 ease-out active:scale-95 hover:scale-105",
+              opt.base,
+              "hover:" + opt.active.split(" ")[0],
+            )}
+          >
+            <Icon className="w-3 h-3" />
+            <span className="hidden sm:inline">{opt.short}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import { REVIEW_STATUS_LABEL, REVIEW_STATUS_BADGE, buildCompetenciaDate, type ReviewStatus } from "@/lib/review-utils";
 

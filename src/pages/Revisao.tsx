@@ -517,32 +517,28 @@ function SubmissionDetail({
   });
 
 
-  // Take ownership of the review on first interaction by the reviewer
+  // Marca a submissão como "em_revisao" quando a revisora designada abre pela primeira vez.
   const ensureReviewerAssigned = async () => {
     if (!submission || !user) return;
-    if (submission.status === "aguardando") {
+    if (submission.status === "aguardando" && submission.reviewer_id === user.id) {
       await supabase
         .from("review_submissions")
         .update({
           status: "em_revisao",
-          reviewer_id: user.id,
           review_started_at: new Date().toISOString(),
         })
         .eq("id", submissionId);
       queryClient.invalidateQueries({ queryKey: ["review-submission", submissionId] });
       queryClient.invalidateQueries({ queryKey: ["review-submissions"] });
-    } else if (submission.status === "em_revisao" && !submission.reviewer_id) {
-      await supabase.from("review_submissions").update({ reviewer_id: user.id }).eq("id", submissionId);
-      queryClient.invalidateQueries({ queryKey: ["review-submission", submissionId] });
     }
   };
 
   useEffect(() => {
-    if (canReview && submission?.status === "aguardando") {
+    if (canReview && submission?.status === "aguardando" && submission.reviewer_id === user?.id) {
       ensureReviewerAssigned();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submission?.status]);
+  }, [submission?.status, submission?.reviewer_id, user?.id]);
 
   const openPdf = async (path: string) => {
     const { data, error } = await supabase.storage

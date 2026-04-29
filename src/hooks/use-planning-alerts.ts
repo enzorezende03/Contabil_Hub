@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { type Demand } from "@/lib/types";
 import { getDeadlineUrgency } from "@/lib/demand-utils";
@@ -18,8 +18,21 @@ const ALERT_LABELS = {
   soon: "🟠 Vence em breve",
 };
 
+const DISMISSED_KEY = "planning-alerts-dismissed";
+const TOAST_SHOWN_KEY = "planning-alerts-toast-shown";
+
+function loadDismissed(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DISMISSED_KEY);
+    if (!raw) return new Set();
+    return new Set(JSON.parse(raw));
+  } catch {
+    return new Set();
+  }
+}
+
 export function usePlanningAlerts(plannings: Demand[]) {
-  const notifiedRef = useRef(false);
+  const dismissed = loadDismissed();
 
   const alerts: PlanningAlert[] = plannings
     .filter((p) => p.status !== "completed")
@@ -36,13 +49,17 @@ export function usePlanningAlerts(plannings: Demand[]) {
     })
     .filter(Boolean) as PlanningAlert[];
 
-  const overdue = alerts.filter((a) => a.type === "overdue");
-  const today = alerts.filter((a) => a.type === "today");
-  const soon = alerts.filter((a) => a.type === "soon");
+  const visible = alerts.filter((a) => !dismissed.has(a.id));
+  const overdue = visible.filter((a) => a.type === "overdue");
+  const today = visible.filter((a) => a.type === "today");
+  const soon = visible.filter((a) => a.type === "soon");
 
   useEffect(() => {
-    if (notifiedRef.current || plannings.length === 0) return;
-    notifiedRef.current = true;
+    if (plannings.length === 0) return;
+    // Only show toasts once per browser session
+    if (sessionStorage.getItem(TOAST_SHOWN_KEY)) return;
+    if (overdue.length === 0 && today.length === 0 && soon.length === 0) return;
+    sessionStorage.setItem(TOAST_SHOWN_KEY, "1");
 
     if (overdue.length > 0) {
       toast.error(`${overdue.length} planejamento${overdue.length > 1 ? "s" : ""} atrasado${overdue.length > 1 ? "s" : ""}`, {
@@ -65,7 +82,7 @@ export function usePlanningAlerts(plannings: Demand[]) {
     }
   }, [plannings.length, overdue.length, today.length, soon.length]);
 
-  return { alerts, overdue, today, soon };
+  return { alerts: visible, overdue, today, soon };
 }
 
 export function getAlertLabel(type: PlanningAlert["type"]) {

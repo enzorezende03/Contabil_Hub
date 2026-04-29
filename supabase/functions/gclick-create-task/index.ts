@@ -82,25 +82,76 @@ function getUnidadeConfig(unidade: string): UnidadeConfig | null {
 
 async function getAccessToken(cfg: UnidadeConfig): Promise<string> {
   const tokenUrl = `${cfg.base}/signin`;
-  const resp = await fetch(tokenUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ clientId: cfg.clientId, clientSecret: cfg.clientSecret }),
-  });
 
-  const text = await resp.text();
-  if (!resp.ok) {
-    throw new Error(
-      `Falha ao obter token GClick (${resp.status}) em ${tokenUrl}: ${text.slice(0, 300) || "(resposta vazia)"}`,
-    );
+  // GClick aceita variações de nomes de campos. Tentamos em sequência
+  // e retornamos no primeiro 2xx com token válido.
+  const attempts: Array<{ label: string; init: RequestInit }> = [
+    {
+      label: "json camelCase",
+      init: {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ clientId: cfg.clientId, clientSecret: cfg.clientSecret }),
+      },
+    },
+    {
+      label: "json snake_case",
+      init: {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ client_id: cfg.clientId, client_secret: cfg.clientSecret }),
+      },
+    },
+    {
+      label: "headers x-client-id/x-client-secret",
+      init: {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          "x-client-id": cfg.clientId,
+          "x-client-secret": cfg.clientSecret,
+        },
+        body: "{}",
+      },
+    },
+    {
+      label: "basic auth",
+      init: {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Basic ${btoa(`${cfg.clientId}:${cfg.clientSecret}`)}`,
+        },
+        body: "{}",
+      },
+    },
+  ];
+
+  const errors: string[] = [];
+  for (const a of attempts) {
+    try {
+      const resp = await fetch(tokenUrl, a.init);
+      const text = await resp.text();
+      console.log(`[gclick signin] tentativa "${a.label}" -> ${resp.status} ${text.slice(0, 200)}`);
+      if (resp.ok) {
+        let json: any;
+        try { json = JSON.parse(text); } catch { errors.push(`${a.label}: resposta não-JSON`); continue; }
+        const token = json.access_token || json.accessToken || json.token;
+        if (token) return token as string;
+        errors.push(`${a.label}: 200 sem token (${text.slice(0, 120)})`);
+      } else {
+        errors.push(`${a.label}: ${resp.status} ${text.slice(0, 150) || "(vazio)"}`);
+      }
+    } catch (e) {
+      errors.push(`${a.label}: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
 
-  let json: any;
-  try { json = JSON.parse(text); } catch { throw new Error(`Resposta de signin não-JSON: ${text.slice(0, 200)}`); }
-
-  const token = json.access_token || json.accessToken || json.token;
-  if (!token) throw new Error(`Token não retornado pelo GClick: ${text.slice(0, 200)}`);
-  return token as string;
+  throw new Error(
+    `Falha ao obter token GClick em ${tokenUrl}. Tentativas: ${errors.join(" | ").slice(0, 600)}`,
+  );
 }
 
 async function createPreTarefa(

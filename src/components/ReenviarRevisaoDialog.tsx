@@ -14,6 +14,7 @@ import {
   type TipoDemonstrativo,
   DEFAULT_REQUIRED_BY_TRIBUTACAO,
 } from "@/lib/review-utils";
+import { ReviewerPicker } from "@/components/ReviewerPicker";
 
 interface ReenviarRevisaoDialogProps {
   open: boolean;
@@ -51,6 +52,29 @@ export function ReenviarRevisaoDialog({
   const [pending, setPending] = useState<PendingFile[]>([]);
   const [resumo, setResumo] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [reviewerId, setReviewerId] = useState<string | null>(null);
+  const [reviewerName, setReviewerName] = useState<string>("");
+
+  // Pré-selecionar a revisora anterior (mesma da submissão devolvida).
+  useEffect(() => {
+    if (!open || reviewerId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("review_submissions")
+        .select("reviewer_id")
+        .eq("id", previousSubmissionId)
+        .maybeSingle();
+      if (data?.reviewer_id) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("user_id", data.reviewer_id)
+          .maybeSingle();
+        setReviewerId(data.reviewer_id);
+        setReviewerName(prof?.display_name || "");
+      }
+    })();
+  }, [open, previousSubmissionId, reviewerId]);
 
   // Pré-popular o resumo com referências aos apontamentos
   useEffect(() => {

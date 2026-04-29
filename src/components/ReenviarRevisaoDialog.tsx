@@ -14,6 +14,7 @@ import {
   type TipoDemonstrativo,
   DEFAULT_REQUIRED_BY_TRIBUTACAO,
 } from "@/lib/review-utils";
+import { ReviewerPicker } from "@/components/ReviewerPicker";
 
 interface ReenviarRevisaoDialogProps {
   open: boolean;
@@ -51,6 +52,29 @@ export function ReenviarRevisaoDialog({
   const [pending, setPending] = useState<PendingFile[]>([]);
   const [resumo, setResumo] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [reviewerId, setReviewerId] = useState<string | null>(null);
+  const [reviewerName, setReviewerName] = useState<string>("");
+
+  // Pré-selecionar a revisora anterior (mesma da submissão devolvida).
+  useEffect(() => {
+    if (!open || reviewerId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("review_submissions")
+        .select("reviewer_id")
+        .eq("id", previousSubmissionId)
+        .maybeSingle();
+      if (data?.reviewer_id) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("user_id", data.reviewer_id)
+          .maybeSingle();
+        setReviewerId(data.reviewer_id);
+        setReviewerName(prof?.display_name || "");
+      }
+    })();
+  }, [open, previousSubmissionId, reviewerId]);
 
   // Pré-popular o resumo com referências aos apontamentos
   useEffect(() => {
@@ -105,6 +129,10 @@ export function ReenviarRevisaoDialog({
       toast.error(`Faltando: ${missing.map((t) => TIPO_DEMONSTRATIVO_LABEL[t]).join(", ")}`);
       return;
     }
+    if (!reviewerId) {
+      toast.error("Selecione a analista responsável pela revisão.");
+      return;
+    }
     setSubmitting(true);
     try {
       // 1) Cancelar a submissão devolvida (mantém histórico mas libera o índice único).
@@ -132,6 +160,8 @@ export function ReenviarRevisaoDialog({
           status: "aguardando",
           submitted_by: user.id,
           review_summary: resumo || null,
+          reviewer_id: reviewerId,
+          reviewer_assigned_at: new Date().toISOString(),
         })
         .select("id")
         .single();
@@ -285,6 +315,20 @@ export function ReenviarRevisaoDialog({
           )}
 
           <div className="space-y-1.5">
+            <Label className="text-xs">Analista responsável pela revisão *</Label>
+            <ReviewerPicker
+              value={reviewerId}
+              onChange={(id, name) => { setReviewerId(id); setReviewerName(name); }}
+              placeholder="Escolha quem vai revisar..."
+            />
+            {reviewerName && (
+              <p className="text-[10px] text-muted-foreground">
+                Notificação será enviada apenas para <strong>{reviewerName}</strong>.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
             <Label className="text-xs">Resumo das correções (vai para a revisora)</Label>
             <Textarea
               value={resumo}
@@ -298,7 +342,7 @@ export function ReenviarRevisaoDialog({
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={submitting}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={submitting || pending.length === 0 || missing.length > 0}>
+          <Button onClick={handleSubmit} disabled={submitting || pending.length === 0 || missing.length > 0 || !reviewerId}>
             {submitting ? "Enviando..." : "Reenviar para revisão"}
           </Button>
         </DialogFooter>

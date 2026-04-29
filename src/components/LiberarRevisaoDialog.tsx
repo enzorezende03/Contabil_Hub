@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +14,7 @@ import {
   DEFAULT_REQUIRED_BY_TRIBUTACAO,
   buildCompetenciaDate,
 } from "@/lib/review-utils";
+import { ReviewerPicker } from "@/components/ReviewerPicker";
 
 interface LiberarRevisaoDialogProps {
   open: boolean;
@@ -54,6 +54,8 @@ export function LiberarRevisaoDialog({
   const [month, setMonth] = useState<string>(defaultMonth || "12");
   const [pending, setPending] = useState<PendingFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [reviewerId, setReviewerId] = useState<string | null>(null);
+  const [reviewerName, setReviewerName] = useState<string>("");
 
   // Fetch required deliverables config from settings
   const { data: requiredCfg } = useQuery({
@@ -103,6 +105,8 @@ export function LiberarRevisaoDialog({
   const reset = () => {
     setPending([]);
     setMonth(defaultMonth || "12");
+    setReviewerId(null);
+    setReviewerName("");
   };
 
   const handleSubmit = async () => {
@@ -116,6 +120,10 @@ export function LiberarRevisaoDialog({
     }
     if (missing.length > 0) {
       toast.error(`Faltando: ${missing.map((t) => TIPO_DEMONSTRATIVO_LABEL[t]).join(", ")}`);
+      return;
+    }
+    if (!reviewerId) {
+      toast.error("Selecione a analista responsável pela revisão.");
       return;
     }
 
@@ -154,6 +162,8 @@ export function LiberarRevisaoDialog({
           cycle_number: nextCycle,
           status: "aguardando",
           submitted_by: user.id,
+          reviewer_id: reviewerId,
+          reviewer_assigned_at: new Date().toISOString(),
         })
         .select("id")
         .single();
@@ -275,6 +285,24 @@ export function LiberarRevisaoDialog({
             )}
           </div>
 
+          {/* Reviewer picker */}
+          <div className="space-y-1.5">
+            <Label className="text-xs">Analista responsável pela revisão *</Label>
+            <ReviewerPicker
+              value={reviewerId}
+              onChange={(id, name) => {
+                setReviewerId(id);
+                setReviewerName(name);
+              }}
+              placeholder="Escolha quem vai revisar..."
+            />
+            {reviewerName && (
+              <p className="text-[10px] text-muted-foreground">
+                A notificação será enviada apenas para <strong>{reviewerName}</strong>.
+              </p>
+            )}
+          </div>
+
           {/* Drop area */}
           <div>
             <button
@@ -337,7 +365,7 @@ export function LiberarRevisaoDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={submitting || pending.length === 0 || missing.length > 0}
+            disabled={submitting || pending.length === 0 || missing.length > 0 || !reviewerId}
           >
             {submitting ? "Enviando..." : "Liberar para revisão"}
           </Button>

@@ -349,6 +349,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          can_review: boolean
           created_at: string
           display_name: string
           id: string
@@ -357,6 +358,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          can_review?: boolean
           created_at?: string
           display_name: string
           id?: string
@@ -365,6 +367,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          can_review?: boolean
           created_at?: string
           display_name?: string
           id?: string
@@ -435,7 +438,9 @@ export type Database = {
           review_started_at: string | null
           review_summary: string | null
           reviewed_at: string | null
-          reviewer_id: string | null
+          reviewer_assigned_at: string
+          reviewer_id: string
+          reviewer_reassigned_count: number
           status: string
           submitted_at: string
           submitted_by: string
@@ -450,7 +455,9 @@ export type Database = {
           review_started_at?: string | null
           review_summary?: string | null
           reviewed_at?: string | null
-          reviewer_id?: string | null
+          reviewer_assigned_at?: string
+          reviewer_id: string
+          reviewer_reassigned_count?: number
           status?: string
           submitted_at?: string
           submitted_by: string
@@ -465,7 +472,9 @@ export type Database = {
           review_started_at?: string | null
           review_summary?: string | null
           reviewed_at?: string | null
-          reviewer_id?: string | null
+          reviewer_assigned_at?: string
+          reviewer_id?: string
+          reviewer_reassigned_count?: number
           status?: string
           submitted_at?: string
           submitted_by?: string
@@ -528,6 +537,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_view_submission: {
+        Args: { p_submission_id: string }
+        Returns: boolean
+      }
+      has_action_permission: {
+        Args: { _action: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

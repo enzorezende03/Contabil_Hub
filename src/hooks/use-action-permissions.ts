@@ -6,6 +6,7 @@ export type ActionPermissions = {
   liberar_para_revisao: string[];
   revisar_demonstrativos: string[];
   cancelar_submissao: string[];
+  supervisionar_revisao: string[];
 };
 
 const DEFAULTS: ActionPermissions = {
@@ -13,6 +14,7 @@ const DEFAULTS: ActionPermissions = {
   liberar_para_revisao: ["coordenacao", "analista", "assistente"],
   revisar_demonstrativos: ["coordenacao"],
   cancelar_submissao: ["coordenacao"],
+  supervisionar_revisao: ["coordenacao"],
 };
 
 let cachedPerms: ActionPermissions = { ...DEFAULTS };

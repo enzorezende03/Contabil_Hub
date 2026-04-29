@@ -17,7 +17,7 @@ const corsHeaders = {
 };
 
 const BodySchema = z.object({
-  event: z.enum(["submitted", "returned", "approved"]),
+  event: z.enum(["submitted", "returned", "approved", "reassigned"]),
   submission_id: z.string().uuid(),
 });
 
@@ -93,21 +93,20 @@ Deno.serve(async (req) => {
     let subject = "";
     let body = "";
 
-    if (event === "submitted") {
-      // Notifica reviewers (perfil coordenacao por padrão; usa action_permissions.revisar_demonstrativos se houver)
-      const { data: settings } = await admin.from("settings").select("value").eq("key", "action_permissions").maybeSingle();
-      const allowedRoles: string[] = (settings?.value as any)?.revisar_demonstrativos || ["coordenacao"];
-      const { data: profs } = await admin.from("profiles").select("user_id, display_name, role").in("role", allowedRoles);
-      const userIds = (profs || []).map((p) => p.user_id);
-      if (userIds.length > 0) {
-        const { data: usersResp } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-        const allUsers = usersResp?.users || [];
-        toEmails = allUsers
-          .filter((u: any) => userIds.includes(u.id) && u.email)
-          .map((u: any) => u.email as string);
-      }
-      subject = `Nova revisão pendente — ${client?.razao_social || ""} ${competencia}`;
-      body = `<p>Foi liberada uma nova submissão para revisão técnica.</p>
+    // Helper: pega e-mail de um único user_id
+    const emailOf = async (userId: string | null | undefined): Promise<string[]> => {
+      if (!userId) return [];
+      const { data: usersResp } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      const u = (usersResp?.users || []).find((x: any) => x.id === userId);
+      return u?.email ? [u.email] : [];
+    };
+
+    if (event === "submitted" || event === "reassigned") {
+      // Notifica APENAS a revisora designada
+      toEmails = await emailOf(sub.reviewer_id);
+      const verb = event === "reassigned" ? "reatribuída para você" : "pendente";
+      subject = `Revisão ${verb} — ${client?.razao_social || ""} ${competencia}`;
+      body = `<p>${event === "reassigned" ? "Uma submissão de revisão foi reatribuída para você." : "Foi liberada uma nova submissão para revisão técnica designada a você."}</p>
 <ul>
   <li><strong>Cliente:</strong> ${client?.razao_social || "—"}</li>
   <li><strong>Competência:</strong> ${competencia}</li>
@@ -115,9 +114,8 @@ Deno.serve(async (req) => {
 </ul>
 <p><a href="${APP_URL}/revisao" style="display:inline-block;background:#3D5A80;color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none">Abrir caixa de revisão</a></p>`;
     } else if (event === "returned" || event === "approved") {
-      const { data: usersResp } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      const owner = (usersResp?.users || []).find((u: any) => u.id === sub.submitted_by);
-      if (owner?.email) toEmails = [owner.email];
+      // Notifica APENAS a operadora que enviou
+      toEmails = await emailOf(sub.submitted_by);
 
       if (event === "returned") {
         const { data: apts } = await admin

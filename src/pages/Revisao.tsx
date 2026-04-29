@@ -21,9 +21,11 @@ import {
 } from "@/lib/review-utils";
 import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
+import { Switch } from "@/components/ui/switch";
+import { ReviewerPicker } from "@/components/ReviewerPicker";
 import {
   FileText, ExternalLink, CheckCircle2, MessageSquarePlus, X, ArrowLeft,
-  Send, Inbox, Reply, ShieldCheck, History,
+  Send, Inbox, Reply, ShieldCheck, History, UserCog, Eye,
 } from "lucide-react";
 import { ReenviarRevisaoDialog } from "@/components/ReenviarRevisaoDialog";
 
@@ -41,6 +43,8 @@ type Submission = {
   review_started_at: string | null;
   reviewed_at: string | null;
   review_summary: string | null;
+  reviewer_assigned_at?: string | null;
+  reviewer_reassigned_count?: number;
 };
 
 type Deliverable = {
@@ -88,13 +92,17 @@ export default function RevisaoPage() {
 
   useActionPermissions(); // hydrates the cache
   const canReview = canPerformAction("revisar_demonstrativos", userRole);
+  const canSupervise = canPerformAction("supervisionar_revisao", userRole);
 
   const defaultTab = canReview ? "caixa" : "devolucoes";
   const [tab, setTab] = usePersistedFilter<"caixa" | "devolucoes">("revisao", "tab", defaultTab as any);
   const [search, setSearch] = usePersistedFilter("revisao", "search", "");
   const [statusFilter, setStatusFilter] = usePersistedFilter<"all" | ReviewStatus>("revisao", "status", "all");
   const [unidadeFilter, setUnidadeFilter] = usePersistedFilter("revisao", "unidade", "all");
+  const [showAll, setShowAll] = usePersistedFilter<"yes" | "no">("revisao", "showAll", "no");
   const [openSubmissionId, setOpenSubmissionId] = useState<string | null>(null);
+
+  const seeAll = canSupervise && showAll === "yes";
 
   // ---- Data ----
   const { data: clients = [] } = useQuery({
@@ -168,8 +176,11 @@ export default function RevisaoPage() {
     let list = submissions;
     if (tab === "caixa") {
       list = list.filter((s) => s.status === "aguardando" || s.status === "em_revisao");
+      // Por padrão: apenas as designadas a mim. Supervisor com toggle "Ver tudo" enxerga todas.
+      if (!seeAll) list = list.filter((s) => s.reviewer_id === user?.id);
     } else {
-      list = list.filter((s) => s.status === "devolvido" && s.submitted_by === user?.id);
+      list = list.filter((s) => s.status === "devolvido");
+      if (!seeAll) list = list.filter((s) => s.submitted_by === user?.id);
     }
     if (statusFilter !== "all") list = list.filter((s) => s.status === statusFilter);
     if (unidadeFilter !== "all") {
@@ -182,8 +193,9 @@ export default function RevisaoPage() {
         return c?.razao_social.toLowerCase().includes(q);
       });
     }
+    // Mais antigas primeiro quando supervisionando tudo (já vem ascending da query)
     return list;
-  }, [submissions, tab, statusFilter, unidadeFilter, search, user, clientById]);
+  }, [submissions, tab, statusFilter, unidadeFilter, search, user, clientById, seeAll]);
 
   // ---- UI ----
   if (openSubmissionId) {
@@ -249,6 +261,17 @@ export default function RevisaoPage() {
               <option value="2m_contabilidade">2M Contabilidade</option>
               <option value="2m_saude">2M Saúde</option>
             </select>
+            {canSupervise && (
+              <label className="flex items-center gap-1.5 ml-1 px-2 h-8 rounded-md border bg-card cursor-pointer">
+                <Eye className="w-3 h-3 text-muted-foreground" />
+                <span className="text-[11px]">Ver tudo</span>
+                <Switch
+                  checked={showAll === "yes"}
+                  onCheckedChange={(c) => setShowAll(c ? "yes" : "no")}
+                  className="scale-75 -my-1"
+                />
+              </label>
+            )}
             <span className="ml-auto text-xs text-muted-foreground">{filtered.length} item(ns)</span>
           </div>
 
@@ -381,12 +404,22 @@ function SubmissionGrid({
               )}
             </div>
 
-            <div className="flex items-center justify-between mt-3 pt-3 border-t">
-              <span className="text-[10px] text-muted-foreground">
-                {variant === "caixa" ? "Liberado por" : "Devolvido para você"}{" "}
-                <strong className="text-foreground">{submitter?.display_name || "—"}</strong>{" "}
-                · {s.cycle_number}ª submissão · há {timeAgo(s.submitted_at)}
-              </span>
+            <div className="flex items-center justify-between mt-3 pt-3 border-t gap-2">
+              <div className="text-[10px] text-muted-foreground min-w-0 flex-1">
+                <div>
+                  {variant === "caixa" ? "Liberado por" : "Devolvido para você"}{" "}
+                  <strong className="text-foreground">{submitter?.display_name || "—"}</strong>{" "}
+                  · {s.cycle_number}ª submissão · há {timeAgo(s.submitted_at)}
+                </div>
+                {s.reviewer_id && (
+                  <div className="mt-0.5">
+                    Revisora:{" "}
+                    <strong className="text-foreground">
+                      {profileById[s.reviewer_id]?.display_name || "—"}
+                    </strong>
+                  </div>
+                )}
+              </div>
               <Button size="sm" onClick={() => onOpen(s.id)}>
                 {variant === "caixa" ? "Revisar" : "Resolver"}
               </Button>
@@ -416,6 +449,8 @@ function SubmissionDetail({
   const queryClient = useQueryClient();
   useActionPermissions();
   const canReview = canPerformAction("revisar_demonstrativos", profile?.role);
+  const canSupervise = canPerformAction("supervisionar_revisao", profile?.role);
+  const [reassignOpen, setReassignOpen] = useState(false);
 
   const { data: submission } = useQuery({
     queryKey: ["review-submission", submissionId],
@@ -486,32 +521,28 @@ function SubmissionDetail({
   });
 
 
-  // Take ownership of the review on first interaction by the reviewer
+  // Marca a submissão como "em_revisao" quando a revisora designada abre pela primeira vez.
   const ensureReviewerAssigned = async () => {
     if (!submission || !user) return;
-    if (submission.status === "aguardando") {
+    if (submission.status === "aguardando" && submission.reviewer_id === user.id) {
       await supabase
         .from("review_submissions")
         .update({
           status: "em_revisao",
-          reviewer_id: user.id,
           review_started_at: new Date().toISOString(),
         })
         .eq("id", submissionId);
       queryClient.invalidateQueries({ queryKey: ["review-submission", submissionId] });
       queryClient.invalidateQueries({ queryKey: ["review-submissions"] });
-    } else if (submission.status === "em_revisao" && !submission.reviewer_id) {
-      await supabase.from("review_submissions").update({ reviewer_id: user.id }).eq("id", submissionId);
-      queryClient.invalidateQueries({ queryKey: ["review-submission", submissionId] });
     }
   };
 
   useEffect(() => {
-    if (canReview && submission?.status === "aguardando") {
+    if (canReview && submission?.status === "aguardando" && submission.reviewer_id === user?.id) {
       ensureReviewerAssigned();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submission?.status]);
+  }, [submission?.status, submission?.reviewer_id, user?.id]);
 
   const openPdf = async (path: string) => {
     const { data, error } = await supabase.storage
@@ -653,8 +684,14 @@ function SubmissionDetail({
   const submitter = profileById[submission.submitted_by];
   const reviewer = submission.reviewer_id ? profileById[submission.reviewer_id] : null;
   const isOwner = user?.id === submission.submitted_by;
-  const isReviewerView = canReview && (submission.status === "aguardando" || submission.status === "em_revisao");
+  const isAssignedReviewer = user?.id === submission.reviewer_id;
+  // Apenas a revisora designada (ou supervisora) pode operar como revisora.
+  const isReviewerView =
+    (isAssignedReviewer || canSupervise) &&
+    canReview &&
+    (submission.status === "aguardando" || submission.status === "em_revisao");
   const isReturnedToMe = submission.status === "devolvido" && isOwner;
+  const canReassign = canSupervise || isOwner;
 
   return (
     <AppLayout>
@@ -671,14 +708,24 @@ function SubmissionDetail({
               {" · "}Liberado por {submitter?.display_name || "—"} há {timeAgo(submission.submitted_at)}
               {" · "}
               {submission.cycle_number}ª submissão
-              {reviewer && submission.status !== "aguardando" && (
+              {reviewer && (
                 <> · Revisora: <strong className="text-foreground">{reviewer.display_name}</strong></>
+              )}
+              {submission.reviewer_reassigned_count > 0 && (
+                <span className="text-warning"> · reatribuída {submission.reviewer_reassigned_count}x</span>
               )}
             </p>
           </div>
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${REVIEW_STATUS_BADGE[submission.status]}`}>
-            {REVIEW_STATUS_LABEL[submission.status]}
-          </span>
+          <div className="flex items-center gap-2">
+            {canReassign && (submission.status === "aguardando" || submission.status === "em_revisao") && (
+              <Button size="sm" variant="outline" onClick={() => setReassignOpen(true)}>
+                <UserCog className="w-3.5 h-3.5 mr-1" /> Reatribuir
+              </Button>
+            )}
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${REVIEW_STATUS_BADGE[submission.status]}`}>
+              {REVIEW_STATUS_LABEL[submission.status]}
+            </span>
+          </div>
         </div>
 
         {/* Resumo da revisora (quando devolvido) */}
@@ -872,7 +919,98 @@ function SubmissionDetail({
           onSubmitted={onClose}
         />
       )}
+
+      <ReassignReviewerDialog
+        open={reassignOpen}
+        onOpenChange={setReassignOpen}
+        submissionId={submissionId}
+        currentReviewerId={submission.reviewer_id}
+        currentReassignedCount={submission.reviewer_reassigned_count || 0}
+        onReassigned={() => {
+          queryClient.invalidateQueries({ queryKey: ["review-submission", submissionId] });
+          queryClient.invalidateQueries({ queryKey: ["review-submissions"] });
+          queryClient.invalidateQueries({ queryKey: ["review-badge"] });
+        }}
+      />
     </AppLayout>
+  );
+}
+
+function ReassignReviewerDialog({
+  open, onOpenChange, submissionId, currentReviewerId, currentReassignedCount, onReassigned,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  submissionId: string;
+  currentReviewerId: string | null;
+  currentReassignedCount: number;
+  onReassigned: () => void;
+}) {
+  const [newReviewerId, setNewReviewerId] = useState<string | null>(null);
+  const [newReviewerName, setNewReviewerName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) { setNewReviewerId(null); setNewReviewerName(""); }
+  }, [open]);
+
+  const submit = async () => {
+    if (!newReviewerId) return;
+    if (newReviewerId === currentReviewerId) {
+      toast.error("Selecione uma analista diferente da atual.");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from("review_submissions")
+      .update({
+        reviewer_id: newReviewerId,
+        reviewer_assigned_at: new Date().toISOString(),
+        reviewer_reassigned_count: currentReassignedCount + 1,
+        status: "aguardando",
+        review_started_at: null,
+      })
+      .eq("id", submissionId);
+    setSaving(false);
+    if (error) { toast.error("Erro ao reatribuir: " + error.message); return; }
+    supabase.functions
+      .invoke("notify-review-event", { body: { event: "reassigned", submission_id: submissionId } })
+      .catch(() => {});
+    toast.success(`Submissão reatribuída para ${newReviewerName}.`);
+    onReassigned();
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Reatribuir revisora</DialogTitle>
+          <DialogDescription>
+            Escolha uma nova analista para revisar esta submissão. A nova analista será notificada.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2 py-2">
+          <Label className="text-xs">Nova revisora</Label>
+          <ReviewerPicker
+            value={newReviewerId}
+            onChange={(id, name) => { setNewReviewerId(id); setNewReviewerName(name); }}
+            placeholder="Escolher nova revisora..."
+          />
+          {currentReassignedCount > 0 && (
+            <p className="text-[10px] text-warning">
+              Esta submissão já foi reatribuída {currentReassignedCount} vez(es) anteriormente.
+            </p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+          <Button onClick={submit} disabled={!newReviewerId || saving}>
+            {saving ? "Reatribuindo..." : "Confirmar reatribuição"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

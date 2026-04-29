@@ -84,13 +84,28 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
       payload.contato_cliente_telefone = contatoTelefone.trim() || null;
     }
 
-    const { error } = await supabase.from("pendencies").insert(payload);
+    const { data: created, error } = await supabase.from("pendencies").insert(payload).select("id").maybeSingle();
     setSaving(false);
     if (error) { toast.error(`Erro ao criar pendência: ${error.message}`); return; }
 
     toast.success("Pendência criada");
     qc.invalidateQueries({ queryKey: ["pendencies"] });
     qc.invalidateQueries({ queryKey: ["pendencies-by-cell"] });
+
+    // Auto-disparo: pendência interna vira tarefa no GClick
+    if (tipo === "interna" && created?.id) {
+      toast.loading("Enviando ao GClick...", { id: `gclick-${created.id}` });
+      supabase.functions.invoke("gclick-create-task", { body: { pendency_id: created.id } })
+        .then(({ data, error: fnErr }) => {
+          if (fnErr || !data?.ok) {
+            toast.error(`GClick: ${data?.error || fnErr?.message || "falha ao criar tarefa"}`, { id: `gclick-${created.id}` });
+          } else {
+            toast.success(`Tarefa criada no GClick (${data.instancia})`, { id: `gclick-${created.id}` });
+          }
+          qc.invalidateQueries({ queryKey: ["pendencies"] });
+        });
+    }
+
     // reset
     setDocumento(""); setContatoNome(""); setContatoEmail(""); setContatoTelefone("");
     setDescricao(""); setPrazo(""); setPrioridade("media"); setCadencia(5);

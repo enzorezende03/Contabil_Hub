@@ -43,6 +43,8 @@ type Submission = {
   review_started_at: string | null;
   reviewed_at: string | null;
   review_summary: string | null;
+  reviewer_assigned_at?: string | null;
+  reviewer_reassigned_count?: number;
 };
 
 type Deliverable = {

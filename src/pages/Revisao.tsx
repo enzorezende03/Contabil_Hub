@@ -447,6 +447,8 @@ function SubmissionDetail({
   const queryClient = useQueryClient();
   useActionPermissions();
   const canReview = canPerformAction("revisar_demonstrativos", profile?.role);
+  const canSupervise = canPerformAction("supervisionar_revisao", profile?.role);
+  const [reassignOpen, setReassignOpen] = useState(false);
 
   const { data: submission } = useQuery({
     queryKey: ["review-submission", submissionId],
@@ -680,8 +682,14 @@ function SubmissionDetail({
   const submitter = profileById[submission.submitted_by];
   const reviewer = submission.reviewer_id ? profileById[submission.reviewer_id] : null;
   const isOwner = user?.id === submission.submitted_by;
-  const isReviewerView = canReview && (submission.status === "aguardando" || submission.status === "em_revisao");
+  const isAssignedReviewer = user?.id === submission.reviewer_id;
+  // Apenas a revisora designada (ou supervisora) pode operar como revisora.
+  const isReviewerView =
+    (isAssignedReviewer || canSupervise) &&
+    canReview &&
+    (submission.status === "aguardando" || submission.status === "em_revisao");
   const isReturnedToMe = submission.status === "devolvido" && isOwner;
+  const canReassign = canSupervise || isOwner;
 
   return (
     <AppLayout>
@@ -698,14 +706,24 @@ function SubmissionDetail({
               {" · "}Liberado por {submitter?.display_name || "—"} há {timeAgo(submission.submitted_at)}
               {" · "}
               {submission.cycle_number}ª submissão
-              {reviewer && submission.status !== "aguardando" && (
+              {reviewer && (
                 <> · Revisora: <strong className="text-foreground">{reviewer.display_name}</strong></>
+              )}
+              {submission.reviewer_reassigned_count > 0 && (
+                <span className="text-warning"> · reatribuída {submission.reviewer_reassigned_count}x</span>
               )}
             </p>
           </div>
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${REVIEW_STATUS_BADGE[submission.status]}`}>
-            {REVIEW_STATUS_LABEL[submission.status]}
-          </span>
+          <div className="flex items-center gap-2">
+            {canReassign && (submission.status === "aguardando" || submission.status === "em_revisao") && (
+              <Button size="sm" variant="outline" onClick={() => setReassignOpen(true)}>
+                <UserCog className="w-3.5 h-3.5 mr-1" /> Reatribuir
+              </Button>
+            )}
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${REVIEW_STATUS_BADGE[submission.status]}`}>
+              {REVIEW_STATUS_LABEL[submission.status]}
+            </span>
+          </div>
         </div>
 
         {/* Resumo da revisora (quando devolvido) */}

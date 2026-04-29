@@ -148,6 +148,7 @@ function StatusPillBulk({ options, disabled, onApply }: StatusPillBulkProps) {
     </div>
   );
 }
+import { LiberarRevisaoDialog } from "@/components/LiberarRevisaoDialog";
 import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import { REVIEW_STATUS_LABEL, REVIEW_STATUS_BADGE, buildCompetenciaDate, type ReviewStatus } from "@/lib/review-utils";
 

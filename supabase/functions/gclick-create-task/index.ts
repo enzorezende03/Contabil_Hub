@@ -40,27 +40,24 @@ function getUnidadeConfig(unidade: string): UnidadeConfig | null {
 }
 
 async function getAccessToken(cfg: UnidadeConfig): Promise<string> {
-  // Fluxo OAuth2 client_credentials. Tenta o endpoint padrão /oauth/token.
-  const tokenUrl = `${cfg.url}/oauth/token`;
-  const body = new URLSearchParams({
-    grant_type: "client_credentials",
-    client_id: cfg.clientId,
-    client_secret: cfg.clientSecret,
-  });
-
+  // GClick: POST /signin com JSON { clientId, clientSecret } -> { access_token }
+  const tokenUrl = `${cfg.url}/signin`;
   const resp = await fetch(tokenUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
-    body: body.toString(),
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ clientId: cfg.clientId, clientSecret: cfg.clientSecret }),
   });
 
+  const text = await resp.text();
   if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(`Falha ao obter token GClick (${resp.status}): ${text.slice(0, 300)}`);
+    throw new Error(`Falha ao obter token GClick (${resp.status}) em ${tokenUrl}: ${text.slice(0, 300) || "(resposta vazia)"}`);
   }
-  const json = await resp.json();
+
+  let json: any;
+  try { json = JSON.parse(text); } catch { throw new Error(`Resposta de signin não-JSON: ${text.slice(0, 200)}`); }
+
   const token = json.access_token || json.accessToken || json.token;
-  if (!token) throw new Error(`Token não retornado pelo GClick: ${JSON.stringify(json).slice(0, 200)}`);
+  if (!token) throw new Error(`Token não retornado pelo GClick: ${text.slice(0, 200)}`);
   return token as string;
 }
 

@@ -84,7 +84,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   useActionPermissions();
   const canSupervise = canPerformAction("supervisionar_revisao", userRole);
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+
 
   const { data: reviewBadge = { mine: 0, total: 0, stale: false } } = useQuery({
     queryKey: ["review-badge", user?.id, canSupervise],

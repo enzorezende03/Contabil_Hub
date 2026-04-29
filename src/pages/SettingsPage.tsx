@@ -34,6 +34,7 @@ export default function SettingsPage() {
     liberar_para_revisao: ["coordenacao", "analista", "assistente"],
     revisar_demonstrativos: ["coordenacao"],
     cancelar_submissao: ["coordenacao"],
+    supervisionar_revisao: ["coordenacao"],
   });
   const [editingWeights, setEditingWeights] = useState(false);
   const [editingTeam, setEditingTeam] = useState(false);
@@ -47,6 +48,7 @@ export default function SettingsPage() {
     liberar_para_revisao: ["coordenacao", "analista", "assistente"],
     revisar_demonstrativos: ["coordenacao"],
     cancelar_submissao: ["coordenacao"],
+    supervisionar_revisao: ["coordenacao"],
   });
   const [saving, setSaving] = useState(false);
 
@@ -154,6 +156,7 @@ export default function SettingsPage() {
     { key: "liberar_para_revisao", label: "Liberar para Revisão", description: "Permite liberar uma competência fechada para revisão da contadora (em /competencias)" },
     { key: "revisar_demonstrativos", label: "Revisar Demonstrativos", description: "Permite aprovar, apontar e devolver demonstrativos contábeis na caixa de revisão" },
     { key: "cancelar_submissao", label: "Cancelar Submissão", description: "Permite cancelar uma submissão de revisão ainda não revisada" },
+    { key: "supervisionar_revisao", label: "Supervisionar Revisão", description: "Visão completa de todas as submissões do sistema; permite reatribuir revisora e remover bloqueios" },
   ];
   const startEditActions = () => {
     setDraftActions(JSON.parse(JSON.stringify(actionPerms)));

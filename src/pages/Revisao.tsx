@@ -402,12 +402,22 @@ function SubmissionGrid({
               )}
             </div>
 
-            <div className="flex items-center justify-between mt-3 pt-3 border-t">
-              <span className="text-[10px] text-muted-foreground">
-                {variant === "caixa" ? "Liberado por" : "Devolvido para você"}{" "}
-                <strong className="text-foreground">{submitter?.display_name || "—"}</strong>{" "}
-                · {s.cycle_number}ª submissão · há {timeAgo(s.submitted_at)}
-              </span>
+            <div className="flex items-center justify-between mt-3 pt-3 border-t gap-2">
+              <div className="text-[10px] text-muted-foreground min-w-0 flex-1">
+                <div>
+                  {variant === "caixa" ? "Liberado por" : "Devolvido para você"}{" "}
+                  <strong className="text-foreground">{submitter?.display_name || "—"}</strong>{" "}
+                  · {s.cycle_number}ª submissão · há {timeAgo(s.submitted_at)}
+                </div>
+                {s.reviewer_id && (
+                  <div className="mt-0.5">
+                    Revisora:{" "}
+                    <strong className="text-foreground">
+                      {profileById[s.reviewer_id]?.display_name || "—"}
+                    </strong>
+                  </div>
+                )}
+              </div>
               <Button size="sm" onClick={() => onOpen(s.id)}>
                 {variant === "caixa" ? "Revisar" : "Resolver"}
               </Button>

@@ -151,6 +151,10 @@ function StatusPillBulk({ options, disabled, onApply }: StatusPillBulkProps) {
 import { LiberarRevisaoDialog } from "@/components/LiberarRevisaoDialog";
 import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import { REVIEW_STATUS_LABEL, REVIEW_STATUS_BADGE, buildCompetenciaDate, type ReviewStatus } from "@/lib/review-utils";
+import { CellPendencyIndicator } from "@/components/CellPendencyIndicator";
+import { CreatePendencyDialog } from "@/components/CreatePendencyDialog";
+import { useActivePendenciesByCell } from "@/hooks/use-pendencies";
+import { AlertOctagon } from "lucide-react";
 
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
@@ -257,10 +261,13 @@ export default function CompetenciasPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [liberarDialog, setLiberarDialog] = useState<{ clientName: string; clientId: string; tributacao: string; month: string } | null>(null);
-  
+  const [pendencyDialog, setPendencyDialog] = useState<{ clientId: string; clientName: string; month: string } | null>(null);
+
   useActionPermissions();
   const canLiberar = canPerformAction("liberar_para_revisao", profile?.role);
-  
+  const canCreatePendency = canPerformAction("gerenciar_pendencias", profile?.role);
+
+  const { data: pendenciesByCell } = useActivePendenciesByCell(year);
 
   // Fetch active review submissions for the current year
   const { data: yearSubmissions = [] } = useQuery({

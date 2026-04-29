@@ -301,7 +301,7 @@ function PendencyCard({ pendency: p, clientName, responsavelName, onCobrar, onRe
             )}
             {p.tipo === "interna" && <GclickBadge pendency={p} />}
           </div>
-
+          <div className="text-sm">
             {p.tipo === "externa" ? (
               <span className="font-medium">{p.documento_solicitado}</span>
             ) : (
@@ -310,6 +310,7 @@ function PendencyCard({ pendency: p, clientName, responsavelName, onCobrar, onRe
             {" — "}
             <span className="text-muted-foreground">{p.descricao}</span>
           </div>
+
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground mt-2">
             <span>Aberta há {aberta} dia(s)</span>
             <span className={cn(ultimoCont !== null && ultimoCont > 7 && "text-red-500 font-medium")}>

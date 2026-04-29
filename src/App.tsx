@@ -19,6 +19,7 @@ import Login from "./pages/Login.tsx";
 import Setup from "./pages/Setup.tsx";
 import Clients from "./pages/Clients.tsx";
 import Planejamento from "./pages/Planejamento.tsx";
+import Pendencias from "./pages/Pendencias.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const AppRoutes = () => (
     <Route path="/equipe" element={<RoleRoute page="/equipe"><Team /></RoleRoute>} />
     <Route path="/competencias" element={<RoleRoute page="/competencias"><Competencias /></RoleRoute>} />
     <Route path="/revisao" element={<RoleRoute page="/revisao"><Revisao /></RoleRoute>} />
+    <Route path="/pendencias" element={<RoleRoute page="/pendencias"><Pendencias /></RoleRoute>} />
     <Route path="/alertas" element={<RoleRoute page="/alertas"><Alerts /></RoleRoute>} />
     <Route path="/configuracoes" element={<RoleRoute page="/configuracoes"><SettingsPage /></RoleRoute>} />
     <Route path="/usuarios" element={<RoleRoute page="/usuarios"><Users /></RoleRoute>} />

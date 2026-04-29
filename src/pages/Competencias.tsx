@@ -1262,49 +1262,39 @@ export default function CompetenciasPage() {
 
                     return (
                       <>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs flex-1">Fechamento Contábil</span>
-                          <select
-                            value={fechamentoStatus}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs flex-1 min-w-[120px]">Fechamento Contábil</span>
+                          <StatusPillGroup
+                            options={FECHAMENTO_OPTIONS}
+                            value={fechamentoStatus as DemandStatus}
                             disabled={finalized}
-                            onChange={(e) => {
-                              const val = e.target.value as DemandStatus;
+                            beforeChange={(val) => {
                               if (val === "completed" && !hasAttachment) {
                                 toast.error("Anexe as demonstrações contábeis antes de concluir o fechamento");
-                                return;
+                                return false;
                               }
-                              setDemandStatus(panelData.client, "closing", "fechamento", val);
+                              return true;
                             }}
-                            className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px] disabled:opacity-50"
-                          >
-                            <option value="not_started">Não Iniciada</option>
-                            <option value="in_progress">Em Andamento</option>
-                            <option value="waiting_info">Aguardando Doc.</option>
-                            <option value="completed">Concluída</option>
-                          </select>
+                            onChange={(val) => setDemandStatus(panelData.client, "closing", "fechamento", val)}
+                          />
                           {!hasAttachment && (
-                            <span className="text-[9px] text-muted-foreground italic">* Anexo necessário para concluir</span>
+                            <span className="text-[9px] text-muted-foreground italic w-full sm:w-auto">* Anexo necessário para concluir</span>
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs flex-1">Revisão</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs flex-1 min-w-[120px]">Revisão</span>
                           {!fechamentoDone ? (
                             <span className="text-[10px] text-muted-foreground italic flex items-center gap-1">
                               <Lock className="w-3 h-3" /> Conclua o fechamento primeiro
                             </span>
                           ) : (
-                            <select
-                              value={demandStatuses[`${panelData.client}|closing|revisao`] || "not_started"}
+                            <StatusPillGroup
+                              options={REVISAO_OPTIONS}
+                              value={(demandStatuses[`${panelData.client}|closing|revisao`] || "not_started") as DemandStatus}
                               disabled={finalized}
-                              onChange={(e) => setDemandStatus(panelData.client, "closing", "revisao", e.target.value as DemandStatus)}
-                              className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px] disabled:opacity-50"
-                            >
-                              <option value="not_started">Não Iniciada</option>
-                              <option value="in_progress">Em Andamento</option>
-                              <option value="in_review">Em Revisão</option>
-                              <option value="completed">Concluída</option>
-                            </select>
+                              onChange={(val) => setDemandStatus(panelData.client, "closing", "revisao", val)}
+                            />
                           )}
                         </div>
 

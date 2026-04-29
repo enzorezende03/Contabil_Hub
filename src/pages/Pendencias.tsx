@@ -299,8 +299,9 @@ function PendencyCard({ pendency: p, clientName, responsavelName, onCobrar, onRe
             {followupBadge && (
               <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border", followupBadge.className)}>{followupBadge.label}</span>
             )}
+            {p.tipo === "interna" && <GclickBadge pendency={p} />}
           </div>
-          <div className="text-sm">
+
             {p.tipo === "externa" ? (
               <span className="font-medium">{p.documento_solicitado}</span>
             ) : (

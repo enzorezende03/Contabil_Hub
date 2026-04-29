@@ -32,11 +32,13 @@ export const TIPO_DEMONSTRATIVO_OPTIONS: { value: TipoDemonstrativo; label: stri
   { value: "outros", label: "Outros" },
 ];
 
-/** Default required deliverables by tributação (mirrors DB default). */
+/** Default required deliverables by tributação (mirrors DB default).
+ *  Regra atual: apenas o Balancete é obrigatório. Outros demonstrativos
+ *  podem ser anexados opcionalmente pela equipe. */
 export const DEFAULT_REQUIRED_BY_TRIBUTACAO: Record<string, TipoDemonstrativo[]> = {
-  simples_nacional: ["dre", "balancete"],
-  lucro_presumido: ["dre", "balancete", "balanco"],
-  lucro_real: ["dre", "balancete", "balanco", "razao", "ecd"],
+  simples_nacional: ["balancete"],
+  lucro_presumido: ["balancete"],
+  lucro_real: ["balancete"],
 };
 
 export type ReviewStatus =

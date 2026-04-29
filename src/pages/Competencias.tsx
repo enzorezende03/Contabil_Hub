@@ -1058,10 +1058,24 @@ export default function CompetenciasPage() {
           {panelData && (
             <>
               <DialogHeader className="pb-4 border-b">
-                <DialogTitle className="text-lg">{panelData.client}</DialogTitle>
-                <DialogDescription>
-                  {TRIBUTACAO_LABELS_MAP[panelData.tributacao || ""] || "Sem tributação definida"} — {year}
-                </DialogDescription>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <DialogTitle className="text-lg">{panelData.client}</DialogTitle>
+                    <DialogDescription>
+                      {TRIBUTACAO_LABELS_MAP[panelData.tributacao || ""] || "Sem tributação definida"} — {year}
+                    </DialogDescription>
+                  </div>
+                  {canCreatePendency && clientIdByName[panelData.client] && (
+                    <button
+                      onClick={() => setPendencyDialog({ clientId: clientIdByName[panelData.client], clientName: panelData.client, month: String(new Date().getMonth() + 1).padStart(2, "0") })}
+                      className="h-8 px-3 text-xs rounded-md border border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 flex items-center gap-1.5 transition-colors"
+                      title="Criar pendência para esta empresa"
+                    >
+                      <AlertOctagon className="w-3.5 h-3.5" />
+                      Criar pendência
+                    </button>
+                  )}
+                </div>
               </DialogHeader>
 
               <div className="py-4 space-y-4">

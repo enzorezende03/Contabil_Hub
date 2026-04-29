@@ -315,6 +315,20 @@ export function ReenviarRevisaoDialog({
           )}
 
           <div className="space-y-1.5">
+            <Label className="text-xs">Analista responsável pela revisão *</Label>
+            <ReviewerPicker
+              value={reviewerId}
+              onChange={(id, name) => { setReviewerId(id); setReviewerName(name); }}
+              placeholder="Escolha quem vai revisar..."
+            />
+            {reviewerName && (
+              <p className="text-[10px] text-muted-foreground">
+                Notificação será enviada apenas para <strong>{reviewerName}</strong>.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
             <Label className="text-xs">Resumo das correções (vai para a revisora)</Label>
             <Textarea
               value={resumo}
@@ -328,7 +342,7 @@ export function ReenviarRevisaoDialog({
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={submitting}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={submitting || pending.length === 0 || missing.length > 0}>
+          <Button onClick={handleSubmit} disabled={submitting || pending.length === 0 || missing.length > 0 || !reviewerId}>
             {submitting ? "Enviando..." : "Reenviar para revisão"}
           </Button>
         </DialogFooter>

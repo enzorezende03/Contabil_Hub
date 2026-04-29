@@ -1397,6 +1397,17 @@ export default function CompetenciasPage() {
           defaultMonth={liberarDialog.month}
         />
       )}
+
+      {pendencyDialog && (
+        <CreatePendencyDialog
+          open={!!pendencyDialog}
+          onOpenChange={(o) => { if (!o) setPendencyDialog(null); }}
+          clientId={pendencyDialog.clientId}
+          clientName={pendencyDialog.clientName}
+          month={pendencyDialog.month}
+          year={year}
+        />
+      )}
     </AppLayout>
   );
 }

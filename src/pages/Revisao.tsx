@@ -21,9 +21,11 @@ import {
 } from "@/lib/review-utils";
 import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
+import { Switch } from "@/components/ui/switch";
+import { ReviewerPicker } from "@/components/ReviewerPicker";
 import {
   FileText, ExternalLink, CheckCircle2, MessageSquarePlus, X, ArrowLeft,
-  Send, Inbox, Reply, ShieldCheck, History,
+  Send, Inbox, Reply, ShieldCheck, History, UserCog, Eye,
 } from "lucide-react";
 import { ReenviarRevisaoDialog } from "@/components/ReenviarRevisaoDialog";
 

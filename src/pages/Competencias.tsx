@@ -1106,24 +1106,12 @@ export default function CompetenciasPage() {
                   {selectedMonths.size > 0 && (
                     <div className="space-y-2">
                       {DEMAND_TYPES_FOR_PANEL.map((dt) => (
-                        <div key={dt.type} className="flex items-center gap-2">
-                          <span className="text-xs flex-1">{dt.label}</span>
-                          <select
-                            defaultValue=""
-                            onChange={(e) => {
-                              if (e.target.value) {
-                                setBulkStatus(panelData.client, selectedMonths, dt.type, e.target.value as DemandStatus);
-                                e.target.value = "";
-                              }
-                            }}
-                            className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px]"
-                          >
-                            <option value="" disabled>Aplicar status...</option>
-                            <option value="not_started">Não Iniciada</option>
-                            <option value="in_progress">Em Andamento</option>
-                            <option value="waiting_info">Aguardando Doc.</option>
-                            <option value="completed">Concluída</option>
-                          </select>
+                        <div key={dt.type} className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs flex-1 min-w-[140px]">{dt.label}</span>
+                          <StatusPillBulk
+                            options={FECHAMENTO_OPTIONS}
+                            onApply={(val) => setBulkStatus(panelData.client, selectedMonths, dt.type, val)}
+                          />
                         </div>
                       ))}
                     </div>

@@ -1,7 +1,6 @@
 import { useState, useMemo, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,6 +14,7 @@ import {
   DEFAULT_REQUIRED_BY_TRIBUTACAO,
   buildCompetenciaDate,
 } from "@/lib/review-utils";
+import { ReviewerPicker } from "@/components/ReviewerPicker";
 
 interface LiberarRevisaoDialogProps {
   open: boolean;
@@ -54,6 +54,8 @@ export function LiberarRevisaoDialog({
   const [month, setMonth] = useState<string>(defaultMonth || "12");
   const [pending, setPending] = useState<PendingFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [reviewerId, setReviewerId] = useState<string | null>(null);
+  const [reviewerName, setReviewerName] = useState<string>("");
 
   // Fetch required deliverables config from settings
   const { data: requiredCfg } = useQuery({
@@ -103,6 +105,8 @@ export function LiberarRevisaoDialog({
   const reset = () => {
     setPending([]);
     setMonth(defaultMonth || "12");
+    setReviewerId(null);
+    setReviewerName("");
   };
 
   const handleSubmit = async () => {

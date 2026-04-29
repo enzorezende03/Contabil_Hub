@@ -7,7 +7,106 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Upload, FileCheck, Lock, Send, ShieldCheck } from "lucide-react";
+import { Upload, FileCheck, Lock, Send, ShieldCheck, Circle, Loader2, Clock, CheckCircle2, Eye } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type StatusOption = {
+  value: DemandStatus;
+  label: string;
+  short: string;
+  icon: typeof Circle;
+  /** Tailwind classes for inactive state (subtle hint of color) */
+  base: string;
+  /** Tailwind classes when this option is the selected one */
+  active: string;
+};
+
+const FECHAMENTO_OPTIONS: StatusOption[] = [
+  { value: "not_started", label: "Não iniciada", short: "Não iniciada", icon: Circle,
+    base: "text-muted-foreground hover:bg-muted",
+    active: "bg-slate-200 text-slate-800 ring-1 ring-slate-300 dark:bg-slate-700 dark:text-slate-100" },
+  { value: "in_progress", label: "Em andamento", short: "Andamento", icon: Loader2,
+    base: "text-yellow-600/70 hover:bg-yellow-500/10",
+    active: "bg-yellow-500/20 text-yellow-700 ring-1 ring-yellow-500/40 dark:text-yellow-300" },
+  { value: "waiting_info", label: "Aguardando doc.", short: "Aguard.", icon: Clock,
+    base: "text-red-600/70 hover:bg-red-500/10",
+    active: "bg-red-500/20 text-red-700 ring-1 ring-red-500/40 dark:text-red-300" },
+  { value: "completed", label: "Concluída", short: "Concluída", icon: CheckCircle2,
+    base: "text-emerald-600/70 hover:bg-emerald-500/10",
+    active: "bg-emerald-500/20 text-emerald-700 ring-1 ring-emerald-500/40 dark:text-emerald-300" },
+];
+
+const REVISAO_OPTIONS: StatusOption[] = [
+  { value: "not_started", label: "Não iniciada", short: "Não iniciada", icon: Circle,
+    base: "text-muted-foreground hover:bg-muted",
+    active: "bg-slate-200 text-slate-800 ring-1 ring-slate-300 dark:bg-slate-700 dark:text-slate-100" },
+  { value: "in_progress", label: "Em andamento", short: "Andamento", icon: Loader2,
+    base: "text-yellow-600/70 hover:bg-yellow-500/10",
+    active: "bg-yellow-500/20 text-yellow-700 ring-1 ring-yellow-500/40 dark:text-yellow-300" },
+  { value: "in_review", label: "Em revisão", short: "Revisão", icon: Eye,
+    base: "text-blue-600/70 hover:bg-blue-500/10",
+    active: "bg-blue-500/20 text-blue-700 ring-1 ring-blue-500/40 dark:text-blue-300" },
+  { value: "completed", label: "Concluída", short: "Concluída", icon: CheckCircle2,
+    base: "text-emerald-600/70 hover:bg-emerald-500/10",
+    active: "bg-emerald-500/20 text-emerald-700 ring-1 ring-emerald-500/40 dark:text-emerald-300" },
+];
+
+interface StatusPillGroupProps {
+  options: StatusOption[];
+  value: DemandStatus;
+  disabled?: boolean;
+  onChange: (v: DemandStatus) => void;
+  /** Optional guard: return false to block the change (and show your own toast). */
+  beforeChange?: (v: DemandStatus) => boolean;
+}
+
+function StatusPillGroup({ options, value, disabled, onChange, beforeChange }: StatusPillGroupProps) {
+  return (
+    <div
+      role="radiogroup"
+      className={cn(
+        "inline-flex items-center gap-0.5 rounded-lg border border-border bg-muted/40 p-0.5 transition-opacity",
+        disabled && "opacity-50 pointer-events-none",
+      )}
+    >
+      {options.map((opt) => {
+        const Icon = opt.icon;
+        const selected = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            title={opt.label}
+            disabled={disabled}
+            onClick={() => {
+              if (selected) return;
+              if (beforeChange && !beforeChange(opt.value)) return;
+              onChange(opt.value);
+            }}
+            className={cn(
+              "group inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium",
+              "transition-all duration-200 ease-out active:scale-95",
+              selected ? cn(opt.active, "shadow-sm scale-[1.02]") : opt.base,
+            )}
+          >
+            <Icon
+              className={cn(
+                "w-3 h-3 transition-transform",
+                selected && opt.value === "in_progress" && "animate-spin",
+                selected && opt.value === "completed" && "scale-110",
+              )}
+            />
+            <span className={cn("transition-all", selected ? "max-w-[120px] opacity-100" : "max-w-0 opacity-0 overflow-hidden sm:max-w-[120px] sm:opacity-100")}>
+              {opt.short}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 import { LiberarRevisaoDialog } from "@/components/LiberarRevisaoDialog";
 import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import { REVIEW_STATUS_LABEL, REVIEW_STATUS_BADGE, buildCompetenciaDate, type ReviewStatus } from "@/lib/review-utils";
@@ -1163,49 +1262,39 @@ export default function CompetenciasPage() {
 
                     return (
                       <>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs flex-1">Fechamento Contábil</span>
-                          <select
-                            value={fechamentoStatus}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs flex-1 min-w-[120px]">Fechamento Contábil</span>
+                          <StatusPillGroup
+                            options={FECHAMENTO_OPTIONS}
+                            value={fechamentoStatus as DemandStatus}
                             disabled={finalized}
-                            onChange={(e) => {
-                              const val = e.target.value as DemandStatus;
+                            beforeChange={(val) => {
                               if (val === "completed" && !hasAttachment) {
                                 toast.error("Anexe as demonstrações contábeis antes de concluir o fechamento");
-                                return;
+                                return false;
                               }
-                              setDemandStatus(panelData.client, "closing", "fechamento", val);
+                              return true;
                             }}
-                            className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px] disabled:opacity-50"
-                          >
-                            <option value="not_started">Não Iniciada</option>
-                            <option value="in_progress">Em Andamento</option>
-                            <option value="waiting_info">Aguardando Doc.</option>
-                            <option value="completed">Concluída</option>
-                          </select>
+                            onChange={(val) => setDemandStatus(panelData.client, "closing", "fechamento", val)}
+                          />
                           {!hasAttachment && (
-                            <span className="text-[9px] text-muted-foreground italic">* Anexo necessário para concluir</span>
+                            <span className="text-[9px] text-muted-foreground italic w-full sm:w-auto">* Anexo necessário para concluir</span>
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs flex-1">Revisão</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs flex-1 min-w-[120px]">Revisão</span>
                           {!fechamentoDone ? (
                             <span className="text-[10px] text-muted-foreground italic flex items-center gap-1">
                               <Lock className="w-3 h-3" /> Conclua o fechamento primeiro
                             </span>
                           ) : (
-                            <select
-                              value={demandStatuses[`${panelData.client}|closing|revisao`] || "not_started"}
+                            <StatusPillGroup
+                              options={REVISAO_OPTIONS}
+                              value={(demandStatuses[`${panelData.client}|closing|revisao`] || "not_started") as DemandStatus}
                               disabled={finalized}
-                              onChange={(e) => setDemandStatus(panelData.client, "closing", "revisao", e.target.value as DemandStatus)}
-                              className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px] disabled:opacity-50"
-                            >
-                              <option value="not_started">Não Iniciada</option>
-                              <option value="in_progress">Em Andamento</option>
-                              <option value="in_review">Em Revisão</option>
-                              <option value="completed">Concluída</option>
-                            </select>
+                              onChange={(val) => setDemandStatus(panelData.client, "closing", "revisao", val)}
+                            />
                           )}
                         </div>
 

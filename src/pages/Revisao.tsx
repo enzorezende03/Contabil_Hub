@@ -919,7 +919,98 @@ function SubmissionDetail({
           onSubmitted={onClose}
         />
       )}
+
+      <ReassignReviewerDialog
+        open={reassignOpen}
+        onOpenChange={setReassignOpen}
+        submissionId={submissionId}
+        currentReviewerId={submission.reviewer_id}
+        currentReassignedCount={submission.reviewer_reassigned_count || 0}
+        onReassigned={() => {
+          queryClient.invalidateQueries({ queryKey: ["review-submission", submissionId] });
+          queryClient.invalidateQueries({ queryKey: ["review-submissions"] });
+          queryClient.invalidateQueries({ queryKey: ["review-badge"] });
+        }}
+      />
     </AppLayout>
+  );
+}
+
+function ReassignReviewerDialog({
+  open, onOpenChange, submissionId, currentReviewerId, currentReassignedCount, onReassigned,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  submissionId: string;
+  currentReviewerId: string | null;
+  currentReassignedCount: number;
+  onReassigned: () => void;
+}) {
+  const [newReviewerId, setNewReviewerId] = useState<string | null>(null);
+  const [newReviewerName, setNewReviewerName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) { setNewReviewerId(null); setNewReviewerName(""); }
+  }, [open]);
+
+  const submit = async () => {
+    if (!newReviewerId) return;
+    if (newReviewerId === currentReviewerId) {
+      toast.error("Selecione uma analista diferente da atual.");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from("review_submissions")
+      .update({
+        reviewer_id: newReviewerId,
+        reviewer_assigned_at: new Date().toISOString(),
+        reviewer_reassigned_count: currentReassignedCount + 1,
+        status: "aguardando",
+        review_started_at: null,
+      })
+      .eq("id", submissionId);
+    setSaving(false);
+    if (error) { toast.error("Erro ao reatribuir: " + error.message); return; }
+    supabase.functions
+      .invoke("notify-review-event", { body: { event: "reassigned", submission_id: submissionId } })
+      .catch(() => {});
+    toast.success(`Submissão reatribuída para ${newReviewerName}.`);
+    onReassigned();
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Reatribuir revisora</DialogTitle>
+          <DialogDescription>
+            Escolha uma nova analista para revisar esta submissão. A nova analista será notificada.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2 py-2">
+          <Label className="text-xs">Nova revisora</Label>
+          <ReviewerPicker
+            value={newReviewerId}
+            onChange={(id, name) => { setNewReviewerId(id); setNewReviewerName(name); }}
+            placeholder="Escolher nova revisora..."
+          />
+          {currentReassignedCount > 0 && (
+            <p className="text-[10px] text-warning">
+              Esta submissão já foi reatribuída {currentReassignedCount} vez(es) anteriormente.
+            </p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+          <Button onClick={submit} disabled={!newReviewerId || saving}>
+            {saving ? "Reatribuindo..." : "Confirmar reatribuição"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

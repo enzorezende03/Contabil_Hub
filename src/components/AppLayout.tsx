@@ -82,37 +82,41 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   // Review badge: count submissions where the current user should act
   useActionPermissions();
-  const canReview = canPerformAction("revisar_demonstrativos", userRole);
+  const canSupervise = canPerformAction("supervisionar_revisao", userRole);
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const { data: reviewBadge = { count: 0, stale: false } } = useQuery({
-    queryKey: ["review-badge", user?.id, canReview],
+  const { data: reviewBadge = { mine: 0, total: 0, stale: false } } = useQuery({
+    queryKey: ["review-badge", user?.id, canSupervise],
     enabled: !!user,
     refetchInterval: 60_000,
     queryFn: async () => {
-      if (!user) return { count: 0, stale: false };
-      let query;
-      if (canReview) {
-        query = supabase
-          .from("review_submissions")
-          .select("id, submitted_at, reviewer_id, status", { count: "exact" })
-          .in("status", ["aguardando", "em_revisao"])
-          .or(`reviewer_id.is.null,reviewer_id.eq.${user.id}`);
-      } else {
-        query = supabase
-          .from("review_submissions")
-          .select("id, submitted_at, status", { count: "exact" })
-          .eq("status", "devolvido")
-          .eq("submitted_by", user.id);
-      }
-      const { data } = await query;
-      const list = data || [];
-      const stale = list.some((r: any) => {
+      if (!user) return { mine: 0, total: 0, stale: false };
+      // Meu trabalho: revisões designadas a mim (aguardando+em_revisao) + devoluções minhas
+      const { data: assignedToMe } = await supabase
+        .from("review_submissions")
+        .select("id, submitted_at, status")
+        .in("status", ["aguardando", "em_revisao"])
+        .eq("reviewer_id", user.id);
+      const { data: returnedToMe } = await supabase
+        .from("review_submissions")
+        .select("id, submitted_at, status")
+        .eq("status", "devolvido")
+        .eq("submitted_by", user.id);
+      const mineList = [...(assignedToMe || []), ...(returnedToMe || [])];
+      const stale = mineList.some((r: any) => {
         const ageH = (Date.now() - new Date(r.submitted_at).getTime()) / 3_600_000;
         return ageH > 24;
       });
-      return { count: list.length, stale };
+      let total = mineList.length;
+      if (canSupervise) {
+        const { count } = await supabase
+          .from("review_submissions")
+          .select("id", { count: "exact", head: true })
+          .in("status", ["aguardando", "em_revisao", "devolvido"]);
+        total = count || 0;
+      }
+      return { mine: mineList.length, total, stale };
     },
   });
 
@@ -156,7 +160,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
-            const showBadge = item.path === "/revisao" && reviewBadge.count > 0;
+            const showBadge = item.path === "/revisao" && reviewBadge.mine > 0;
+            const showTotalBadge = item.path === "/revisao" && canSupervise && reviewBadge.total > reviewBadge.mine;
             return (
               <Link
                 key={item.path}
@@ -175,13 +180,20 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   )}
                 </span>
                 {!collapsed && (
-                  <span className="flex-1 flex items-center justify-between">
+                  <span className="flex-1 flex items-center justify-between gap-1">
                     {item.label}
-                    {showBadge && (
-                      <span className={`ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${reviewBadge.stale ? "bg-destructive text-destructive-foreground" : "bg-warning text-warning-foreground"}`}>
-                        {reviewBadge.count}
-                      </span>
-                    )}
+                    <span className="flex items-center gap-1">
+                      {showBadge && (
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${reviewBadge.stale ? "bg-destructive text-destructive-foreground" : "bg-warning text-warning-foreground"}`}>
+                          {reviewBadge.mine}
+                        </span>
+                      )}
+                      {showTotalBadge && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground" title="Total no sistema (supervisão)">
+                          /{reviewBadge.total}
+                        </span>
+                      )}
+                    </span>
                   </span>
                 )}
               </Link>

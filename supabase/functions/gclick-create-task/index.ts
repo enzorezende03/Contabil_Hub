@@ -1,6 +1,7 @@
-// Edge function: cria tarefa no GClick para uma pendência interna.
+// Edge function: cria pré-tarefa no GClick para uma pendência interna.
 // Roteia para a instância correta (2M Contabilidade ou 2M Saúde) com base em client.unidade.
-// Auth: OAuth2 client_credentials (client_id + client_secret -> access_token).
+// Auth: POST {base}/signin com JSON { clientId, clientSecret } -> { access_token }
+// Criação: POST {base}/tarefas/preTarefas (Bearer token)
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -15,10 +16,30 @@ interface ReqBody {
 }
 
 interface UnidadeConfig {
-  url: string;
+  base: string; // ex: https://api.gclick.com.br/v2
   clientId: string;
   clientSecret: string;
   label: string;
+  departamentoId?: string;
+  responsavelId?: string;
+  processoId?: string;
+  fluxoId?: string;
+  clienteIdDefault?: string;
+}
+
+/** Normaliza a URL base do GClick:
+ *  - remove barra final
+ *  - remove sufixos comuns (/tarefas/preTarefas, /signin, /tarefas) caso o secret tenha sido salvo com o endpoint inteiro
+ *  - garante que termina com /v2 (a doc é v2)
+ */
+function normalizeBase(rawUrl: string): string {
+  let u = rawUrl.trim().replace(/\/+$/, "");
+  u = u.replace(/\/(signin|tarefas\/preTarefas|tarefas)$/i, "");
+  if (!/\/v\d+$/i.test(u)) {
+    // se não terminou em /v2, tenta acrescentar
+    if (!u.match(/\/v2$/i)) u = `${u}/v2`;
+  }
+  return u;
 }
 
 function getUnidadeConfig(unidade: string): UnidadeConfig | null {
@@ -27,21 +48,40 @@ function getUnidadeConfig(unidade: string): UnidadeConfig | null {
     const clientId = Deno.env.get("GCLICK_CONTAB_CLIENT_ID");
     const clientSecret = Deno.env.get("GCLICK_CONTAB_CLIENT_SECRET");
     if (!url || !clientId || !clientSecret) return null;
-    return { url: url.replace(/\/$/, ""), clientId, clientSecret, label: "2M Contabilidade" };
+    return {
+      base: normalizeBase(url),
+      clientId,
+      clientSecret,
+      label: "2M Contabilidade",
+      departamentoId: Deno.env.get("GCLICK_CONTAB_DEPARTAMENTO_ID") || undefined,
+      responsavelId: Deno.env.get("GCLICK_CONTAB_RESPONSAVEL_ID") || undefined,
+      processoId: Deno.env.get("GCLICK_CONTAB_PROCESSO_ID") || undefined,
+      fluxoId: Deno.env.get("GCLICK_CONTAB_FLUXO_ID") || undefined,
+      clienteIdDefault: Deno.env.get("GCLICK_CONTAB_CLIENTE_ID_DEFAULT") || undefined,
+    };
   }
   if (unidade === "2m_saude") {
     const url = Deno.env.get("GCLICK_SAUDE_URL");
     const clientId = Deno.env.get("GCLICK_SAUDE_CLIENT_ID");
     const clientSecret = Deno.env.get("GCLICK_SAUDE_CLIENT_SECRET");
     if (!url || !clientId || !clientSecret) return null;
-    return { url: url.replace(/\/$/, ""), clientId, clientSecret, label: "2M Saúde" };
+    return {
+      base: normalizeBase(url),
+      clientId,
+      clientSecret,
+      label: "2M Saúde",
+      departamentoId: Deno.env.get("GCLICK_SAUDE_DEPARTAMENTO_ID") || undefined,
+      responsavelId: Deno.env.get("GCLICK_SAUDE_RESPONSAVEL_ID") || undefined,
+      processoId: Deno.env.get("GCLICK_SAUDE_PROCESSO_ID") || undefined,
+      fluxoId: Deno.env.get("GCLICK_SAUDE_FLUXO_ID") || undefined,
+      clienteIdDefault: Deno.env.get("GCLICK_SAUDE_CLIENTE_ID_DEFAULT") || undefined,
+    };
   }
   return null;
 }
 
 async function getAccessToken(cfg: UnidadeConfig): Promise<string> {
-  // GClick: POST /signin com JSON { clientId, clientSecret } -> { access_token }
-  const tokenUrl = `${cfg.url}/signin`;
+  const tokenUrl = `${cfg.base}/signin`;
   const resp = await fetch(tokenUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -50,7 +90,9 @@ async function getAccessToken(cfg: UnidadeConfig): Promise<string> {
 
   const text = await resp.text();
   if (!resp.ok) {
-    throw new Error(`Falha ao obter token GClick (${resp.status}) em ${tokenUrl}: ${text.slice(0, 300) || "(resposta vazia)"}`);
+    throw new Error(
+      `Falha ao obter token GClick (${resp.status}) em ${tokenUrl}: ${text.slice(0, 300) || "(resposta vazia)"}`,
+    );
   }
 
   let json: any;
@@ -61,13 +103,12 @@ async function getAccessToken(cfg: UnidadeConfig): Promise<string> {
   return token as string;
 }
 
-async function createGclickTask(
+async function createPreTarefa(
   cfg: UnidadeConfig,
   token: string,
   payload: Record<string, unknown>,
 ): Promise<{ id: string; url: string | null; raw: any }> {
-  // Tentamos o endpoint mais comum: POST /api/tarefas
-  const endpoint = `${cfg.url}/api/tarefas`;
+  const endpoint = `${cfg.base}/tarefas/preTarefas`;
   const resp = await fetch(endpoint, {
     method: "POST",
     headers: {
@@ -83,16 +124,19 @@ async function createGclickTask(
   try { data = JSON.parse(text); } catch { data = { raw: text }; }
 
   if (!resp.ok) {
-    throw new Error(`GClick recusou criar tarefa (${resp.status}): ${text.slice(0, 400)}`);
+    throw new Error(`GClick recusou criar pré-tarefa (${resp.status}) em ${endpoint}: ${text.slice(0, 400)}`);
   }
 
   const taskId = String(data.id ?? data.tarefaId ?? data.codigo ?? data.uuid ?? "");
   if (!taskId) throw new Error(`Resposta sem ID de tarefa: ${text.slice(0, 200)}`);
 
-  // Heurística para construir URL pública da tarefa
-  const taskUrl = data.url ?? data.link ?? `${cfg.url}/tarefas/${taskId}`;
-
+  const taskUrl = data.url ?? data.link ?? null;
   return { id: taskId, url: taskUrl, raw: data };
+}
+
+/** Apenas dígitos do CNPJ/CPF */
+function onlyDigits(s: string | null | undefined): string {
+  return (s || "").replace(/\D+/g, "");
 }
 
 Deno.serve(async (req) => {
@@ -110,13 +154,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Busca pendência
     const { data: pend, error: pendErr } = await supabase
       .from("pendencies").select("*").eq("id", body.pendency_id).maybeSingle();
     if (pendErr || !pend) throw new Error(`Pendência não encontrada: ${pendErr?.message || ""}`);
     if (pend.tipo !== "interna") throw new Error("Apenas pendências internas são enviadas ao GClick");
 
-    // Busca cliente
     const { data: client, error: clientErr } = await supabase
       .from("clients").select("id, razao_social, cnpj, unidade, gclick_cliente_id")
       .eq("id", pend.client_id).maybeSingle();
@@ -125,13 +167,12 @@ Deno.serve(async (req) => {
     const cfg = getUnidadeConfig(client.unidade);
     if (!cfg) throw new Error(`Configuração GClick não encontrada para unidade: ${client.unidade}`);
 
-    // Busca responsável
     const { data: profile } = await supabase
       .from("profiles").select("display_name").eq("user_id", pend.responsavel_id).maybeSingle();
 
     const compLabel = new Date(pend.competencia).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-    const titulo = `[${client.razao_social}] ${pend.setor_responsavel?.toUpperCase() || "PENDÊNCIA"} — ${compLabel}`;
-    const descricao = [
+    const assunto = `[${client.razao_social}] ${pend.setor_responsavel?.toUpperCase() || "PENDÊNCIA"} — ${compLabel}`;
+    const andamento = [
       `Pendência interna gerada pelo Contábil Hub.`,
       `Cliente: ${client.razao_social} (CNPJ ${client.cnpj})`,
       `Competência: ${compLabel}`,
@@ -145,22 +186,28 @@ Deno.serve(async (req) => {
       profile?.display_name ? `Solicitado por: ${profile.display_name}` : null,
     ].filter(Boolean).join("\n");
 
+    const clienteIdResolved = client.gclick_cliente_id || cfg.clienteIdDefault;
+    if (!cfg.departamentoId) {
+      throw new Error(
+        `Defina o secret GCLICK_${client.unidade === "2m_saude" ? "SAUDE" : "CONTAB"}_DEPARTAMENTO_ID com o ID do departamento padrão no GClick.`,
+      );
+    }
+
     const taskPayload: Record<string, unknown> = {
-      titulo,
-      descricao,
-      prioridade: pend.prioridade,
-      setor: pend.setor_responsavel,
-      prazo: pend.prazo_resposta,
-      cliente_id: client.gclick_cliente_id || undefined,
-      cliente_cnpj: client.cnpj,
-      origem: "contabil_hub",
-      origem_id: pend.id,
+      departamentoId: cfg.departamentoId,
+      assunto,
+      andamento,
+      inscricoes: client.cnpj ? [onlyDigits(client.cnpj)] : [],
+      ...(clienteIdResolved ? { clienteId: clienteIdResolved } : {}),
+      ...(cfg.responsavelId ? { responsavelId: cfg.responsavelId } : {}),
+      ...(cfg.processoId ? { processoId: cfg.processoId } : {}),
+      ...(cfg.fluxoId ? { fluxoId: cfg.fluxoId } : {}),
     };
 
     let result;
     try {
       const token = await getAccessToken(cfg);
-      result = await createGclickTask(cfg, token, taskPayload);
+      result = await createPreTarefa(cfg, token, taskPayload);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       await supabase.from("pendencies").update({

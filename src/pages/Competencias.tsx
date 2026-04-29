@@ -107,6 +107,47 @@ function StatusPillGroup({ options, value, disabled, onChange, beforeChange }: S
     </div>
   );
 }
+
+interface StatusPillBulkProps {
+  options: StatusOption[];
+  disabled?: boolean;
+  onApply: (v: DemandStatus) => void;
+}
+
+/** Variant for the "apply to selected months" bar — no permanent selection,
+ *  just clickable colored chips that fire the action. */
+function StatusPillBulk({ options, disabled, onApply }: StatusPillBulkProps) {
+  return (
+    <div
+      className={cn(
+        "inline-flex items-center gap-0.5 rounded-lg border border-border bg-muted/40 p-0.5",
+        disabled && "opacity-50 pointer-events-none",
+      )}
+    >
+      {options.map((opt) => {
+        const Icon = opt.icon;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            title={`Aplicar: ${opt.label}`}
+            disabled={disabled}
+            onClick={() => onApply(opt.value)}
+            className={cn(
+              "inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium",
+              "transition-all duration-150 ease-out active:scale-95 hover:scale-105",
+              opt.base,
+              "hover:" + opt.active.split(" ")[0],
+            )}
+          >
+            <Icon className="w-3 h-3" />
+            <span className="hidden sm:inline">{opt.short}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 import { LiberarRevisaoDialog } from "@/components/LiberarRevisaoDialog";
 import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import { REVIEW_STATUS_LABEL, REVIEW_STATUS_BADGE, buildCompetenciaDate, type ReviewStatus } from "@/lib/review-utils";
@@ -1065,24 +1106,12 @@ export default function CompetenciasPage() {
                   {selectedMonths.size > 0 && (
                     <div className="space-y-2">
                       {DEMAND_TYPES_FOR_PANEL.map((dt) => (
-                        <div key={dt.type} className="flex items-center gap-2">
-                          <span className="text-xs flex-1">{dt.label}</span>
-                          <select
-                            defaultValue=""
-                            onChange={(e) => {
-                              if (e.target.value) {
-                                setBulkStatus(panelData.client, selectedMonths, dt.type, e.target.value as DemandStatus);
-                                e.target.value = "";
-                              }
-                            }}
-                            className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px]"
-                          >
-                            <option value="" disabled>Aplicar status...</option>
-                            <option value="not_started">Não Iniciada</option>
-                            <option value="in_progress">Em Andamento</option>
-                            <option value="waiting_info">Aguardando Doc.</option>
-                            <option value="completed">Concluída</option>
-                          </select>
+                        <div key={dt.type} className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs flex-1 min-w-[140px]">{dt.label}</span>
+                          <StatusPillBulk
+                            options={FECHAMENTO_OPTIONS}
+                            onApply={(val) => setBulkStatus(panelData.client, selectedMonths, dt.type, val)}
+                          />
                         </div>
                       ))}
                     </div>
@@ -1123,21 +1152,16 @@ export default function CompetenciasPage() {
                           <div className="space-y-2">
                             {DEMAND_TYPES_FOR_PANEL.map((dt) => {
                               const statusKey = `${panelData.client}|${m}|${dt.type}`;
-                              const currentStatus = demandStatuses[statusKey] || "not_started";
+                              const currentStatus = (demandStatuses[statusKey] || "not_started") as DemandStatus;
 
                               return (
-                                <div key={dt.type} className="flex items-center gap-2">
-                                  <span className="text-xs flex-1">{dt.label}</span>
-                                  <select
+                                <div key={dt.type} className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-xs flex-1 min-w-[140px]">{dt.label}</span>
+                                  <StatusPillGroup
+                                    options={FECHAMENTO_OPTIONS}
                                     value={currentStatus}
-                                    onChange={(e) => setDemandStatus(panelData.client, m, dt.type, e.target.value as DemandStatus)}
-                                    className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px]"
-                                  >
-                                    <option value="not_started">Não Iniciada</option>
-                                    <option value="in_progress">Em Andamento</option>
-                                    <option value="waiting_info">Aguardando Doc.</option>
-                                    <option value="completed">Concluída</option>
-                                  </select>
+                                    onChange={(val) => setDemandStatus(panelData.client, m, dt.type, val)}
+                                  />
                                 </div>
                               );
                             })}

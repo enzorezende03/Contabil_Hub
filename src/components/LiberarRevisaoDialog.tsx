@@ -122,6 +122,10 @@ export function LiberarRevisaoDialog({
       toast.error(`Faltando: ${missing.map((t) => TIPO_DEMONSTRATIVO_LABEL[t]).join(", ")}`);
       return;
     }
+    if (!reviewerId) {
+      toast.error("Selecione a analista responsável pela revisão.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -158,6 +162,8 @@ export function LiberarRevisaoDialog({
           cycle_number: nextCycle,
           status: "aguardando",
           submitted_by: user.id,
+          reviewer_id: reviewerId,
+          reviewer_assigned_at: new Date().toISOString(),
         })
         .select("id")
         .single();

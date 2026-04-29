@@ -90,13 +90,17 @@ export default function RevisaoPage() {
 
   useActionPermissions(); // hydrates the cache
   const canReview = canPerformAction("revisar_demonstrativos", userRole);
+  const canSupervise = canPerformAction("supervisionar_revisao", userRole);
 
   const defaultTab = canReview ? "caixa" : "devolucoes";
   const [tab, setTab] = usePersistedFilter<"caixa" | "devolucoes">("revisao", "tab", defaultTab as any);
   const [search, setSearch] = usePersistedFilter("revisao", "search", "");
   const [statusFilter, setStatusFilter] = usePersistedFilter<"all" | ReviewStatus>("revisao", "status", "all");
   const [unidadeFilter, setUnidadeFilter] = usePersistedFilter("revisao", "unidade", "all");
+  const [showAll, setShowAll] = usePersistedFilter<"yes" | "no">("revisao", "showAll", "no");
   const [openSubmissionId, setOpenSubmissionId] = useState<string | null>(null);
+
+  const seeAll = canSupervise && showAll === "yes";
 
   // ---- Data ----
   const { data: clients = [] } = useQuery({
@@ -170,8 +174,11 @@ export default function RevisaoPage() {
     let list = submissions;
     if (tab === "caixa") {
       list = list.filter((s) => s.status === "aguardando" || s.status === "em_revisao");
+      // Por padrão: apenas as designadas a mim. Supervisor com toggle "Ver tudo" enxerga todas.
+      if (!seeAll) list = list.filter((s) => s.reviewer_id === user?.id);
     } else {
-      list = list.filter((s) => s.status === "devolvido" && s.submitted_by === user?.id);
+      list = list.filter((s) => s.status === "devolvido");
+      if (!seeAll) list = list.filter((s) => s.submitted_by === user?.id);
     }
     if (statusFilter !== "all") list = list.filter((s) => s.status === statusFilter);
     if (unidadeFilter !== "all") {
@@ -184,8 +191,9 @@ export default function RevisaoPage() {
         return c?.razao_social.toLowerCase().includes(q);
       });
     }
+    // Mais antigas primeiro quando supervisionando tudo (já vem ascending da query)
     return list;
-  }, [submissions, tab, statusFilter, unidadeFilter, search, user, clientById]);
+  }, [submissions, tab, statusFilter, unidadeFilter, search, user, clientById, seeAll]);
 
   // ---- UI ----
   if (openSubmissionId) {

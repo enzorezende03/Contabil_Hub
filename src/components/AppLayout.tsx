@@ -25,6 +25,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ShieldCheck,
+  AlertOctagon,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -34,6 +35,7 @@ const NAV_ITEMS = [
   { label: "Produtividade Equipe", path: "/equipe" as AppPage, icon: Users },
   { label: "Fechamento Contábil", path: "/competencias" as AppPage, icon: Calendar },
   { label: "Revisão", path: "/revisao" as AppPage, icon: ShieldCheck },
+  { label: "Pendências", path: "/pendencias" as AppPage, icon: AlertOctagon },
   { label: "Alertas", path: "/alertas" as AppPage, icon: AlertTriangle },
   { label: "Clientes", path: "/clientes" as AppPage, icon: Building2 },
   { label: "Configurações", path: "/configuracoes" as AppPage, icon: Settings },
@@ -130,6 +132,38 @@ export default function AppLayout({ children }: AppLayoutProps) {
     return () => { supabase.removeChannel(ch); };
   }, [queryClient]);
 
+  // Pendency badge: "para cobrar hoje" do usuário atual
+  const { data: pendencyBadge = { toCobrar: 0, vencidas: 0 } } = useQuery({
+    queryKey: ["pendency-badge", user?.id],
+    enabled: !!user,
+    refetchInterval: 5 * 60 * 1000,
+    queryFn: async () => {
+      if (!user) return { toCobrar: 0, vencidas: 0 };
+      const { data } = await supabase
+        .from("pendencies")
+        .select("id, prazo_resposta, next_followup_at, followup_paused")
+        .eq("responsavel_id", user.id)
+        .not("status", "in", "(resolvida,cancelada)");
+      const today = new Date(new Date().toDateString());
+      const now = new Date();
+      const list = data || [];
+      return {
+        toCobrar: list.filter((p: any) => !p.followup_paused && p.next_followup_at && new Date(p.next_followup_at) <= now).length,
+        vencidas: list.filter((p: any) => p.prazo_resposta && new Date(p.prazo_resposta) < today).length,
+      };
+    },
+  });
+
+  useEffect(() => {
+    const ch = supabase
+      .channel("pendency-badge-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "pendencies" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["pendency-badge"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [queryClient]);
+
   const navItems = NAV_ITEMS.filter((item) => canAccessPage(userRole, item.path));
 
   return (
@@ -162,6 +196,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
             const isActive = location.pathname === item.path;
             const showBadge = item.path === "/revisao" && reviewBadge.mine > 0;
             const showTotalBadge = item.path === "/revisao" && canSupervise && reviewBadge.total > reviewBadge.mine;
+            const showPendencyBadge = item.path === "/pendencias" && pendencyBadge.toCobrar > 0;
+            const pendencyAlert = item.path === "/pendencias" && pendencyBadge.vencidas > 0;
             return (
               <Link
                 key={item.path}
@@ -178,6 +214,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
                   {showBadge && collapsed && (
                     <span className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${reviewBadge.stale ? "bg-destructive" : "bg-warning"}`} />
                   )}
+                  {showPendencyBadge && collapsed && (
+                    <span className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${pendencyAlert ? "bg-destructive" : "bg-warning"}`} />
+                  )}
                 </span>
                 {!collapsed && (
                   <span className="flex-1 flex items-center justify-between gap-1">
@@ -191,6 +230,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
                       {showTotalBadge && (
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground" title="Total no sistema (supervisão)">
                           /{reviewBadge.total}
+                        </span>
+                      )}
+                      {showPendencyBadge && (
+                        <span
+                          className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${pendencyAlert ? "bg-destructive text-destructive-foreground" : "bg-warning text-warning-foreground"}`}
+                          title={pendencyAlert ? `${pendencyBadge.vencidas} vencida(s)` : "Para cobrar hoje"}
+                        >
+                          {pendencyBadge.toCobrar}
                         </span>
                       )}
                     </span>

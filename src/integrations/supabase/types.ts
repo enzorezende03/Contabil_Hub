@@ -20,6 +20,7 @@ export type Database = {
           competencia_inicio: string
           created_at: string
           created_by: string
+          gclick_cliente_id: string | null
           id: string
           obrigatoriedade_ecd: boolean
           perfil: string
@@ -33,6 +34,7 @@ export type Database = {
           competencia_inicio: string
           created_at?: string
           created_by: string
+          gclick_cliente_id?: string | null
           id?: string
           obrigatoriedade_ecd?: boolean
           perfil?: string
@@ -46,6 +48,7 @@ export type Database = {
           competencia_inicio?: string
           created_at?: string
           created_by?: string
+          gclick_cliente_id?: string | null
           id?: string
           obrigatoriedade_ecd?: boolean
           perfil?: string
@@ -298,6 +301,166 @@ export type Database = {
           year?: string
         }
         Relationships: []
+      }
+      pendencies: {
+        Row: {
+          client_id: string
+          competencia: string
+          contato_cliente_email: string | null
+          contato_cliente_nome: string | null
+          contato_cliente_telefone: string | null
+          created_at: string
+          created_by: string
+          demand_type: string | null
+          descricao: string
+          documento_solicitado: string | null
+          escalated_at: string | null
+          followup_cadence_days: number
+          followup_paused: boolean
+          followup_paused_reason: string | null
+          followup_paused_until: string | null
+          gclick_status: string | null
+          gclick_sync_error: string | null
+          gclick_synced_at: string | null
+          gclick_task_id: string | null
+          gclick_task_url: string | null
+          id: string
+          next_followup_at: string | null
+          prazo_resposta: string | null
+          prioridade: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          responsavel_id: string
+          setor_responsavel: string | null
+          status: string
+          tipo: string
+          total_contatos: number
+          ultimo_contato_em: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          competencia: string
+          contato_cliente_email?: string | null
+          contato_cliente_nome?: string | null
+          contato_cliente_telefone?: string | null
+          created_at?: string
+          created_by: string
+          demand_type?: string | null
+          descricao: string
+          documento_solicitado?: string | null
+          escalated_at?: string | null
+          followup_cadence_days?: number
+          followup_paused?: boolean
+          followup_paused_reason?: string | null
+          followup_paused_until?: string | null
+          gclick_status?: string | null
+          gclick_sync_error?: string | null
+          gclick_synced_at?: string | null
+          gclick_task_id?: string | null
+          gclick_task_url?: string | null
+          id?: string
+          next_followup_at?: string | null
+          prazo_resposta?: string | null
+          prioridade?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          responsavel_id: string
+          setor_responsavel?: string | null
+          status?: string
+          tipo: string
+          total_contatos?: number
+          ultimo_contato_em?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          competencia?: string
+          contato_cliente_email?: string | null
+          contato_cliente_nome?: string | null
+          contato_cliente_telefone?: string | null
+          created_at?: string
+          created_by?: string
+          demand_type?: string | null
+          descricao?: string
+          documento_solicitado?: string | null
+          escalated_at?: string | null
+          followup_cadence_days?: number
+          followup_paused?: boolean
+          followup_paused_reason?: string | null
+          followup_paused_until?: string | null
+          gclick_status?: string | null
+          gclick_sync_error?: string | null
+          gclick_synced_at?: string | null
+          gclick_task_id?: string | null
+          gclick_task_url?: string | null
+          id?: string
+          next_followup_at?: string | null
+          prazo_resposta?: string | null
+          prioridade?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          responsavel_id?: string
+          setor_responsavel?: string | null
+          status?: string
+          tipo?: string
+          total_contatos?: number
+          ultimo_contato_em?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pendencies_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pendency_communications: {
+        Row: {
+          canal: string
+          created_at: string
+          descricao: string
+          id: string
+          pendency_id: string
+          realizado_em: string
+          realizado_por: string
+          resposta_descricao: string | null
+          resposta_recebida: boolean
+        }
+        Insert: {
+          canal: string
+          created_at?: string
+          descricao: string
+          id?: string
+          pendency_id: string
+          realizado_em?: string
+          realizado_por: string
+          resposta_descricao?: string | null
+          resposta_recebida?: boolean
+        }
+        Update: {
+          canal?: string
+          created_at?: string
+          descricao?: string
+          id?: string
+          pendency_id?: string
+          realizado_em?: string
+          realizado_por?: string
+          resposta_descricao?: string | null
+          resposta_recebida?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pendency_communications_pendency_id_fkey"
+            columns: ["pendency_id"]
+            isOneToOne: false
+            referencedRelation: "pendencies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plannings: {
         Row: {

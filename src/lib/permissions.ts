@@ -10,6 +10,7 @@ export type AppPage =
   | "/equipe"
   | "/competencias"
   | "/revisao"
+  | "/pendencias"
   | "/alertas"
   | "/clientes"
   | "/configuracoes"
@@ -17,10 +18,10 @@ export type AppPage =
 
 // Default permissions (fallback when DB not loaded yet)
 const DEFAULT_ROLE_PAGES: Record<ProfileRole, AppPage[]> = {
-  coordenacao: ["/", "/demandas", "/planejamento", "/equipe", "/competencias", "/revisao", "/alertas", "/clientes", "/configuracoes", "/usuarios"],
-  analista: ["/", "/demandas", "/planejamento", "/equipe", "/competencias", "/revisao", "/alertas", "/clientes"],
-  assistente: ["/", "/demandas", "/planejamento", "/competencias", "/revisao", "/clientes"],
-  estagiario: ["/", "/demandas", "/planejamento", "/competencias", "/revisao", "/clientes"],
+  coordenacao: ["/", "/demandas", "/planejamento", "/equipe", "/competencias", "/revisao", "/pendencias", "/alertas", "/clientes", "/configuracoes", "/usuarios"],
+  analista: ["/", "/demandas", "/planejamento", "/equipe", "/competencias", "/revisao", "/pendencias", "/alertas", "/clientes"],
+  assistente: ["/", "/demandas", "/planejamento", "/competencias", "/revisao", "/pendencias", "/clientes"],
+  estagiario: ["/", "/demandas", "/planejamento", "/competencias", "/revisao", "/pendencias", "/clientes"],
 };
 
 // Runtime permissions – can be replaced by DB values
@@ -62,6 +63,7 @@ export const ALL_PAGES: { path: AppPage; label: string }[] = [
   { path: "/equipe", label: "Produtividade Equipe" },
   { path: "/competencias", label: "Fechamento Contábil" },
   { path: "/revisao", label: "Revisão de Demonstrativos" },
+  { path: "/pendencias", label: "Pendências" },
   { path: "/alertas", label: "Alertas" },
   { path: "/clientes", label: "Clientes" },
   { path: "/configuracoes", label: "Configurações" },

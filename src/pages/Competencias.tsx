@@ -151,6 +151,10 @@ function StatusPillBulk({ options, disabled, onApply }: StatusPillBulkProps) {
 import { LiberarRevisaoDialog } from "@/components/LiberarRevisaoDialog";
 import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import { REVIEW_STATUS_LABEL, REVIEW_STATUS_BADGE, buildCompetenciaDate, type ReviewStatus } from "@/lib/review-utils";
+import { CellPendencyIndicator } from "@/components/CellPendencyIndicator";
+import { CreatePendencyDialog } from "@/components/CreatePendencyDialog";
+import { useActivePendenciesByCell } from "@/hooks/use-pendencies";
+import { AlertOctagon } from "lucide-react";
 
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
@@ -257,10 +261,13 @@ export default function CompetenciasPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [liberarDialog, setLiberarDialog] = useState<{ clientName: string; clientId: string; tributacao: string; month: string } | null>(null);
-  
+  const [pendencyDialog, setPendencyDialog] = useState<{ clientId: string; clientName: string; month: string } | null>(null);
+
   useActionPermissions();
   const canLiberar = canPerformAction("liberar_para_revisao", profile?.role);
-  
+  const canCreatePendency = canPerformAction("gerenciar_pendencias", profile?.role);
+
+  const { data: pendenciesByCell } = useActivePendenciesByCell(year);
 
   // Fetch active review submissions for the current year
   const { data: yearSubmissions = [] } = useQuery({
@@ -1015,6 +1022,8 @@ export default function CompetenciasPage() {
                         const tooltip = isDisabled
                           ? "Fora da responsabilidade"
                           : `${MONTH_FULL[m]}/${year}\nLançamentos: ${statusLabel[demandStatuses[`${client}|${m}|lancamentos`]] || "Não Iniciada"}\nConc. Bancária: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_bancaria`]] || "Não Iniciada"}\nConc. Contábil: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_contabil`]] || "Não Iniciada"}`;
+                        const cellClientId = clientIdByName[client];
+                        const cellPendencies = cellClientId && pendenciesByCell ? (pendenciesByCell.get(`${cellClientId}|${m}`) || []) : [];
                         return (
                           <td key={m} className="text-center px-1 py-2">
                             <div className="relative mx-auto w-8 h-8">
@@ -1023,10 +1032,11 @@ export default function CompetenciasPage() {
                                   isDisabled ? "cursor-not-allowed opacity-40" : canToggle ? "cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all" : ""
                                 }`}
                                 onClick={canToggle ? () => toggleSemMovimento(client, m) : undefined}
-                                title={tooltip}
+                                title={cellPendencies.length ? `${tooltip}\n\n⚠ ${cellPendencies.length} pendência(s) aberta(s)` : tooltip}
                               >
                                 <span className={`font-semibold text-[10px] ${cfg.text}`}>{cfg.label}</span>
                               </div>
+                              <CellPendencyIndicator pendencies={cellPendencies} />
                             </div>
                           </td>
                         );
@@ -1048,10 +1058,24 @@ export default function CompetenciasPage() {
           {panelData && (
             <>
               <DialogHeader className="pb-4 border-b">
-                <DialogTitle className="text-lg">{panelData.client}</DialogTitle>
-                <DialogDescription>
-                  {TRIBUTACAO_LABELS_MAP[panelData.tributacao || ""] || "Sem tributação definida"} — {year}
-                </DialogDescription>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <DialogTitle className="text-lg">{panelData.client}</DialogTitle>
+                    <DialogDescription>
+                      {TRIBUTACAO_LABELS_MAP[panelData.tributacao || ""] || "Sem tributação definida"} — {year}
+                    </DialogDescription>
+                  </div>
+                  {canCreatePendency && clientIdByName[panelData.client] && (
+                    <button
+                      onClick={() => setPendencyDialog({ clientId: clientIdByName[panelData.client], clientName: panelData.client, month: String(new Date().getMonth() + 1).padStart(2, "0") })}
+                      className="h-8 px-3 text-xs rounded-md border border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 flex items-center gap-1.5 transition-colors"
+                      title="Criar pendência para esta empresa"
+                    >
+                      <AlertOctagon className="w-3.5 h-3.5" />
+                      Criar pendência
+                    </button>
+                  )}
+                </div>
               </DialogHeader>
 
               <div className="py-4 space-y-4">
@@ -1371,6 +1395,17 @@ export default function CompetenciasPage() {
           tributacao={liberarDialog.tributacao}
           year={year}
           defaultMonth={liberarDialog.month}
+        />
+      )}
+
+      {pendencyDialog && (
+        <CreatePendencyDialog
+          open={!!pendencyDialog}
+          onOpenChange={(o) => { if (!o) setPendencyDialog(null); }}
+          clientId={pendencyDialog.clientId}
+          clientName={pendencyDialog.clientName}
+          month={pendencyDialog.month}
+          year={year}
         />
       )}
     </AppLayout>

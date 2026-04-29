@@ -7,6 +7,9 @@ export type ActionPermissions = {
   revisar_demonstrativos: string[];
   cancelar_submissao: string[];
   supervisionar_revisao: string[];
+  gerenciar_pendencias: string[];
+  supervisionar_pendencias: string[];
+  configurar_integracoes: string[];
 };
 
 const DEFAULTS: ActionPermissions = {
@@ -15,6 +18,9 @@ const DEFAULTS: ActionPermissions = {
   revisar_demonstrativos: ["coordenacao"],
   cancelar_submissao: ["coordenacao"],
   supervisionar_revisao: ["coordenacao"],
+  gerenciar_pendencias: ["coordenacao", "analista", "assistente"],
+  supervisionar_pendencias: ["coordenacao"],
+  configurar_integracoes: ["coordenacao"],
 };
 
 let cachedPerms: ActionPermissions = { ...DEFAULTS };

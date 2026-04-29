@@ -35,6 +35,9 @@ export default function SettingsPage() {
     revisar_demonstrativos: ["coordenacao"],
     cancelar_submissao: ["coordenacao"],
     supervisionar_revisao: ["coordenacao"],
+    gerenciar_pendencias: ["coordenacao", "analista", "assistente"],
+    supervisionar_pendencias: ["coordenacao"],
+    configurar_integracoes: ["coordenacao"],
   });
   const [editingWeights, setEditingWeights] = useState(false);
   const [editingTeam, setEditingTeam] = useState(false);
@@ -49,6 +52,9 @@ export default function SettingsPage() {
     revisar_demonstrativos: ["coordenacao"],
     cancelar_submissao: ["coordenacao"],
     supervisionar_revisao: ["coordenacao"],
+    gerenciar_pendencias: ["coordenacao", "analista", "assistente"],
+    supervisionar_pendencias: ["coordenacao"],
+    configurar_integracoes: ["coordenacao"],
   });
   const [saving, setSaving] = useState(false);
 

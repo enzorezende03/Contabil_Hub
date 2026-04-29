@@ -19,7 +19,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { RegistrarCobrancaDialog } from "@/components/RegistrarCobrancaDialog";
 import { CreatePendencyDialog } from "@/components/CreatePendencyDialog";
-import { AlertCircle, Clock, CheckCircle2, Inbox, Plus, Pause, Play, Building2, History } from "lucide-react";
+import { AlertCircle, Clock, CheckCircle2, Inbox, Plus, Pause, Play, Building2, History, ExternalLink, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ClientRow { id: string; razao_social: string; cnpj: string; }
@@ -256,7 +256,64 @@ function KpiBlock({ icon: Icon, label, value, color }: { icon: any; label: strin
   );
 }
 
+function GclickBadge({ pendency: p }: { pendency: Pendency }) {
+  const [sending, setSending] = useState(false);
+  const qc = useQueryClient();
+
+  async function reenviar(e: React.MouseEvent) {
+    e.stopPropagation();
+    setSending(true);
+    const { data, error } = await supabase.functions.invoke("gclick-create-task", { body: { pendency_id: p.id } });
+    setSending(false);
+    if (error || !data?.ok) {
+      toast.error(`GClick: ${data?.error || error?.message || "falha"}`);
+    } else {
+      toast.success(`Tarefa criada no GClick (${data.instancia})`);
+    }
+    qc.invalidateQueries({ queryKey: ["pendencies"] });
+  }
+
+  if (p.gclick_task_id) {
+    return (
+      <a
+        href={p.gclick_task_url || "#"}
+        target="_blank"
+        rel="noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-emerald-500/15 text-emerald-700 border-emerald-500/30 inline-flex items-center gap-1 hover:bg-emerald-500/25"
+        title={`Tarefa GClick: ${p.gclick_task_id}`}
+      >
+        <ExternalLink className="w-2.5 h-2.5" /> GClick #{p.gclick_task_id.slice(0, 8)}
+      </a>
+    );
+  }
+  if (p.gclick_sync_error) {
+    return (
+      <button
+        type="button"
+        onClick={reenviar}
+        disabled={sending}
+        title={p.gclick_sync_error}
+        className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-red-500/15 text-red-600 border-red-500/30 inline-flex items-center gap-1 hover:bg-red-500/25"
+      >
+        <RefreshCw className={cn("w-2.5 h-2.5", sending && "animate-spin")} /> GClick: reenviar
+      </button>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={reenviar}
+      disabled={sending}
+      className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-muted text-muted-foreground hover:bg-muted/80 inline-flex items-center gap-1"
+    >
+      <RefreshCw className={cn("w-2.5 h-2.5", sending && "animate-spin")} /> Enviar ao GClick
+    </button>
+  );
+}
+
 function PendencyCard({ pendency: p, clientName, responsavelName, onCobrar, onResolver, onPausar, onDetalhes }: {
+
   pendency: Pendency; clientName: string; responsavelName: string;
   onCobrar: () => void; onResolver: () => void; onPausar: () => void; onDetalhes: () => void;
 }) {
@@ -299,6 +356,7 @@ function PendencyCard({ pendency: p, clientName, responsavelName, onCobrar, onRe
             {followupBadge && (
               <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border", followupBadge.className)}>{followupBadge.label}</span>
             )}
+            {p.tipo === "interna" && <GclickBadge pendency={p} />}
           </div>
           <div className="text-sm">
             {p.tipo === "externa" ? (
@@ -309,6 +367,7 @@ function PendencyCard({ pendency: p, clientName, responsavelName, onCobrar, onRe
             {" — "}
             <span className="text-muted-foreground">{p.descricao}</span>
           </div>
+
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground mt-2">
             <span>Aberta há {aberta} dia(s)</span>
             <span className={cn(ultimoCont !== null && ultimoCont > 7 && "text-red-500 font-medium")}>

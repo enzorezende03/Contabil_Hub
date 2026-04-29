@@ -1022,6 +1022,8 @@ export default function CompetenciasPage() {
                         const tooltip = isDisabled
                           ? "Fora da responsabilidade"
                           : `${MONTH_FULL[m]}/${year}\nLançamentos: ${statusLabel[demandStatuses[`${client}|${m}|lancamentos`]] || "Não Iniciada"}\nConc. Bancária: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_bancaria`]] || "Não Iniciada"}\nConc. Contábil: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_contabil`]] || "Não Iniciada"}`;
+                        const cellClientId = clientIdByName[client];
+                        const cellPendencies = cellClientId && pendenciesByCell ? (pendenciesByCell.get(`${cellClientId}|${m}`) || []) : [];
                         return (
                           <td key={m} className="text-center px-1 py-2">
                             <div className="relative mx-auto w-8 h-8">
@@ -1030,10 +1032,11 @@ export default function CompetenciasPage() {
                                   isDisabled ? "cursor-not-allowed opacity-40" : canToggle ? "cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all" : ""
                                 }`}
                                 onClick={canToggle ? () => toggleSemMovimento(client, m) : undefined}
-                                title={tooltip}
+                                title={cellPendencies.length ? `${tooltip}\n\n⚠ ${cellPendencies.length} pendência(s) aberta(s)` : tooltip}
                               >
                                 <span className={`font-semibold text-[10px] ${cfg.text}`}>{cfg.label}</span>
                               </div>
+                              <CellPendencyIndicator pendencies={cellPendencies} />
                             </div>
                           </td>
                         );

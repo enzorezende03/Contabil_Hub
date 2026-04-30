@@ -100,9 +100,39 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
       payload.setor_responsavel = setor;
     } else {
       payload.documento_solicitado = documento.trim();
-      payload.contato_cliente_nome = contatoNome.trim() || null;
-      payload.contato_cliente_email = contatoEmail.trim() || null;
-      payload.contato_cliente_telefone = contatoTelefone.trim() || null;
+      // Resolve contato escolhido (existente ou novo a cadastrar)
+      let contNome: string | null = null;
+      let contEmail: string | null = null;
+      if (mostrandoNovoContato) {
+        if (!novoContatoEmail.trim()) {
+          setSaving(false);
+          toast.error("Informe o e-mail do contato");
+          return;
+        }
+        contNome = novoContatoNome.trim() || null;
+        contEmail = novoContatoEmail.trim();
+        // Persiste no cadastro do cliente
+        const { data: novo } = await supabase.from("client_contacts").insert({
+          client_id: clientId,
+          nome: contNome || contEmail,
+          email: contEmail,
+          is_default: contacts.length === 0,
+          created_by: user.id,
+        }).select("id").maybeSingle();
+        if (novo?.id) setContatoId(novo.id);
+      } else {
+        const c = contacts.find((x) => x.id === contatoId);
+        if (!c) {
+          setSaving(false);
+          toast.error("Selecione um contato ou cadastre um novo");
+          return;
+        }
+        contNome = c.nome;
+        contEmail = c.email;
+      }
+      payload.contato_cliente_nome = contNome;
+      payload.contato_cliente_email = contEmail;
+      payload.contato_cliente_telefone = null;
     }
 
     const { data: created, error } = await supabase.from("pendencies").insert(payload).select("id").maybeSingle();

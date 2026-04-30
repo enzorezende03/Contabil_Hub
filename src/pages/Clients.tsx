@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Pencil, Trash2, Building2, Search, Upload, Download } from "lucide-react";
+import { ClientContactsManager } from "@/components/ClientContactsManager";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
@@ -576,6 +577,11 @@ export default function Clients() {
                 maxLength={7}
               />
             </div>
+            {editingId && (
+              <div className="pt-2 border-t">
+                <ClientContactsManager clientId={editingId} />
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancelar

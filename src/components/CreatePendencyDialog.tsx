@@ -12,6 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { SETOR_LABELS, PRIORIDADE_LABELS, type PendencyTipo, type PendencyPrioridade, type PendencySetor, competenciaFromMonthYear } from "@/lib/pendency-types";
 
 interface Profile { user_id: string; display_name: string | null; }
+interface ClientContact { id: string; nome: string; email: string; is_default: boolean; }
 
 interface Props {
   open: boolean;
@@ -34,9 +35,11 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
   const [tipo, setTipo] = useState<PendencyTipo>("externa");
   const [setor, setSetor] = useState<PendencySetor>("fiscal");
   const [documento, setDocumento] = useState("");
-  const [contatoNome, setContatoNome] = useState("");
-  const [contatoEmail, setContatoEmail] = useState("");
-  const [contatoTelefone, setContatoTelefone] = useState("");
+  const [contatoId, setContatoId] = useState<string>("");
+  const [novoContatoNome, setNovoContatoNome] = useState("");
+  const [novoContatoEmail, setNovoContatoEmail] = useState("");
+  const [mostrandoNovoContato, setMostrandoNovoContato] = useState(false);
+  const [contacts, setContacts] = useState<ClientContact[]>([]);
   const [descricao, setDescricao] = useState("");
   const [prioridade, setPrioridade] = useState<PendencyPrioridade>("media");
   const [prazo, setPrazo] = useState("");
@@ -53,6 +56,24 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
       setProfiles((data || []) as Profile[]);
     });
   }, [open, user?.id]);
+
+  // Carrega contatos do cliente quando o dialog abre
+  useEffect(() => {
+    if (!open || !clientId) return;
+    supabase
+      .from("client_contacts")
+      .select("id, nome, email, is_default")
+      .eq("client_id", clientId)
+      .order("is_default", { ascending: false })
+      .order("nome")
+      .then(({ data }) => {
+        const list = (data || []) as ClientContact[];
+        setContacts(list);
+        const def = list.find((c) => c.is_default) || list[0];
+        setContatoId(def?.id ?? "");
+        setMostrandoNovoContato(list.length === 0);
+      });
+  }, [open, clientId]);
 
   const finalCompetencia = competencia || (month && year ? competenciaFromMonthYear(month, year) : "");
 
@@ -79,9 +100,39 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
       payload.setor_responsavel = setor;
     } else {
       payload.documento_solicitado = documento.trim();
-      payload.contato_cliente_nome = contatoNome.trim() || null;
-      payload.contato_cliente_email = contatoEmail.trim() || null;
-      payload.contato_cliente_telefone = contatoTelefone.trim() || null;
+      // Resolve contato escolhido (existente ou novo a cadastrar)
+      let contNome: string | null = null;
+      let contEmail: string | null = null;
+      if (mostrandoNovoContato) {
+        if (!novoContatoEmail.trim()) {
+          setSaving(false);
+          toast.error("Informe o e-mail do contato");
+          return;
+        }
+        contNome = novoContatoNome.trim() || null;
+        contEmail = novoContatoEmail.trim();
+        // Persiste no cadastro do cliente
+        const { data: novo } = await supabase.from("client_contacts").insert({
+          client_id: clientId,
+          nome: contNome || contEmail,
+          email: contEmail,
+          is_default: contacts.length === 0,
+          created_by: user.id,
+        }).select("id").maybeSingle();
+        if (novo?.id) setContatoId(novo.id);
+      } else {
+        const c = contacts.find((x) => x.id === contatoId);
+        if (!c) {
+          setSaving(false);
+          toast.error("Selecione um contato ou cadastre um novo");
+          return;
+        }
+        contNome = c.nome;
+        contEmail = c.email;
+      }
+      payload.contato_cliente_nome = contNome;
+      payload.contato_cliente_email = contEmail;
+      payload.contato_cliente_telefone = null;
     }
 
     const { data: created, error } = await supabase.from("pendencies").insert(payload).select("id").maybeSingle();
@@ -107,7 +158,8 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
     }
 
     // reset
-    setDocumento(""); setContatoNome(""); setContatoEmail(""); setContatoTelefone("");
+    setDocumento(""); setNovoContatoNome(""); setNovoContatoEmail("");
+    setMostrandoNovoContato(false);
     setDescricao(""); setPrazo(""); setPrioridade("media"); setCadencia(5);
     onOpenChange(false);
   }
@@ -151,19 +203,51 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
                 <Label>Documento solicitado *</Label>
                 <Input value={documento} onChange={(e) => setDocumento(e.target.value)} placeholder='Ex.: Extrato bancário Itaú janeiro/2026' />
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1.5">
-                  <Label>Contato (nome)</Label>
-                  <Input value={contatoNome} onChange={(e) => setContatoNome(e.target.value)} placeholder='João da Silva (financeiro)' />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Telefone</Label>
-                  <Input value={contatoTelefone} onChange={(e) => setContatoTelefone(e.target.value)} placeholder='(11) 91234-5678' />
-                </div>
-              </div>
               <div className="space-y-1.5">
-                <Label>E-mail do contato</Label>
-                <Input type="email" value={contatoEmail} onChange={(e) => setContatoEmail(e.target.value)} placeholder='financeiro@cliente.com' />
+                <div className="flex items-center justify-between">
+                  <Label>Contato para envio *</Label>
+                  {contacts.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setMostrandoNovoContato((v) => !v)}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      {mostrandoNovoContato ? "Escolher existente" : "+ Novo contato"}
+                    </button>
+                  )}
+                </div>
+
+                {!mostrandoNovoContato && contacts.length > 0 ? (
+                  <Select value={contatoId} onValueChange={setContatoId}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o contato" /></SelectTrigger>
+                    <SelectContent>
+                      {contacts.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome} — {c.email}{c.is_default ? " ★" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="space-y-2 p-3 rounded-md border bg-muted/30">
+                    {contacts.length === 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Nenhum contato cadastrado para este cliente. Cadastre um abaixo (ficará salvo na ficha).
+                      </p>
+                    )}
+                    <Input
+                      placeholder="Nome (opcional)"
+                      value={novoContatoNome}
+                      onChange={(e) => setNovoContatoNome(e.target.value)}
+                    />
+                    <Input
+                      type="email"
+                      placeholder="email@cliente.com *"
+                      value={novoContatoEmail}
+                      onChange={(e) => setNovoContatoEmail(e.target.value)}
+                    />
+                  </div>
+                )}
               </div>
             </>
           )}

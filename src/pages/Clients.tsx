@@ -577,6 +577,11 @@ export default function Clients() {
                 maxLength={7}
               />
             </div>
+            {editingId && (
+              <div className="pt-2 border-t">
+                <ClientContactsManager clientId={editingId} />
+              </div>
+            )}
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancelar

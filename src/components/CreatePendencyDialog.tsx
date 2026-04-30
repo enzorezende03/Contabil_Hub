@@ -295,7 +295,61 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
 
           <div className="space-y-1.5">
             <Label>Descrição *</Label>
-            <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} placeholder="Detalhe a pendência" />
+            <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={2} placeholder="Resumo geral do que está sendo solicitado" />
+          </div>
+
+          {/* Checklist de itens */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Itens solicitados</Label>
+              <span className="text-[10px] text-muted-foreground">
+                {tipo === "externa" ? "Cliente vê e responde cada item" : "Lista de pontos a tratar"}
+              </span>
+            </div>
+            <div className="space-y-2">
+              {items.map((it, idx) => (
+                <div key={idx} className="rounded-md border p-2 space-y-1.5 bg-muted/20">
+                  <div className="flex items-start gap-2">
+                    <span className="text-xs font-medium text-muted-foreground mt-2 w-5 text-right">{idx + 1}.</span>
+                    <div className="flex-1 space-y-1.5">
+                      <Input
+                        placeholder="Ex.: Extrato bancário Itaú janeiro/2026"
+                        value={it.titulo}
+                        onChange={(e) => {
+                          const next = [...items]; next[idx].titulo = e.target.value; setItems(next);
+                        }}
+                        className="h-8 text-sm"
+                      />
+                      <Textarea
+                        placeholder="Detalhes (opcional): formato, conta, valor esperado..."
+                        value={it.descricao}
+                        onChange={(e) => {
+                          const next = [...items]; next[idx].descricao = e.target.value; setItems(next);
+                        }}
+                        rows={1}
+                        className="text-xs min-h-[32px]"
+                      />
+                    </div>
+                    {items.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setItems(items.filter((_, i) => i !== idx))}
+                        className="text-xs text-destructive hover:underline mt-2"
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setItems([...items, { titulo: "", descricao: "" }])}
+                className="text-xs text-primary hover:underline"
+              >
+                + Adicionar item
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2">

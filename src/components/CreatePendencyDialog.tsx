@@ -158,7 +158,8 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
     }
 
     // reset
-    setDocumento(""); setContatoNome(""); setContatoEmail(""); setContatoTelefone("");
+    setDocumento(""); setNovoContatoNome(""); setNovoContatoEmail("");
+    setMostrandoNovoContato(false);
     setDescricao(""); setPrazo(""); setPrioridade("media"); setCadencia(5);
     onOpenChange(false);
   }

@@ -203,19 +203,51 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
                 <Label>Documento solicitado *</Label>
                 <Input value={documento} onChange={(e) => setDocumento(e.target.value)} placeholder='Ex.: Extrato bancário Itaú janeiro/2026' />
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1.5">
-                  <Label>Contato (nome)</Label>
-                  <Input value={contatoNome} onChange={(e) => setContatoNome(e.target.value)} placeholder='João da Silva (financeiro)' />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Telefone</Label>
-                  <Input value={contatoTelefone} onChange={(e) => setContatoTelefone(e.target.value)} placeholder='(11) 91234-5678' />
-                </div>
-              </div>
               <div className="space-y-1.5">
-                <Label>E-mail do contato</Label>
-                <Input type="email" value={contatoEmail} onChange={(e) => setContatoEmail(e.target.value)} placeholder='financeiro@cliente.com' />
+                <div className="flex items-center justify-between">
+                  <Label>Contato para envio *</Label>
+                  {contacts.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setMostrandoNovoContato((v) => !v)}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      {mostrandoNovoContato ? "Escolher existente" : "+ Novo contato"}
+                    </button>
+                  )}
+                </div>
+
+                {!mostrandoNovoContato && contacts.length > 0 ? (
+                  <Select value={contatoId} onValueChange={setContatoId}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o contato" /></SelectTrigger>
+                    <SelectContent>
+                      {contacts.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.nome} — {c.email}{c.is_default ? " ★" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="space-y-2 p-3 rounded-md border bg-muted/30">
+                    {contacts.length === 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Nenhum contato cadastrado para este cliente. Cadastre um abaixo (ficará salvo na ficha).
+                      </p>
+                    )}
+                    <Input
+                      placeholder="Nome (opcional)"
+                      value={novoContatoNome}
+                      onChange={(e) => setNovoContatoNome(e.target.value)}
+                    />
+                    <Input
+                      type="email"
+                      placeholder="email@cliente.com *"
+                      value={novoContatoEmail}
+                      onChange={(e) => setNovoContatoEmail(e.target.value)}
+                    />
+                  </div>
+                )}
               </div>
             </>
           )}

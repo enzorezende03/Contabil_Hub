@@ -12,6 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { SETOR_LABELS, PRIORIDADE_LABELS, type PendencyTipo, type PendencyPrioridade, type PendencySetor, competenciaFromMonthYear } from "@/lib/pendency-types";
 
 interface Profile { user_id: string; display_name: string | null; }
+interface ClientContact { id: string; nome: string; email: string; is_default: boolean; }
 
 interface Props {
   open: boolean;

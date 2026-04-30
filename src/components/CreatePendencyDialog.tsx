@@ -206,8 +206,65 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => {
+      if (!o) {
+        setGeneratedLink(null);
+        setItems([{ titulo: "", descricao: "" }]);
+      }
+      onOpenChange(o);
+    }}>
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        {generatedLink ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Pendência criada — link do cliente</DialogTitle>
+              <DialogDescription>
+                Envie o link e o código de acesso ao cliente. O código não pode ser recuperado depois — copie agora.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Link de acesso</Label>
+                <div className="flex gap-2">
+                  <Input readOnly value={generatedLink.url} className="font-mono text-xs" />
+                  <Button type="button" variant="outline" onClick={() => { navigator.clipboard.writeText(generatedLink.url); toast.success("Link copiado"); }}>Copiar</Button>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Código de acesso</Label>
+                <div className="flex gap-2">
+                  <Input readOnly value={generatedLink.code} className="font-mono text-lg tracking-widest text-center" />
+                  <Button type="button" variant="outline" onClick={() => { navigator.clipboard.writeText(generatedLink.code); toast.success("Código copiado"); }}>Copiar</Button>
+                </div>
+              </div>
+              <div className="rounded-md bg-muted/50 p-3 text-xs space-y-1">
+                <p className="font-medium">Mensagem sugerida</p>
+                <p className="text-muted-foreground">
+                  Olá! Para nos enviar os documentos/informações pendentes, acesse:<br />
+                  {generatedLink.url}<br />
+                  Código de acesso: <span className="font-mono font-semibold">{generatedLink.code}</span>
+                </p>
+                <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs"
+                  onClick={() => {
+                    const msg = `Olá! Para nos enviar os documentos/informações pendentes, acesse:\n${generatedLink.url}\nCódigo de acesso: ${generatedLink.code}`;
+                    navigator.clipboard.writeText(msg);
+                    toast.success("Mensagem copiada");
+                  }}>Copiar mensagem completa</Button>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => {
+                setGeneratedLink(null);
+                setDocumento(""); setNovoContatoNome(""); setNovoContatoEmail("");
+                setMostrandoNovoContato(false);
+                setDescricao(""); setPrazo(""); setPrioridade("media"); setCadencia(5);
+                setItems([{ titulo: "", descricao: "" }]);
+                onOpenChange(false);
+              }}>Concluir</Button>
+            </DialogFooter>
+          </>
+        ) : (
+        <>
         <DialogHeader>
           <DialogTitle>Criar pendência</DialogTitle>
           <DialogDescription>

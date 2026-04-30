@@ -149,24 +149,59 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
     qc.invalidateQueries({ queryKey: ["pendencies"] });
     qc.invalidateQueries({ queryKey: ["pendencies-by-cell"] });
 
+    const newPendencyId = created?.id;
+
+    // Insere itens da checklist (somente os preenchidos)
+    const cleanItems = items
+      .map((it, idx) => ({ ...it, ordem: idx }))
+      .filter((it) => it.titulo.trim().length > 0);
+    if (newPendencyId && cleanItems.length > 0) {
+      await supabase.from("pendency_items").insert(
+        cleanItems.map((it) => ({
+          pendency_id: newPendencyId,
+          titulo: it.titulo.trim(),
+          descricao: it.descricao.trim() || null,
+          ordem: it.ordem,
+          created_by: user.id,
+        })),
+      );
+    }
+
     // Auto-disparo: pendência interna vira tarefa no GClick
-    if (tipo === "interna" && created?.id) {
-      toast.loading("Enviando ao GClick...", { id: `gclick-${created.id}` });
-      supabase.functions.invoke("gclick-create-task", { body: { pendency_id: created.id } })
+    if (tipo === "interna" && newPendencyId) {
+      toast.loading("Enviando ao GClick...", { id: `gclick-${newPendencyId}` });
+      supabase.functions.invoke("gclick-create-task", { body: { pendency_id: newPendencyId } })
         .then(({ data, error: fnErr }) => {
           if (fnErr || !data?.ok) {
-            toast.error(`GClick: ${data?.error || fnErr?.message || "falha ao criar tarefa"}`, { id: `gclick-${created.id}` });
+            toast.error(`GClick: ${data?.error || fnErr?.message || "falha ao criar tarefa"}`, { id: `gclick-${newPendencyId}` });
           } else {
-            toast.success(`Tarefa criada no GClick (${data.instancia})`, { id: `gclick-${created.id}` });
+            toast.success(`Tarefa criada no GClick (${data.instancia})`, { id: `gclick-${newPendencyId}` });
           }
           qc.invalidateQueries({ queryKey: ["pendencies"] });
         });
+    }
+
+    // Pendência externa com itens: gera link + código de acesso para o portal do cliente
+    if (tipo === "externa" && newPendencyId && cleanItems.length > 0) {
+      const { data: tk, error: tkErr } = await supabase.functions.invoke(
+        "pendency-token-create",
+        { body: { pendencyId: newPendencyId, expiresInDays: 30 } },
+      );
+      if (!tkErr && tk?.token && tk?.code) {
+        const url = `${window.location.origin}/p/${tk.token}`;
+        setGeneratedLink({ url, code: tk.code });
+        // Não fecha o dialog — usuário precisa copiar
+        return;
+      } else {
+        toast.error("Pendência criada, mas falhou ao gerar link de acesso");
+      }
     }
 
     // reset
     setDocumento(""); setNovoContatoNome(""); setNovoContatoEmail("");
     setMostrandoNovoContato(false);
     setDescricao(""); setPrazo(""); setPrioridade("media"); setCadencia(5);
+    setItems([{ titulo: "", descricao: "" }]);
     onOpenChange(false);
   }
 

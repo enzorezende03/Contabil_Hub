@@ -44,6 +44,7 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<Login />} />
     <Route path="/setup" element={<Setup />} />
+    <Route path="/p/:token" element={<PendencyPortal />} />
     <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
     <Route path="/demandas" element={<RoleRoute page="/demandas"><Demands /></RoleRoute>} />
     <Route path="/planejamento" element={<RoleRoute page="/planejamento"><Planejamento /></RoleRoute>} />

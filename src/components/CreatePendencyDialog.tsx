@@ -35,9 +35,11 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
   const [tipo, setTipo] = useState<PendencyTipo>("externa");
   const [setor, setSetor] = useState<PendencySetor>("fiscal");
   const [documento, setDocumento] = useState("");
-  const [contatoNome, setContatoNome] = useState("");
-  const [contatoEmail, setContatoEmail] = useState("");
-  const [contatoTelefone, setContatoTelefone] = useState("");
+  const [contatoId, setContatoId] = useState<string>("");
+  const [novoContatoNome, setNovoContatoNome] = useState("");
+  const [novoContatoEmail, setNovoContatoEmail] = useState("");
+  const [mostrandoNovoContato, setMostrandoNovoContato] = useState(false);
+  const [contacts, setContacts] = useState<ClientContact[]>([]);
   const [descricao, setDescricao] = useState("");
   const [prioridade, setPrioridade] = useState<PendencyPrioridade>("media");
   const [prazo, setPrazo] = useState("");

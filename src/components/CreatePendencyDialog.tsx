@@ -48,6 +48,12 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
   const [cadencia, setCadencia] = useState(5);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [saving, setSaving] = useState(false);
+  // Checklist de itens da pendência
+  const [items, setItems] = useState<{ titulo: string; descricao: string }[]>([
+    { titulo: "", descricao: "" },
+  ]);
+  // Resultado da geração de link (mostrado após criar)
+  const [generatedLink, setGeneratedLink] = useState<{ url: string; code: string } | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -143,30 +149,122 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
     qc.invalidateQueries({ queryKey: ["pendencies"] });
     qc.invalidateQueries({ queryKey: ["pendencies-by-cell"] });
 
+    const newPendencyId = created?.id;
+
+    // Insere itens da checklist (somente os preenchidos)
+    const cleanItems = items
+      .map((it, idx) => ({ ...it, ordem: idx }))
+      .filter((it) => it.titulo.trim().length > 0);
+    if (newPendencyId && cleanItems.length > 0) {
+      await supabase.from("pendency_items").insert(
+        cleanItems.map((it) => ({
+          pendency_id: newPendencyId,
+          titulo: it.titulo.trim(),
+          descricao: it.descricao.trim() || null,
+          ordem: it.ordem,
+          created_by: user.id,
+        })),
+      );
+    }
+
     // Auto-disparo: pendência interna vira tarefa no GClick
-    if (tipo === "interna" && created?.id) {
-      toast.loading("Enviando ao GClick...", { id: `gclick-${created.id}` });
-      supabase.functions.invoke("gclick-create-task", { body: { pendency_id: created.id } })
+    if (tipo === "interna" && newPendencyId) {
+      toast.loading("Enviando ao GClick...", { id: `gclick-${newPendencyId}` });
+      supabase.functions.invoke("gclick-create-task", { body: { pendency_id: newPendencyId } })
         .then(({ data, error: fnErr }) => {
           if (fnErr || !data?.ok) {
-            toast.error(`GClick: ${data?.error || fnErr?.message || "falha ao criar tarefa"}`, { id: `gclick-${created.id}` });
+            toast.error(`GClick: ${data?.error || fnErr?.message || "falha ao criar tarefa"}`, { id: `gclick-${newPendencyId}` });
           } else {
-            toast.success(`Tarefa criada no GClick (${data.instancia})`, { id: `gclick-${created.id}` });
+            toast.success(`Tarefa criada no GClick (${data.instancia})`, { id: `gclick-${newPendencyId}` });
           }
           qc.invalidateQueries({ queryKey: ["pendencies"] });
         });
+    }
+
+    // Pendência externa com itens: gera link + código de acesso para o portal do cliente
+    if (tipo === "externa" && newPendencyId && cleanItems.length > 0) {
+      const { data: tk, error: tkErr } = await supabase.functions.invoke(
+        "pendency-token-create",
+        { body: { pendencyId: newPendencyId, expiresInDays: 30 } },
+      );
+      if (!tkErr && tk?.token && tk?.code) {
+        const url = `${window.location.origin}/p/${tk.token}`;
+        setGeneratedLink({ url, code: tk.code });
+        // Não fecha o dialog — usuário precisa copiar
+        return;
+      } else {
+        toast.error("Pendência criada, mas falhou ao gerar link de acesso");
+      }
     }
 
     // reset
     setDocumento(""); setNovoContatoNome(""); setNovoContatoEmail("");
     setMostrandoNovoContato(false);
     setDescricao(""); setPrazo(""); setPrioridade("media"); setCadencia(5);
+    setItems([{ titulo: "", descricao: "" }]);
     onOpenChange(false);
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => {
+      if (!o) {
+        setGeneratedLink(null);
+        setItems([{ titulo: "", descricao: "" }]);
+      }
+      onOpenChange(o);
+    }}>
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        {generatedLink ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Pendência criada — link do cliente</DialogTitle>
+              <DialogDescription>
+                Envie o link e o código de acesso ao cliente. O código não pode ser recuperado depois — copie agora.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Link de acesso</Label>
+                <div className="flex gap-2">
+                  <Input readOnly value={generatedLink.url} className="font-mono text-xs" />
+                  <Button type="button" variant="outline" onClick={() => { navigator.clipboard.writeText(generatedLink.url); toast.success("Link copiado"); }}>Copiar</Button>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Código de acesso</Label>
+                <div className="flex gap-2">
+                  <Input readOnly value={generatedLink.code} className="font-mono text-lg tracking-widest text-center" />
+                  <Button type="button" variant="outline" onClick={() => { navigator.clipboard.writeText(generatedLink.code); toast.success("Código copiado"); }}>Copiar</Button>
+                </div>
+              </div>
+              <div className="rounded-md bg-muted/50 p-3 text-xs space-y-1">
+                <p className="font-medium">Mensagem sugerida</p>
+                <p className="text-muted-foreground">
+                  Olá! Para nos enviar os documentos/informações pendentes, acesse:<br />
+                  {generatedLink.url}<br />
+                  Código de acesso: <span className="font-mono font-semibold">{generatedLink.code}</span>
+                </p>
+                <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs"
+                  onClick={() => {
+                    const msg = `Olá! Para nos enviar os documentos/informações pendentes, acesse:\n${generatedLink.url}\nCódigo de acesso: ${generatedLink.code}`;
+                    navigator.clipboard.writeText(msg);
+                    toast.success("Mensagem copiada");
+                  }}>Copiar mensagem completa</Button>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={() => {
+                setGeneratedLink(null);
+                setDocumento(""); setNovoContatoNome(""); setNovoContatoEmail("");
+                setMostrandoNovoContato(false);
+                setDescricao(""); setPrazo(""); setPrioridade("media"); setCadencia(5);
+                setItems([{ titulo: "", descricao: "" }]);
+                onOpenChange(false);
+              }}>Concluir</Button>
+            </DialogFooter>
+          </>
+        ) : (
+        <>
         <DialogHeader>
           <DialogTitle>Criar pendência</DialogTitle>
           <DialogDescription>
@@ -254,7 +352,61 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
 
           <div className="space-y-1.5">
             <Label>Descrição *</Label>
-            <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={3} placeholder="Detalhe a pendência" />
+            <Textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} rows={2} placeholder="Resumo geral do que está sendo solicitado" />
+          </div>
+
+          {/* Checklist de itens */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Itens solicitados</Label>
+              <span className="text-[10px] text-muted-foreground">
+                {tipo === "externa" ? "Cliente vê e responde cada item" : "Lista de pontos a tratar"}
+              </span>
+            </div>
+            <div className="space-y-2">
+              {items.map((it, idx) => (
+                <div key={idx} className="rounded-md border p-2 space-y-1.5 bg-muted/20">
+                  <div className="flex items-start gap-2">
+                    <span className="text-xs font-medium text-muted-foreground mt-2 w-5 text-right">{idx + 1}.</span>
+                    <div className="flex-1 space-y-1.5">
+                      <Input
+                        placeholder="Ex.: Extrato bancário Itaú janeiro/2026"
+                        value={it.titulo}
+                        onChange={(e) => {
+                          const next = [...items]; next[idx].titulo = e.target.value; setItems(next);
+                        }}
+                        className="h-8 text-sm"
+                      />
+                      <Textarea
+                        placeholder="Detalhes (opcional): formato, conta, valor esperado..."
+                        value={it.descricao}
+                        onChange={(e) => {
+                          const next = [...items]; next[idx].descricao = e.target.value; setItems(next);
+                        }}
+                        rows={1}
+                        className="text-xs min-h-[32px]"
+                      />
+                    </div>
+                    {items.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setItems(items.filter((_, i) => i !== idx))}
+                        className="text-xs text-destructive hover:underline mt-2"
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setItems([...items, { titulo: "", descricao: "" }])}
+                className="text-xs text-primary hover:underline"
+              >
+                + Adicionar item
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -317,6 +469,8 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Criar pendência"}</Button>
         </DialogFooter>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );

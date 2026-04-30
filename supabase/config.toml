@@ -1,1 +1,4 @@
 project_id = "olyeiymugihmljbpzbnm"
+
+[functions.pendency-portal]
+verify_jwt = false

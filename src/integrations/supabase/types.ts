@@ -451,6 +451,48 @@ export type Database = {
           },
         ]
       }
+      pendency_access_tokens: {
+        Row: {
+          access_code_hash: string
+          access_count: number
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          last_accessed_at: string | null
+          pendency_id: string
+          revoked: boolean
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          access_code_hash: string
+          access_count?: number
+          created_at?: string
+          created_by: string
+          expires_at: string
+          id?: string
+          last_accessed_at?: string | null
+          pendency_id: string
+          revoked?: boolean
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          access_code_hash?: string
+          access_count?: number
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          last_accessed_at?: string | null
+          pendency_id?: string
+          revoked?: boolean
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pendency_communications: {
         Row: {
           canal: string
@@ -494,6 +536,120 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pendency_item_comments: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          pendency_id: string
+          sender_nome: string | null
+          sender_user_id: string | null
+          texto: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          pendency_id: string
+          sender_nome?: string | null
+          sender_user_id?: string | null
+          texto: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          pendency_id?: string
+          sender_nome?: string | null
+          sender_user_id?: string | null
+          texto?: string
+        }
+        Relationships: []
+      }
+      pendency_item_responses: {
+        Row: {
+          arquivo_nome: string | null
+          arquivo_path: string | null
+          arquivo_tamanho: number | null
+          created_at: string
+          id: string
+          item_id: string
+          pendency_id: string
+          sender_nome: string | null
+          sender_user_id: string | null
+          texto: string | null
+          tipo: string
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          arquivo_path?: string | null
+          arquivo_tamanho?: number | null
+          created_at?: string
+          id?: string
+          item_id: string
+          pendency_id: string
+          sender_nome?: string | null
+          sender_user_id?: string | null
+          texto?: string | null
+          tipo: string
+        }
+        Update: {
+          arquivo_nome?: string | null
+          arquivo_path?: string | null
+          arquivo_tamanho?: number | null
+          created_at?: string
+          id?: string
+          item_id?: string
+          pendency_id?: string
+          sender_nome?: string | null
+          sender_user_id?: string | null
+          texto?: string | null
+          tipo?: string
+        }
+        Relationships: []
+      }
+      pendency_items: {
+        Row: {
+          created_at: string
+          created_by: string
+          descricao: string | null
+          id: string
+          ordem: number
+          pendency_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          descricao?: string | null
+          id?: string
+          ordem?: number
+          pendency_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          descricao?: string | null
+          id?: string
+          ordem?: number
+          pendency_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       plannings: {
         Row: {

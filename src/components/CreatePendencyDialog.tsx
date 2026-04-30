@@ -469,6 +469,8 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
           <Button onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Criar pendência"}</Button>
         </DialogFooter>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );

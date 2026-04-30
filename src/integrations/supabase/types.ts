@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      client_contacts: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string
+          email: string
+          id: string
+          is_default: boolean
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by: string
+          email: string
+          id?: string
+          is_default?: boolean
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string
+          email?: string
+          id?: string
+          is_default?: boolean
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           cnpj: string

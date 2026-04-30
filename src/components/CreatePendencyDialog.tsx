@@ -57,6 +57,24 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
     });
   }, [open, user?.id]);
 
+  // Carrega contatos do cliente quando o dialog abre
+  useEffect(() => {
+    if (!open || !clientId) return;
+    supabase
+      .from("client_contacts")
+      .select("id, nome, email, is_default")
+      .eq("client_id", clientId)
+      .order("is_default", { ascending: false })
+      .order("nome")
+      .then(({ data }) => {
+        const list = (data || []) as ClientContact[];
+        setContacts(list);
+        const def = list.find((c) => c.is_default) || list[0];
+        setContatoId(def?.id ?? "");
+        setMostrandoNovoContato(list.length === 0);
+      });
+  }, [open, clientId]);
+
   const finalCompetencia = competencia || (month && year ? competenciaFromMonthYear(month, year) : "");
 
   async function handleSave() {

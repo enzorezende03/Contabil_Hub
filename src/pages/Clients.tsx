@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Pencil, Trash2, Building2, Search, Upload, Download } from "lucide-react";
+import { ClientContactsManager } from "@/components/ClientContactsManager";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 

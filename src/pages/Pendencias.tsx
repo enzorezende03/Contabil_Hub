@@ -524,10 +524,11 @@ function PortalAccessButton({ pendencyId }: { pendencyId: string }) {
                 <div className="flex items-start gap-2">
                   <KeyRound className="w-4 h-4 mt-0.5 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">Código de acesso oculto</p>
+                    <p className="font-medium">Código não disponível para embutir no link</p>
                     <p className="text-xs text-muted-foreground">
-                      O código original é armazenado de forma segura (hash) e não pode ser recuperado.
-                      Se o cliente não tem mais o código, gere um novo — o link continua o mesmo.
+                      O código original é guardado de forma segura (hash) e não pode ser recuperado.
+                      Para gerar um link com o código já embutido, clique em <strong>Gerar novo código</strong> —
+                      o link continua o mesmo, apenas o código é renovado.
                     </p>
                   </div>
                 </div>

@@ -86,7 +86,7 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
   async function handleSave() {
     if (!user || !finalCompetencia) { toast.error("Faltam dados de contexto"); return; }
     if (!descricao.trim()) { toast.error("Descreva a pendência"); return; }
-    if (tipo === "externa" && !documento.trim()) { toast.error("Informe o documento solicitado"); return; }
+    
 
     setSaving(true);
     const payload: any = {
@@ -96,7 +96,7 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
       tipo,
       descricao: descricao.trim(),
       prioridade,
-      prazo_resposta: prazo || null,
+      prazo_resposta: null,
       responsavel_id: responsavelId || user.id,
       followup_cadence_days: cadencia,
       created_by: user.id,
@@ -105,7 +105,7 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
     if (tipo === "interna") {
       payload.setor_responsavel = setor;
     } else {
-      payload.documento_solicitado = documento.trim();
+      payload.documento_solicitado = null;
       // Resolve contato escolhido (existente ou novo a cadastrar)
       let contNome: string | null = null;
       let contEmail: string | null = null;
@@ -297,10 +297,7 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
             </div>
           ) : (
             <>
-              <div className="space-y-1.5">
-                <Label>Documento solicitado *</Label>
-                <Input value={documento} onChange={(e) => setDocumento(e.target.value)} placeholder='Ex.: Extrato bancário Itaú janeiro/2026' />
-              </div>
+
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label>Contato para envio *</Label>
@@ -409,22 +406,16 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1.5">
-              <Label>Prioridade</Label>
-              <Select value={prioridade} onValueChange={(v) => setPrioridade(v as PendencyPrioridade)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(PRIORIDADE_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Prazo de resposta</Label>
-              <Input type="date" value={prazo} onChange={(e) => setPrazo(e.target.value)} />
-            </div>
+          <div className="space-y-1.5">
+            <Label>Prioridade</Label>
+            <Select value={prioridade} onValueChange={(v) => setPrioridade(v as PendencyPrioridade)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(PRIORIDADE_LABELS).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-2">

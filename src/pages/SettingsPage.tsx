@@ -33,6 +33,10 @@ export default function SettingsPage() {
     configurar_integracoes: ["coordenacao"],
     ver_todas_demandas: ["coordenacao", "analista"],
     ver_toda_equipe: ["coordenacao", "analista"],
+    ver_propria_produtividade: ["coordenacao", "analista", "assistente", "estagiario"],
+    ver_produtividade_equipe: ["coordenacao"],
+    configurar_produtividade: ["coordenacao"],
+    gerenciar_ausencias_equipe: ["coordenacao"],
   });
   const [editingWeights, setEditingWeights] = useState(false);
   const [editingTeam, setEditingTeam] = useState(false);
@@ -52,6 +56,10 @@ export default function SettingsPage() {
     configurar_integracoes: ["coordenacao"],
     ver_todas_demandas: ["coordenacao", "analista"],
     ver_toda_equipe: ["coordenacao", "analista"],
+    ver_propria_produtividade: ["coordenacao", "analista", "assistente", "estagiario"],
+    ver_produtividade_equipe: ["coordenacao"],
+    configurar_produtividade: ["coordenacao"],
+    gerenciar_ausencias_equipe: ["coordenacao"],
   });
   const [saving, setSaving] = useState(false);
 

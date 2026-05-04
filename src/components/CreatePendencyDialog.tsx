@@ -86,7 +86,7 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
   async function handleSave() {
     if (!user || !finalCompetencia) { toast.error("Faltam dados de contexto"); return; }
     if (!descricao.trim()) { toast.error("Descreva a pendência"); return; }
-    if (tipo === "externa" && !documento.trim()) { toast.error("Informe o documento solicitado"); return; }
+    
 
     setSaving(true);
     const payload: any = {

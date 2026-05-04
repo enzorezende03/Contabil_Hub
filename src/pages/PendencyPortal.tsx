@@ -265,8 +265,8 @@ export default function PendencyPortal() {
               <CheckCircle2 className="w-4 h-4" />
               <span className="font-medium">Pendência já enviada à contabilidade.</span>
             </div>
-            <Button size="sm" variant="ghost" onClick={() => setShowItems(true)}>
-              Ocultar itens
+            <Button size="sm" variant="ghost" onClick={() => setShowItems(false)}>
+              Voltar
             </Button>
           </div>
         </div>

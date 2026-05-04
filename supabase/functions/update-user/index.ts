@@ -31,8 +31,13 @@ Deno.serve(async (req) => {
     const { data: roleCheck } = await adminClient.from('user_roles').select('role').eq('user_id', callingUser.id).eq('role', 'admin').maybeSingle()
     if (!roleCheck) return new Response(JSON.stringify({ error: 'Apenas administradores podem editar usuários' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
-    const parsed = BodySchema.safeParse(await req.json())
-    if (!parsed.success) return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    const rawBody = await req.json()
+    console.log('update-user body:', JSON.stringify(rawBody))
+    const parsed = BodySchema.safeParse(rawBody)
+    if (!parsed.success) {
+      console.error('validation failed:', JSON.stringify(parsed.error.flatten().fieldErrors))
+      return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
 
     const { user_id, display_name, role, app_role, new_password } = parsed.data
 

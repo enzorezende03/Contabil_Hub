@@ -115,6 +115,27 @@ export default function PendencyPortal() {
     } catch (e: any) { toast.error(e.message); }
   }
 
+  const [submitting, setSubmitting] = useState(false);
+  const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
+
+  async function handleSubmitToContabilidade() {
+    setSubmitting(true);
+    try {
+      const res = await callPortal("submit", { token, code });
+      setSubmittedAt(new Date());
+      if (res.allDone) {
+        toast.success("Tudo enviado! Pendência concluída ✅");
+      } else {
+        toast.success(`Enviado parcialmente (${res.entregues}/${res.total}). Você pode continuar respondendo.`);
+      }
+      await reload();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function toggleDone(itemId: string, current: string) {
     const next = current === "entregue" ? "pendente" : "entregue";
     try {

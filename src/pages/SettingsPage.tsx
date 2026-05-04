@@ -278,6 +278,52 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Custom Roles */}
+        <div className="rounded-lg border bg-card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Shield className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold">Cargos Personalizados</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Crie novos cargos além dos padrões. Eles aparecerão nas tabelas de permissões abaixo e no cadastro de usuários.
+          </p>
+          <div className="divide-y divide-border mb-3">
+            {customRoles.length === 0 && (
+              <p className="text-xs text-muted-foreground py-2">Nenhum cargo personalizado criado.</p>
+            )}
+            {customRoles.map((r) => (
+              <div key={r.value} className="flex items-center justify-between py-2">
+                <div>
+                  <span className="text-sm font-medium">{r.label}</span>
+                  <span className="text-xs text-muted-foreground ml-2">({r.value})</span>
+                </div>
+                {isAdmin && (
+                  <button onClick={() => removeCustomRole(r.value)} className="text-destructive hover:text-destructive/80 p-1">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          {isAdmin && (
+            <div className="flex items-center gap-2 pt-3 border-t">
+              <input
+                placeholder="Nome do cargo (ex: Gerente Tributário)"
+                value={newRoleLabel}
+                onChange={(e) => setNewRoleLabel(e.target.value)}
+                className="h-8 px-3 text-sm border rounded bg-background focus:outline-none focus:ring-2 focus:ring-primary flex-1"
+              />
+              <button
+                onClick={addCustomRole}
+                disabled={!newRoleLabel.trim()}
+                className="h-8 px-3 rounded bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" /> Adicionar
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Permissions */}
         <div className="rounded-lg border bg-card p-4">
           <div className="flex items-center justify-between mb-3">

@@ -65,20 +65,45 @@ export default function PendencyPortal() {
     setComments(data.comments || []);
   }
 
-  async function handleAccess(e: React.FormEvent) {
-    e.preventDefault();
-    if (!code.trim()) return;
+  async function tryAccess(accessCode: string) {
     setLoading(true);
     try {
-      await reload();
+      const data = await callPortal("load", { token, code: accessCode });
+      setPendency(data.pendency);
+      setClientName(data.clientName);
+      setItems(data.items || []);
+      setResponses(data.responses || []);
+      setComments(data.comments || []);
+      setCode(accessCode);
       setAuthed(true);
       const saved = localStorage.getItem("pendency_sender_name");
       if (saved) setSenderName(saved);
+      return true;
     } catch (err: any) {
       toast.error(err.message);
+      return false;
     } finally {
       setLoading(false);
     }
+  }
+
+  // Auto-login se o código vier no fragmento da URL: /p/TOKEN#c=CODE
+  useEffect(() => {
+    if (authed) return;
+    const hash = window.location.hash || "";
+    const m = hash.match(/c=([^&]+)/);
+    if (m && m[1]) {
+      const c = decodeURIComponent(m[1]).toUpperCase();
+      setCode(c);
+      tryAccess(c);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
+  async function handleAccess(e: React.FormEvent) {
+    e.preventDefault();
+    if (!code.trim()) return;
+    await tryAccess(code.trim().toUpperCase());
   }
 
   useEffect(() => {

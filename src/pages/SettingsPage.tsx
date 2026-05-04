@@ -31,6 +31,8 @@ export default function SettingsPage() {
     gerenciar_pendencias: ["coordenacao", "analista", "assistente"],
     supervisionar_pendencias: ["coordenacao"],
     configurar_integracoes: ["coordenacao"],
+    ver_todas_demandas: ["coordenacao", "analista"],
+    ver_toda_equipe: ["coordenacao", "analista"],
   });
   const [editingWeights, setEditingWeights] = useState(false);
   const [editingTeam, setEditingTeam] = useState(false);
@@ -48,6 +50,8 @@ export default function SettingsPage() {
     gerenciar_pendencias: ["coordenacao", "analista", "assistente"],
     supervisionar_pendencias: ["coordenacao"],
     configurar_integracoes: ["coordenacao"],
+    ver_todas_demandas: ["coordenacao", "analista"],
+    ver_toda_equipe: ["coordenacao", "analista"],
   });
   const [saving, setSaving] = useState(false);
 

@@ -43,7 +43,9 @@ export default function DemandsPage() {
   const [filterPriority, setFilterPriority] = usePersistedFilter<string>("demandas", "priority", "all");
   const [filterAssignee, setFilterAssignee] = usePersistedFilter<string>("demandas", "assignee", "all");
   const [createOpen, setCreateOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  useActionPermissions();
+  const canSeeAll = canPerformAction("ver_todas_demandas", profile?.role);
 
   // Load demands from DB
   const { data: dbDemands = [], refetch: refetchDemands } = useQuery({

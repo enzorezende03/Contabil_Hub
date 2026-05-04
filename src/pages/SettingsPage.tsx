@@ -199,6 +199,8 @@ export default function SettingsPage() {
     { key: "revisar_demonstrativos", label: "Revisar Demonstrativos", description: "Permite aprovar, apontar e devolver demonstrativos contábeis na caixa de revisão" },
     { key: "cancelar_submissao", label: "Cancelar Submissão", description: "Permite cancelar uma submissão de revisão ainda não revisada" },
     { key: "supervisionar_revisao", label: "Supervisionar Revisão", description: "Visão completa de todas as submissões do sistema; permite reatribuir revisora e remover bloqueios" },
+    { key: "ver_todas_demandas", label: "Ver Todas as Demandas", description: "Visualiza demandas e planejamentos de toda a equipe (operacional vê apenas os seus quando desmarcado)" },
+    { key: "ver_toda_equipe", label: "Ver Produtividade de Toda Equipe", description: "Visualiza produtividade de todos os colaboradores (operacional vê apenas a sua quando desmarcado)" },
   ];
   const startEditActions = () => {
     setDraftActions(JSON.parse(JSON.stringify(actionPerms)));

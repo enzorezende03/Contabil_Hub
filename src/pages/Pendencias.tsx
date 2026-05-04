@@ -408,7 +408,11 @@ function PortalAccessButton({ pendencyId }: { pendencyId: string }) {
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [hasToken, setHasToken] = useState<boolean>(false);
 
-  const portalUrl = token ? `${window.location.origin}/p/${token}` : null;
+  // Link com código embutido no fragmento (#) — não trafega em logs de servidor.
+  // Se ainda não geramos um novo código nesta sessão, mostramos só o link base.
+  const portalUrl = token
+    ? `${window.location.origin}/p/${token}${code ? `#c=${encodeURIComponent(code)}` : ""}`
+    : null;
 
   async function loadExisting() {
     setLoading(true);

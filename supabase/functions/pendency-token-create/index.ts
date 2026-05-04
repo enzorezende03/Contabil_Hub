@@ -66,32 +66,59 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
 
-    const token = randomToken();
     const code = randomCode();
     const codeHash = await sha256(code);
     const expires = new Date(Date.now() + expiresInDays * 86400000).toISOString();
 
-    // Upsert (uma por pendência, rotaciona se existir)
-    const { error } = await supabase
+    // Verifica se já existe um token ativo para esta pendência
+    const { data: existing } = await supabase
       .from("pendency_access_tokens")
-      .upsert(
-        {
-          pendency_id: pendencyId,
-          token,
+      .select("id, token, revoked")
+      .eq("pendency_id", pendencyId)
+      .maybeSingle();
+
+    let token: string;
+
+    if (existing && !existing.revoked) {
+      // MANTÉM o token (link) existente, apenas rotaciona o código de acesso e renova o prazo
+      token = existing.token;
+      const { error } = await supabase
+        .from("pendency_access_tokens")
+        .update({
           access_code_hash: codeHash,
           expires_at: expires,
           revoked: false,
-          created_by: userId,
-          access_count: 0,
-          last_accessed_at: null,
-        },
-        { onConflict: "pendency_id" },
-      );
-    if (error)
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        })
+        .eq("id", existing.id);
+      if (error)
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+    } else {
+      // Cria novo token (primeira geração ou após revogação)
+      token = randomToken();
+      const { error } = await supabase
+        .from("pendency_access_tokens")
+        .upsert(
+          {
+            pendency_id: pendencyId,
+            token,
+            access_code_hash: codeHash,
+            expires_at: expires,
+            revoked: false,
+            created_by: userId,
+            access_count: 0,
+            last_accessed_at: null,
+          },
+          { onConflict: "pendency_id" },
+        );
+      if (error)
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+    }
 
     return new Response(JSON.stringify({ token, code, expires_at: expires }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

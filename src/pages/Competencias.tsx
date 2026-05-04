@@ -1409,17 +1409,6 @@ export default function CompetenciasPage() {
           year={year}
         />
       )}
-
-      <ImportGClickDialog
-        open={importGClickOpen}
-        onOpenChange={setImportGClickOpen}
-        year={year}
-        clients={dbClients as any}
-        onImported={() => {
-          // Recarrega a página para refletir os novos status (loader é controlado por [year])
-          window.location.reload();
-        }}
-      />
     </AppLayout>
   );
 }

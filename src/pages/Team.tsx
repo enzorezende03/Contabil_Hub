@@ -154,7 +154,7 @@ export default function TeamPage() {
           </div>
           <div className="rounded-lg border bg-card p-3 text-center">
             <p className="text-xs text-muted-foreground">Demandas Criadas</p>
-            <p className="text-xl font-bold mt-1">{demands.length}</p>
+            <p className="text-xl font-bold mt-1">{visibleDemands.length}</p>
           </div>
         </div>
 

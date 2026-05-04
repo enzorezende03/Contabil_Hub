@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Pencil, Save, Plus, Trash2, X, Shield, Lock } from "lucide-react";
 import { ALL_PAGES, type ProfileRole, type AppPage, setRolePermissions, BUILTIN_ROLES, setCustomRoles } from "@/lib/permissions";
 import { type ActionPermissions, setActionPermissions } from "@/hooks/use-action-permissions";
+import ProductivitySettings from "@/components/ProductivitySettings";
 
 const ROLE_OPTIONS: { value: TeamRole; label: string }[] = [
   { value: "estagiario", label: "Estagiário" },

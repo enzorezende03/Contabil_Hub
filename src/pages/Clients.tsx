@@ -451,7 +451,7 @@ export default function Clients() {
                           )}
                         </TableCell>
                         <TableCell>{c.competencia_inicio}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-end gap-1">
                             <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
                               <Pencil className="w-4 h-4" />

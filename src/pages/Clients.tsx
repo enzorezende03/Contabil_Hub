@@ -429,7 +429,7 @@ export default function Clients() {
                   </TableHeader>
                   <TableBody>
                     {filtered.map((c) => (
-                      <TableRow key={c.id}>
+                      <TableRow key={c.id} onClick={() => openEdit(c)} className="cursor-pointer">
                         <TableCell className="font-medium">{c.razao_social}</TableCell>
                         <TableCell className="font-mono text-sm">{formatCnpj(c.cnpj)}</TableCell>
                         <TableCell>

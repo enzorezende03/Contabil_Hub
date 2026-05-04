@@ -338,6 +338,7 @@ export type Database = {
       pendencies: {
         Row: {
           client_id: string
+          client_submit_count: number
           competencia: string
           contato_cliente_email: string | null
           contato_cliente_nome: string | null
@@ -358,6 +359,7 @@ export type Database = {
           gclick_task_id: string | null
           gclick_task_url: string | null
           id: string
+          last_client_submit_at: string | null
           next_followup_at: string | null
           prazo_resposta: string | null
           prioridade: string
@@ -373,6 +375,7 @@ export type Database = {
         }
         Insert: {
           client_id: string
+          client_submit_count?: number
           competencia: string
           contato_cliente_email?: string | null
           contato_cliente_nome?: string | null
@@ -393,6 +396,7 @@ export type Database = {
           gclick_task_id?: string | null
           gclick_task_url?: string | null
           id?: string
+          last_client_submit_at?: string | null
           next_followup_at?: string | null
           prazo_resposta?: string | null
           prioridade?: string
@@ -408,6 +412,7 @@ export type Database = {
         }
         Update: {
           client_id?: string
+          client_submit_count?: number
           competencia?: string
           contato_cliente_email?: string | null
           contato_cliente_nome?: string | null
@@ -428,6 +433,7 @@ export type Database = {
           gclick_task_id?: string | null
           gclick_task_url?: string | null
           id?: string
+          last_client_submit_at?: string | null
           next_followup_at?: string | null
           prazo_resposta?: string | null
           prioridade?: string

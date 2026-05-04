@@ -105,13 +105,51 @@ Deno.serve(async (req) => {
       });
       if (insErr) return json({ error: insErr.message }, 500);
 
-      // Update pendency last contact
+      // Auto-marca o item como entregue ao receber qualquer resposta
+      await supabase
+        .from("pendency_items")
+        .update({ status: "entregue", resolved_at: new Date().toISOString() })
+        .eq("id", itemId)
+        .eq("pendency_id", pendencyId);
+
+      // Atualiza último contato na pendência
       await supabase
         .from("pendencies")
         .update({ ultimo_contato_em: new Date().toISOString() })
         .eq("id", pendencyId);
 
       return json({ ok: true });
+    }
+
+    if (action === "submit") {
+      // Cliente envia o que está pronto para a contabilidade.
+      // Conta itens entregues vs total: se todos entregues, marca pendência como resolvida; senão, aguardando_resposta.
+      const { data: itemsList } = await supabase
+        .from("pendency_items")
+        .select("status")
+        .eq("pendency_id", pendencyId);
+      const total = itemsList?.length ?? 0;
+      const entregues = (itemsList || []).filter((i: any) => i.status === "entregue").length;
+      const allDone = total > 0 && entregues === total;
+
+      const { data: pend } = await supabase
+        .from("pendencies")
+        .select("client_submit_count")
+        .eq("id", pendencyId)
+        .maybeSingle();
+
+      await supabase
+        .from("pendencies")
+        .update({
+          status: allDone ? "resolvida" : "aguardando_resposta",
+          last_client_submit_at: new Date().toISOString(),
+          client_submit_count: ((pend?.client_submit_count as number) || 0) + 1,
+          ultimo_contato_em: new Date().toISOString(),
+          resolved_at: allDone ? new Date().toISOString() : null,
+        })
+        .eq("id", pendencyId);
+
+      return json({ ok: true, allDone, entregues, total });
     }
 
     if (action === "mark") {

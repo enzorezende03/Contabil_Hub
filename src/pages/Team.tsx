@@ -70,6 +70,7 @@ export default function TeamPage() {
 
     return profiles
       .filter((p: any) => p.role !== "coordenacao")
+      .filter((p: any) => canSeeAll || (user && p.user_id === user.id))
       .map((p: any) => {
       const userEntries = byUser.get(p.user_id) || [];
       const totalEntries = userEntries.length;

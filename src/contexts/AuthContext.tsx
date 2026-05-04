@@ -83,12 +83,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data } = await supabase
       .from("settings")
       .select("key, value")
-      .in("key", ["role_permissions", "action_permissions"]);
+      .in("key", ["role_permissions", "action_permissions", "custom_roles"]);
     if (data) {
       const roleRow = data.find((r) => r.key === "role_permissions");
       const actionRow = data.find((r) => r.key === "action_permissions");
+      const customRow = data.find((r) => r.key === "custom_roles");
       if (roleRow?.value) setRolePermissions(roleRow.value as Record<string, string[]>);
       if (actionRow?.value) setActionPermissions(actionRow.value as Record<string, string[]>);
+      if (customRow?.value) setCustomRoles(customRow.value as { value: string; label: string }[]);
     }
   };
 

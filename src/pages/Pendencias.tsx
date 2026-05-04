@@ -383,19 +383,21 @@ function PendencyCard({ pendency: p, clientName, responsavelName, onCobrar, onRe
           </div>
         </div>
       </div>
-      {!finalizada && (
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t flex-wrap">
-          <Button size="sm" onClick={onCobrar}>Registrar cobrança</Button>
-          <Button size="sm" variant="outline" onClick={onResolver}>Resolver</Button>
-          <Button size="sm" variant="ghost" onClick={onPausar}>
-            {p.followup_paused ? <><Play className="w-3.5 h-3.5 mr-1" /> Despausar</> : <><Pause className="w-3.5 h-3.5 mr-1" /> Pausar</>}
-          </Button>
-          {p.tipo === "externa" && <PortalAccessButton pendencyId={p.id} />}
-          <Button size="sm" variant="ghost" className="ml-auto" onClick={onDetalhes}>
-            <History className="w-3.5 h-3.5 mr-1" /> Histórico
-          </Button>
-        </div>
-      )}
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t flex-wrap">
+        {!finalizada && (
+          <>
+            <Button size="sm" onClick={onCobrar}>Registrar cobrança</Button>
+            <Button size="sm" variant="outline" onClick={onResolver}>Resolver</Button>
+            <Button size="sm" variant="ghost" onClick={onPausar}>
+              {p.followup_paused ? <><Play className="w-3.5 h-3.5 mr-1" /> Despausar</> : <><Pause className="w-3.5 h-3.5 mr-1" /> Pausar</>}
+            </Button>
+            {p.tipo === "externa" && <PortalAccessButton pendencyId={p.id} />}
+          </>
+        )}
+        <Button size="sm" variant="ghost" className="ml-auto" onClick={onDetalhes}>
+          <History className="w-3.5 h-3.5 mr-1" /> {p.tipo === "externa" ? "Ver respostas / histórico" : "Histórico"}
+        </Button>
+      </div>
     </div>
   );
 }

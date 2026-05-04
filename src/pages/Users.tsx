@@ -21,6 +21,8 @@ export default function UsersPage() {
   const [role, setRole] = useState("assistente");
   const [appRole, setAppRole] = useState<"admin" | "user">("user");
   const [loading, setLoading] = useState(false);
+  const [customRoles, setCustomRoles] = useState<{ value: string; label: string }[]>([]);
+  const ROLE_OPTIONS = [...BUILTIN_ROLES, ...customRoles];
 
   useEffect(() => {
     loadUsers();

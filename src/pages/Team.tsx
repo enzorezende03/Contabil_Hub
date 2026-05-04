@@ -102,7 +102,7 @@ export default function TeamPage() {
       };
     }).filter((m: any) => m.totalEntries > 0 || m.totalDemands > 0)
       .sort((a: any, b: any) => b.score - a.score);
-  }, [profiles, entries, demands]);
+  }, [profiles, entries, demands, canSeeAll, user]);
 
   const chartData = memberStats.map((m) => ({
     name: m.name.split(" ")[0],

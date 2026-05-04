@@ -24,6 +24,42 @@ export default function UsersPage() {
   const [customRoles, setCustomRoles] = useState<{ value: string; label: string }[]>([]);
   const ROLE_OPTIONS = [...BUILTIN_ROLES, ...customRoles];
 
+  const [editing, setEditing] = useState<UserRow | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editRole, setEditRole] = useState("assistente");
+  const [editAppRole, setEditAppRole] = useState<"admin" | "user">("user");
+  const [editPassword, setEditPassword] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const openEdit = (u: UserRow) => {
+    setEditing(u);
+    setEditName(u.display_name);
+    setEditRole(u.role);
+    setEditAppRole(u.isAdmin ? "admin" : "user");
+    setEditPassword("");
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    setSavingEdit(true);
+    const body: Record<string, unknown> = {
+      user_id: editing.user_id,
+      display_name: editName,
+      role: editRole,
+      app_role: editAppRole,
+    };
+    if (editPassword) body.new_password = editPassword;
+    const { data, error } = await supabase.functions.invoke("update-user", { body });
+    if (error || data?.error) {
+      toast.error(data?.error || error?.message || "Erro ao atualizar");
+    } else {
+      toast.success("Usuário atualizado!");
+      setEditing(null);
+      loadUsers();
+    }
+    setSavingEdit(false);
+  };
+
   useEffect(() => {
     loadUsers();
   }, []);

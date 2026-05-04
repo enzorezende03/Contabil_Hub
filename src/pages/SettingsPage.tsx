@@ -432,6 +432,9 @@ export default function SettingsPage() {
             <p className="text-[11px] text-muted-foreground mt-2">* O Dashboard é obrigatório para todos os cargos.</p>
           )}
         </div>
+
+        {/* Productivity */}
+        <ProductivitySettings />
       </div>
     </AppLayout>
   );

@@ -7,9 +7,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Upload, FileCheck, Lock, Send, ShieldCheck, Circle, Loader2, Clock, CheckCircle2, Eye, FileSpreadsheet } from "lucide-react";
+import { Upload, FileCheck, Lock, Send, ShieldCheck, Circle, Loader2, Clock, CheckCircle2, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ImportGClickDialog } from "@/components/ImportGClickDialog";
 
 type StatusOption = {
   value: DemandStatus;
@@ -257,7 +256,7 @@ export default function CompetenciasPage() {
   const [demandStatuses, setDemandStatuses] = useState<Record<string, DemandStatus>>({});
   const [filledByMap, setFilledByMap] = useState<Record<string, string>>({});
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
-  const [importGClickOpen, setImportGClickOpen] = useState(false);
+  
   const [batchMonths, setBatchMonths] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -790,14 +789,6 @@ export default function CompetenciasPage() {
               <h1 className="text-2xl font-bold tracking-tight">Fechamento Contábil {year}</h1>
               <p className="text-sm text-muted-foreground mt-1">Evolução contábil por empresa e mês</p>
             </div>
-            <button
-              onClick={() => setImportGClickOpen(true)}
-              className="h-9 px-3 text-xs font-semibold rounded-md border border-border bg-card hover:bg-muted transition-colors flex items-center gap-1.5"
-              title="Importar planilha exportada do G-Click para preencher status em lote"
-            >
-              <FileSpreadsheet className="w-4 h-4" />
-              Importar planilha G-Click
-            </button>
           </div>
         </div>
 
@@ -1418,17 +1409,6 @@ export default function CompetenciasPage() {
           year={year}
         />
       )}
-
-      <ImportGClickDialog
-        open={importGClickOpen}
-        onOpenChange={setImportGClickOpen}
-        year={year}
-        clients={dbClients as any}
-        onImported={() => {
-          // Recarrega a página para refletir os novos status (loader é controlado por [year])
-          window.location.reload();
-        }}
-      />
     </AppLayout>
   );
 }

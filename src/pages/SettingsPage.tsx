@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Pencil, Save, Plus, Trash2, X, Shield, Lock } from "lucide-react";
-import { ALL_PAGES, type ProfileRole, type AppPage, setRolePermissions } from "@/lib/permissions";
+import { ALL_PAGES, type ProfileRole, type AppPage, setRolePermissions, BUILTIN_ROLES, setCustomRoles } from "@/lib/permissions";
 import { type ActionPermissions, setActionPermissions } from "@/hooks/use-action-permissions";
 
 const ROLE_OPTIONS: { value: TeamRole; label: string }[] = [
@@ -13,13 +13,6 @@ const ROLE_OPTIONS: { value: TeamRole; label: string }[] = [
   { value: "assistente", label: "Assistente" },
   { value: "analista", label: "Analista" },
   { value: "coordenacao", label: "Coordenação" },
-];
-
-const PROFILE_ROLES: { value: ProfileRole; label: string }[] = [
-  { value: "coordenacao", label: "Coordenação" },
-  { value: "analista", label: "Analista" },
-  { value: "assistente", label: "Assistente" },
-  { value: "estagiario", label: "Estagiário" },
 ];
 
 type RolePerms = Record<ProfileRole, AppPage[]>;

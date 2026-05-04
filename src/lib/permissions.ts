@@ -1,7 +1,28 @@
 // Role-based page permissions
-// Profile roles: coordenacao, analista, assistente, estagiario
+// Built-in profile roles + custom roles created by admins
 
-export type ProfileRole = "coordenacao" | "analista" | "assistente" | "estagiario";
+export type ProfileRole = string;
+
+export const BUILTIN_ROLES: { value: string; label: string }[] = [
+  { value: "coordenacao", label: "Coordenação" },
+  { value: "analista", label: "Analista" },
+  { value: "assistente", label: "Assistente" },
+  { value: "estagiario", label: "Estagiário" },
+];
+
+let CUSTOM_ROLES: { value: string; label: string }[] = [];
+
+export function setCustomRoles(roles: { value: string; label: string }[]) {
+  CUSTOM_ROLES = roles || [];
+}
+
+export function getCustomRoles() {
+  return [...CUSTOM_ROLES];
+}
+
+export function getAllRoles() {
+  return [...BUILTIN_ROLES, ...CUSTOM_ROLES];
+}
 
 export type AppPage =
   | "/"

@@ -20,6 +20,7 @@ import { formatMinutes, getDeadlineUrgency } from "@/lib/demand-utils";
 import { Search, Filter, LayoutGrid, List, Clock, User, AlertTriangle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreateDemandDialog } from "@/components/CreateDemandDialog";
+import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import { toast } from "sonner";
 
 type ViewMode = "list" | "kanban";
@@ -42,7 +43,9 @@ export default function DemandsPage() {
   const [filterPriority, setFilterPriority] = usePersistedFilter<string>("demandas", "priority", "all");
   const [filterAssignee, setFilterAssignee] = usePersistedFilter<string>("demandas", "assignee", "all");
   const [createOpen, setCreateOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  useActionPermissions();
+  const canSeeAll = canPerformAction("ver_todas_demandas", profile?.role);
 
   // Load demands from DB
   const { data: dbDemands = [], refetch: refetchDemands } = useQuery({
@@ -127,6 +130,7 @@ export default function DemandsPage() {
   const filtered = useMemo(() => {
     return demandsWithDerivedStatus
       .filter((d) => {
+        if (!canSeeAll && user && d.assignee !== user.id) return false;
         if (search && !d.client.toLowerCase().includes(search.toLowerCase()) && !d.description.toLowerCase().includes(search.toLowerCase())) return false;
         if (filterType !== "all" && !d.types.includes(filterType as DemandType)) return false;
         if (filterPriority !== "all" && d.priority !== filterPriority) return false;
@@ -134,7 +138,7 @@ export default function DemandsPage() {
         return true;
       })
       .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
-  }, [search, filterType, filterPriority, filterAssignee, demandsWithDerivedStatus]);
+  }, [search, filterType, filterPriority, filterAssignee, demandsWithDerivedStatus, canSeeAll, user]);
 
   const getMember = (id: string) => TEAM_MEMBERS.find((m) => m.id === id);
 

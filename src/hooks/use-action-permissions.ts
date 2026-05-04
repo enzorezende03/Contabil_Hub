@@ -10,6 +10,8 @@ export type ActionPermissions = {
   gerenciar_pendencias: string[];
   supervisionar_pendencias: string[];
   configurar_integracoes: string[];
+  ver_todas_demandas: string[];
+  ver_toda_equipe: string[];
 };
 
 const DEFAULTS: ActionPermissions = {
@@ -21,6 +23,8 @@ const DEFAULTS: ActionPermissions = {
   gerenciar_pendencias: ["coordenacao", "analista", "assistente"],
   supervisionar_pendencias: ["coordenacao"],
   configurar_integracoes: ["coordenacao"],
+  ver_todas_demandas: ["coordenacao", "analista"],
+  ver_toda_equipe: ["coordenacao", "analista"],
 };
 
 let cachedPerms: ActionPermissions = { ...DEFAULTS };

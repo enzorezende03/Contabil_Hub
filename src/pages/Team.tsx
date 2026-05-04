@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Trophy, TrendingUp, CheckCircle2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 
 const TYPE_LABELS: Record<string, string> = {
   lancamentos: "Lançamentos",
@@ -15,6 +17,10 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function TeamPage() {
+  const { user, profile } = useAuth();
+  useActionPermissions();
+  const canSeeAll = canPerformAction("ver_toda_equipe", profile?.role);
+
   // Fetch profiles
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles"],
@@ -64,6 +70,7 @@ export default function TeamPage() {
 
     return profiles
       .filter((p: any) => p.role !== "coordenacao")
+      .filter((p: any) => canSeeAll || (user && p.user_id === user.id))
       .map((p: any) => {
       const userEntries = byUser.get(p.user_id) || [];
       const totalEntries = userEntries.length;
@@ -95,7 +102,7 @@ export default function TeamPage() {
       };
     }).filter((m: any) => m.totalEntries > 0 || m.totalDemands > 0)
       .sort((a: any, b: any) => b.score - a.score);
-  }, [profiles, entries, demands]);
+  }, [profiles, entries, demands, canSeeAll, user]);
 
   const chartData = memberStats.map((m) => ({
     name: m.name.split(" ")[0],
@@ -103,15 +110,17 @@ export default function TeamPage() {
     concluidas: m.completedEntries,
   }));
 
-  const totalEntries = entries.length;
-  const totalCompleted = entries.filter((e: any) => e.status === "completed").length;
+  const visibleEntries = canSeeAll ? entries : entries.filter((e: any) => user && e.filled_by === user.id);
+  const visibleDemands = canSeeAll ? demands : demands.filter((d: any) => user && d.assignee === user.id);
+  const totalEntries = visibleEntries.length;
+  const totalCompleted = visibleEntries.filter((e: any) => e.status === "completed").length;
   const sectorCompletion = totalEntries > 0 ? Math.round((totalCompleted / totalEntries) * 100) : 0;
 
   // Type breakdown
   const typeReport = Object.entries(TYPE_LABELS).map(([k, v]) => ({
     type: v,
-    count: entries.filter((e: any) => e.demand_type === k).length,
-    completed: entries.filter((e: any) => e.demand_type === k && e.status === "completed").length,
+    count: visibleEntries.filter((e: any) => e.demand_type === k).length,
+    completed: visibleEntries.filter((e: any) => e.demand_type === k && e.status === "completed").length,
   })).filter((t) => t.count > 0);
 
   const roleLabels: Record<string, string> = {
@@ -145,7 +154,7 @@ export default function TeamPage() {
           </div>
           <div className="rounded-lg border bg-card p-3 text-center">
             <p className="text-xs text-muted-foreground">Demandas Criadas</p>
-            <p className="text-xl font-bold mt-1">{demands.length}</p>
+            <p className="text-xl font-bold mt-1">{visibleDemands.length}</p>
           </div>
         </div>
 

@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import AppLayout from "@/components/AppLayout";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useTeamMembers } from "@/hooks/use-team-members";
+import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import {
   DEMAND_TYPE_LABELS,
   DemandStatus,
@@ -43,6 +44,9 @@ export default function PlanejamentoPage() {
   const [filterAssignee, setFilterAssignee] = usePersistedFilter<string>("planejamento", "assignee", "all");
   const [createOpen, setCreateOpen] = useState(false);
   const { members: teamMembers } = useTeamMembers();
+  const { user, profile } = useAuth();
+  useActionPermissions();
+  const canSeeAll = canPerformAction("ver_todas_demandas", profile?.role);
 
   const { data: dbPlannings = [], refetch } = useQuery({
     queryKey: ["plannings"],
@@ -117,13 +121,14 @@ export default function PlanejamentoPage() {
   const filtered = useMemo(() => {
     return planningsWithDerivedStatus
       .filter((d) => {
+        if (!canSeeAll && user && d.assignee !== user.id) return false;
         if (search && !d.client.toLowerCase().includes(search.toLowerCase()) && !d.description.toLowerCase().includes(search.toLowerCase())) return false;
         if (filterType !== "all" && !d.types.includes(filterType as DemandType)) return false;
         if (filterAssignee !== "all" && d.assignee !== filterAssignee) return false;
         return true;
       })
       .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
-  }, [search, filterType, filterAssignee, planningsWithDerivedStatus]);
+  }, [search, filterType, filterAssignee, planningsWithDerivedStatus, canSeeAll, user]);
 
   const getMember = (id: string) => teamMembers.find((m) => m.id === id);
 

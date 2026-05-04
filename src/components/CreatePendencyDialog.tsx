@@ -297,10 +297,7 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
             </div>
           ) : (
             <>
-              <div className="space-y-1.5">
-                <Label>Documento solicitado *</Label>
-                <Input value={documento} onChange={(e) => setDocumento(e.target.value)} placeholder='Ex.: Extrato bancário Itaú janeiro/2026' />
-              </div>
+
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label>Contato para envio *</Label>

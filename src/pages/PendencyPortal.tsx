@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Paperclip, Check, MessageSquare, Loader2, Send } from "lucide-react";
+import { Paperclip, Check, MessageSquare, Loader2, Send, CheckCircle2 } from "lucide-react";
 
 const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pendency-portal`;
 const ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;

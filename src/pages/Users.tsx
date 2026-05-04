@@ -24,6 +24,42 @@ export default function UsersPage() {
   const [customRoles, setCustomRoles] = useState<{ value: string; label: string }[]>([]);
   const ROLE_OPTIONS = [...BUILTIN_ROLES, ...customRoles];
 
+  const [editing, setEditing] = useState<UserRow | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editRole, setEditRole] = useState("assistente");
+  const [editAppRole, setEditAppRole] = useState<"admin" | "user">("user");
+  const [editPassword, setEditPassword] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const openEdit = (u: UserRow) => {
+    setEditing(u);
+    setEditName(u.display_name);
+    setEditRole(u.role);
+    setEditAppRole(u.isAdmin ? "admin" : "user");
+    setEditPassword("");
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    setSavingEdit(true);
+    const body: Record<string, unknown> = {
+      user_id: editing.user_id,
+      display_name: editName,
+      role: editRole,
+      app_role: editAppRole,
+    };
+    if (editPassword) body.new_password = editPassword;
+    const { data, error } = await supabase.functions.invoke("update-user", { body });
+    if (error || data?.error) {
+      toast.error(data?.error || error?.message || "Erro ao atualizar");
+    } else {
+      toast.success("Usuário atualizado!");
+      setEditing(null);
+      loadUsers();
+    }
+    setSavingEdit(false);
+  };
+
   useEffect(() => {
     loadUsers();
   }, []);
@@ -123,6 +159,7 @@ export default function UsersPage() {
                 <th className="text-left px-4 py-2 font-medium text-muted-foreground">Nome</th>
                 <th className="text-left px-4 py-2 font-medium text-muted-foreground">Cargo</th>
                 <th className="text-left px-4 py-2 font-medium text-muted-foreground">Acesso</th>
+                <th className="text-right px-4 py-2 font-medium text-muted-foreground">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -135,11 +172,51 @@ export default function UsersPage() {
                       {u.isAdmin ? "Admin" : "Usuário"}
                     </span>
                   </td>
+                  <td className="px-4 py-2 text-right">
+                    <button onClick={() => openEdit(u)} className="text-xs px-3 py-1 rounded-md border hover:bg-muted transition-colors">Editar</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        {editing && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEditing(null)}>
+            <div className="bg-card rounded-lg border shadow-lg w-full max-w-md p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+              <h2 className="text-base font-semibold">Editar usuário</h2>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Nome</label>
+                  <input value={editName} onChange={(e) => setEditName(e.target.value)} className={inputClass} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Cargo</label>
+                  <select value={editRole} onChange={(e) => setEditRole(e.target.value)} className={selectClass}>
+                    {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Nível de acesso</label>
+                  <select value={editAppRole} onChange={(e) => setEditAppRole(e.target.value as "admin" | "user")} className={selectClass}>
+                    <option value="user">Usuário</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Nova senha (opcional)</label>
+                  <input type="password" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} className={inputClass} placeholder="Deixe em branco para não alterar" minLength={6} />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button onClick={() => setEditing(null)} className="h-9 px-4 rounded-md border text-sm hover:bg-muted">Cancelar</button>
+                <button onClick={saveEdit} disabled={savingEdit} className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 disabled:opacity-50">
+                  {savingEdit ? "Salvando..." : "Salvar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AppLayout>
   );

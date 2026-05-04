@@ -246,60 +246,6 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Team */}
-        <div className="rounded-lg border bg-card p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold">Equipe</h3>
-            <EditButton editing={editingTeam} onStart={startEditTeam} onCancel={() => setEditingTeam(false)} onSave={saveTeam} />
-          </div>
-          <div className="divide-y divide-border">
-            {(editingTeam ? draftTeam : team).map((m) => (
-              <div key={m.id} className="flex items-center justify-between py-2 gap-2">
-                <div className="flex items-center gap-2 flex-1">
-                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary flex-shrink-0">
-                    {m.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                  </div>
-                  {editingTeam ? (
-                    <input value={m.name} onChange={(e) => updateMemberName(m.id, e.target.value)}
-                      className="h-7 px-2 text-sm border rounded bg-background focus:outline-none focus:ring-2 focus:ring-primary flex-1" />
-                  ) : (
-                    <span className="text-sm font-medium">{m.name}</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {editingTeam ? (
-                    <>
-                      <select value={m.role} onChange={(e) => updateMemberRole(m.id, e.target.value as TeamRole)}
-                        className="h-7 px-2 text-xs border rounded bg-background focus:outline-none focus:ring-2 focus:ring-primary">
-                        {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                      </select>
-                      <button onClick={() => removeMember(m.id)} className="text-destructive hover:text-destructive/80 p-1">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </>
-                  ) : (
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">{ROLE_LABELS[m.role]}</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-          {editingTeam && (
-            <div className="flex items-center gap-2 mt-3 pt-3 border-t">
-              <input placeholder="Nome do membro" value={newName} onChange={(e) => setNewName(e.target.value)}
-                className="h-8 px-3 text-sm border rounded bg-background focus:outline-none focus:ring-2 focus:ring-primary flex-1" />
-              <select value={newRole} onChange={(e) => setNewRole(e.target.value as TeamRole)}
-                className="h-8 px-2 text-xs border rounded bg-background focus:outline-none focus:ring-2 focus:ring-primary">
-                {ROLE_OPTIONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-              </select>
-              <button onClick={addMember} disabled={!newName.trim()}
-                className="h-8 px-3 rounded bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1">
-                <Plus className="w-3.5 h-3.5" /> Adicionar
-              </button>
-            </div>
-          )}
-        </div>
-
         {/* Permissions */}
         <div className="rounded-lg border bg-card p-4">
           <div className="flex items-center justify-between mb-3">

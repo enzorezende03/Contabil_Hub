@@ -408,7 +408,11 @@ function PortalAccessButton({ pendencyId }: { pendencyId: string }) {
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [hasToken, setHasToken] = useState<boolean>(false);
 
-  const portalUrl = token ? `${window.location.origin}/p/${token}` : null;
+  // Link com código embutido no fragmento (#) — não trafega em logs de servidor.
+  // Se ainda não geramos um novo código nesta sessão, mostramos só o link base.
+  const portalUrl = token
+    ? `${window.location.origin}/p/${token}${code ? `#c=${encodeURIComponent(code)}` : ""}`
+    : null;
 
   async function loadExisting() {
     setLoading(true);
@@ -474,7 +478,8 @@ function PortalAccessButton({ pendencyId }: { pendencyId: string }) {
           <DialogHeader>
             <DialogTitle>Acesso do cliente ao portal</DialogTitle>
             <DialogDescription>
-              Envie o link e o código de acesso ao cliente para que ele responda às pendências.
+              O link abaixo já contém o código de acesso embutido — basta enviá-lo ao cliente.
+              O código também aparece separado caso queira enviar por outro canal.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -519,10 +524,11 @@ function PortalAccessButton({ pendencyId }: { pendencyId: string }) {
                 <div className="flex items-start gap-2">
                   <KeyRound className="w-4 h-4 mt-0.5 text-muted-foreground" />
                   <div>
-                    <p className="font-medium">Código de acesso oculto</p>
+                    <p className="font-medium">Código não disponível para embutir no link</p>
                     <p className="text-xs text-muted-foreground">
-                      O código original é armazenado de forma segura (hash) e não pode ser recuperado.
-                      Se o cliente não tem mais o código, gere um novo — o link continua o mesmo.
+                      O código original é guardado de forma segura (hash) e não pode ser recuperado.
+                      Para gerar um link com o código já embutido, clique em <strong>Gerar novo código</strong> —
+                      o link continua o mesmo, apenas o código é renovado.
                     </p>
                   </div>
                 </div>

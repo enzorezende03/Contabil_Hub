@@ -147,6 +147,8 @@ export default function PendencyPortal() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
+  const [completed, setCompleted] = useState(false);
+  const [showItems, setShowItems] = useState(false);
 
   async function handleSubmitToContabilidade() {
     setSubmitting(true);
@@ -155,6 +157,8 @@ export default function PendencyPortal() {
       setSubmittedAt(new Date());
       if (res.allDone) {
         toast.success("Tudo enviado! Pendência concluída ✅");
+        setCompleted(true);
+        setShowItems(false);
       } else {
         toast.success(`Enviado parcialmente (${res.entregues}/${res.total}). Você pode continuar respondendo.`);
       }
@@ -216,9 +220,57 @@ export default function PendencyPortal() {
   const total = items.length;
   const done = items.filter((i) => i.status === "entregue").length;
   const progress = total > 0 ? Math.round((done / total) * 100) : 0;
+  const isResolved = pendency?.status === "resolvida" || pendency?.status === "concluida";
+  const showSuccessScreen = (completed || isResolved) && !showItems;
+
+  if (showSuccessScreen) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center p-4">
+        <Card className="w-full max-w-lg p-8 text-center space-y-5">
+          <div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+            <CheckCircle2 className="w-12 h-12 text-primary" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-2xl font-semibold">Tudo enviado! ✅</h1>
+            <p className="text-sm text-muted-foreground">
+              Recebemos todos os {total} {total === 1 ? "item" : "itens"} desta pendência.
+              A contabilidade foi notificada e já pode dar continuidade.
+            </p>
+          </div>
+          <div className="bg-muted/40 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+            <div><span className="font-medium text-foreground">{clientName}</span></div>
+            {pendency?.descricao && <div>{pendency.descricao}</div>}
+            {submittedAt && (
+              <div className="pt-1">Enviado em {submittedAt.toLocaleString("pt-BR")}</div>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Você pode fechar esta página. Caso a contabilidade precise de algo a mais,
+            entraremos em contato.
+          </p>
+          <Button variant="outline" size="sm" onClick={() => setShowItems(true)} className="w-full">
+            Ver itens enviados
+          </Button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/30">
+      {(completed || isResolved) && showItems && (
+        <div className="bg-primary/10 border-b border-primary/20">
+          <div className="max-w-3xl mx-auto p-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm text-primary">
+              <CheckCircle2 className="w-4 h-4" />
+              <span className="font-medium">Pendência já enviada à contabilidade.</span>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => setShowItems(false)}>
+              Voltar
+            </Button>
+          </div>
+        </div>
+      )}
       <header className="bg-card border-b">
         <div className="max-w-3xl mx-auto p-4 space-y-2">
           <h1 className="text-lg font-semibold">{clientName || "Pendências"}</h1>

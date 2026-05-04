@@ -130,6 +130,7 @@ export default function DemandsPage() {
   const filtered = useMemo(() => {
     return demandsWithDerivedStatus
       .filter((d) => {
+        if (!canSeeAll && user && d.assignee !== user.id) return false;
         if (search && !d.client.toLowerCase().includes(search.toLowerCase()) && !d.description.toLowerCase().includes(search.toLowerCase())) return false;
         if (filterType !== "all" && !d.types.includes(filterType as DemandType)) return false;
         if (filterPriority !== "all" && d.priority !== filterPriority) return false;
@@ -137,7 +138,7 @@ export default function DemandsPage() {
         return true;
       })
       .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
-  }, [search, filterType, filterPriority, filterAssignee, demandsWithDerivedStatus]);
+  }, [search, filterType, filterPriority, filterAssignee, demandsWithDerivedStatus, canSeeAll, user]);
 
   const getMember = (id: string) => TEAM_MEMBERS.find((m) => m.id === id);
 

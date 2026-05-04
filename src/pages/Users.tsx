@@ -3,14 +3,7 @@ import AppLayout from "@/components/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { canAccessPage } from "@/lib/permissions";
-
-const ROLE_OPTIONS = [
-  { value: "estagiario", label: "Estagiário" },
-  { value: "assistente", label: "Assistente" },
-  { value: "analista", label: "Analista" },
-  { value: "coordenacao", label: "Coordenação" },
-];
+import { canAccessPage, BUILTIN_ROLES } from "@/lib/permissions";
 
 interface UserRow {
   user_id: string;

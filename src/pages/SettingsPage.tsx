@@ -217,7 +217,11 @@ export default function SettingsPage() {
     { key: "cancelar_submissao", label: "Cancelar Submissão", description: "Permite cancelar uma submissão de revisão ainda não revisada" },
     { key: "supervisionar_revisao", label: "Supervisionar Revisão", description: "Visão completa de todas as submissões do sistema; permite reatribuir revisora e remover bloqueios" },
     { key: "ver_todas_demandas", label: "Ver Todas as Demandas", description: "Visualiza demandas e planejamentos de toda a equipe (operacional vê apenas os seus quando desmarcado)" },
-    { key: "ver_toda_equipe", label: "Ver Produtividade de Toda Equipe", description: "Visualiza produtividade de todos os colaboradores (operacional vê apenas a sua quando desmarcado)" },
+    { key: "ver_toda_equipe", label: "Ver Produtividade de Toda Equipe (legado)", description: "Mantido por compatibilidade. Use 'Ver Produtividade da Equipe' abaixo." },
+    { key: "ver_propria_produtividade", label: "Ver Própria Produtividade", description: "Acessa a página /equipe e vê seu próprio score composto" },
+    { key: "ver_produtividade_equipe", label: "Ver Produtividade da Equipe", description: "Vê ranking completo de produtividade e detalhamento de qualquer colaborador" },
+    { key: "configurar_produtividade", label: "Configurar Produtividade", description: "Edita pesos, multiplicadores e parâmetros do score composto" },
+    { key: "gerenciar_ausencias_equipe", label: "Gerenciar Ausências da Equipe", description: "Cadastra/edita ausências de qualquer colaborador" },
   ];
   const toggleActionPerm = (action: keyof ActionPermissions, role: ProfileRole) => {
     const current = draftActions[action] || [];

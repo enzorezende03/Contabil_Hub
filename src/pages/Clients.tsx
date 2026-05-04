@@ -429,7 +429,7 @@ export default function Clients() {
                   </TableHeader>
                   <TableBody>
                     {filtered.map((c) => (
-                      <TableRow key={c.id}>
+                      <TableRow key={c.id} onClick={() => openEdit(c)} className="cursor-pointer">
                         <TableCell className="font-medium">{c.razao_social}</TableCell>
                         <TableCell className="font-mono text-sm">{formatCnpj(c.cnpj)}</TableCell>
                         <TableCell>
@@ -451,7 +451,7 @@ export default function Clients() {
                           )}
                         </TableCell>
                         <TableCell>{c.competencia_inicio}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-end gap-1">
                             <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
                               <Pencil className="w-4 h-4" />

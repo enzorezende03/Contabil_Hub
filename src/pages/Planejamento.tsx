@@ -44,6 +44,9 @@ export default function PlanejamentoPage() {
   const [filterAssignee, setFilterAssignee] = usePersistedFilter<string>("planejamento", "assignee", "all");
   const [createOpen, setCreateOpen] = useState(false);
   const { members: teamMembers } = useTeamMembers();
+  const { user, profile } = useAuth();
+  useActionPermissions();
+  const canSeeAll = canPerformAction("ver_todas_demandas", profile?.role);
 
   const { data: dbPlannings = [], refetch } = useQuery({
     queryKey: ["plannings"],

@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Paperclip, Check, MessageSquare, Loader2, Send, CheckCircle2 } from "lucide-react";
+import { Paperclip, Check, MessageSquare, Loader2, Send, CheckCircle2, ChevronDown, ChevronRight } from "lucide-react";
 
 const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/pendency-portal`;
 const ANON = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
@@ -50,6 +50,11 @@ export default function PendencyPortal() {
   const [senderName, setSenderName] = useState("");
   const [textInputs, setTextInputs] = useState<Record<string, string>>({});
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  function toggleExpanded(id: string) {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
 
   async function reload() {
     const data = await callPortal("load", { token, code });
@@ -239,99 +244,120 @@ export default function PendencyPortal() {
         </div>
       </div>
 
-      <main className="max-w-3xl mx-auto p-4 space-y-3">
+      <main className="max-w-3xl mx-auto p-4 space-y-1.5">
         {items.map((item) => {
           const itemResp = responses.filter((r) => r.item_id === item.id);
           const itemCmts = comments.filter((c) => c.item_id === item.id);
           const isDone = item.status === "entregue";
+          const hasActivity = itemResp.length > 0 || itemCmts.length > 0;
+          // Por padrão: pendentes abertos; entregues colapsados. expanded[id] sobrepõe.
+          const isOpen = expanded[item.id] !== undefined ? expanded[item.id] : !isDone;
+
           return (
-            <Card key={item.id} className={`p-4 space-y-3 ${isDone ? "bg-muted/40" : ""}`}>
-              <div className="flex items-start gap-3">
+            <Card key={item.id} className={`px-3 py-2 ${isDone ? "bg-muted/40" : ""}`}>
+              {/* Cabeçalho compacto */}
+              <div className="flex items-center gap-2">
                 <Checkbox
                   checked={isDone}
                   onCheckedChange={() => toggleDone(item.id, item.status)}
-                  className="mt-1"
                 />
-                <div className="flex-1">
-                  <p className={`font-medium text-sm ${isDone ? "line-through text-muted-foreground" : ""}`}>
-                    {item.titulo}
-                  </p>
-                  {item.descricao && (
-                    <p className="text-xs text-muted-foreground mt-0.5">{item.descricao}</p>
+                <button
+                  type="button"
+                  onClick={() => toggleExpanded(item.id)}
+                  className="flex-1 flex items-center gap-2 min-w-0 text-left"
+                >
+                  {isOpen ? (
+                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
                   )}
-                </div>
-                {isDone && <Check className="w-4 h-4 text-primary" />}
+                  <span className={`text-sm flex-1 min-w-0 truncate ${isDone ? "line-through text-muted-foreground" : "font-medium"}`}>
+                    {item.titulo}
+                  </span>
+                  {hasActivity && (
+                    <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full flex-shrink-0">
+                      {itemResp.length + itemCmts.length}
+                    </span>
+                  )}
+                  {isDone && <Check className="w-3.5 h-3.5 text-primary flex-shrink-0" />}
+                </button>
               </div>
 
-              {itemResp.length > 0 && (
-                <div className="space-y-1 pl-7">
-                  {itemResp.map((r) => (
-                    <div key={r.id} className="text-xs bg-muted/50 rounded p-2">
-                      <span className="text-[10px] text-muted-foreground">
-                        {r.sender_nome || "—"} · {new Date(r.created_at).toLocaleString("pt-BR")}
-                      </span>
-                      {r.tipo === "arquivo" ? (
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <Paperclip className="w-3 h-3" />
-                          <span>{r.arquivo_nome}</span>
+              {isOpen && (
+                <div className="mt-2 pl-7 space-y-2">
+                  {item.descricao && (
+                    <p className="text-xs text-muted-foreground">{item.descricao}</p>
+                  )}
+
+                  {itemResp.length > 0 && (
+                    <div className="space-y-1">
+                      {itemResp.map((r) => (
+                        <div key={r.id} className="text-xs bg-muted/50 rounded p-2">
+                          <span className="text-[10px] text-muted-foreground">
+                            {r.sender_nome || "—"} · {new Date(r.created_at).toLocaleString("pt-BR")}
+                          </span>
+                          {r.tipo === "arquivo" ? (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <Paperclip className="w-3 h-3" />
+                              <span>{r.arquivo_nome}</span>
+                            </div>
+                          ) : (
+                            <p className="mt-0.5 whitespace-pre-wrap">{r.texto}</p>
+                          )}
                         </div>
-                      ) : (
-                        <p className="mt-0.5 whitespace-pre-wrap">{r.texto}</p>
-                      )}
+                      ))}
                     </div>
-                  ))}
+                  )}
+
+                  <div className="flex gap-2">
+                    <Textarea
+                      placeholder="Escrever resposta..."
+                      rows={1}
+                      value={textInputs[item.id] || ""}
+                      onChange={(e) => setTextInputs({ ...textInputs, [item.id]: e.target.value })}
+                      className="text-xs min-h-[32px]"
+                    />
+                    <Button size="sm" onClick={() => sendText(item.id)} className="h-8">
+                      <Send className="w-3.5 h-3.5" />
+                    </Button>
+                    <label className="inline-flex items-center justify-center h-8 px-2.5 rounded-md border bg-card hover:bg-muted cursor-pointer">
+                      <Paperclip className="w-3.5 h-3.5" />
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) uploadFile(item.id, f);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  {itemCmts.length > 0 && (
+                    <div className="space-y-0.5 border-l-2 border-muted pl-2">
+                      {itemCmts.map((c) => (
+                        <div key={c.id} className="text-[11px]">
+                          <span className="font-medium">{c.sender_nome || "—"}:</span>{" "}
+                          <span>{c.texto}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Comentar / tirar dúvida..."
+                      value={commentInputs[item.id] || ""}
+                      onChange={(e) => setCommentInputs({ ...commentInputs, [item.id]: e.target.value })}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); sendComment(item.id); } }}
+                      className="h-7 text-xs"
+                    />
+                    <Button size="sm" variant="ghost" onClick={() => sendComment(item.id)} className="h-7">
+                      <MessageSquare className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </div>
               )}
-
-              <div className="pl-7 space-y-2">
-                <div className="flex gap-2">
-                  <Textarea
-                    placeholder="Escrever resposta..."
-                    rows={1}
-                    value={textInputs[item.id] || ""}
-                    onChange={(e) => setTextInputs({ ...textInputs, [item.id]: e.target.value })}
-                    className="text-xs min-h-[36px]"
-                  />
-                  <Button size="sm" onClick={() => sendText(item.id)} className="h-9">
-                    <Send className="w-3.5 h-3.5" />
-                  </Button>
-                  <label className="inline-flex items-center justify-center h-9 px-3 rounded-md border bg-card hover:bg-muted cursor-pointer">
-                    <Paperclip className="w-3.5 h-3.5" />
-                    <input
-                      type="file"
-                      className="hidden"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) uploadFile(item.id, f);
-                        e.target.value = "";
-                      }}
-                    />
-                  </label>
-                </div>
-
-                {itemCmts.length > 0 && (
-                  <div className="space-y-1 border-l-2 border-muted pl-2">
-                    {itemCmts.map((c) => (
-                      <div key={c.id} className="text-[11px]">
-                        <span className="font-medium">{c.sender_nome || "—"}:</span>{" "}
-                        <span>{c.texto}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Comentar / tirar dúvida..."
-                    value={commentInputs[item.id] || ""}
-                    onChange={(e) => setCommentInputs({ ...commentInputs, [item.id]: e.target.value })}
-                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); sendComment(item.id); } }}
-                    className="h-7 text-xs"
-                  />
-                  <Button size="sm" variant="ghost" onClick={() => sendComment(item.id)} className="h-7">
-                    <MessageSquare className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-              </div>
             </Card>
           );
         })}

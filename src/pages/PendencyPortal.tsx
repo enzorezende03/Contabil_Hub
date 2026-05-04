@@ -205,8 +205,39 @@ export default function PendencyPortal() {
             onChange={(e) => setSenderName(e.target.value)}
             className="h-8 text-xs"
           />
+          <p className="text-[11px] text-muted-foreground">
+            💡 Ao anexar um arquivo ou escrever uma resposta, o item é marcado como concluído automaticamente.
+          </p>
         </div>
       </header>
+
+      {/* Barra de envio fixa */}
+      <div className="sticky top-0 z-10 bg-card/95 backdrop-blur border-b">
+        <div className="max-w-3xl mx-auto p-3 flex items-center gap-3 flex-wrap">
+          <div className="flex-1 min-w-[180px] text-xs">
+            {done === total && total > 0 ? (
+              <span className="text-primary font-medium">Tudo respondido — pode enviar à contabilidade.</span>
+            ) : (
+              <span className="text-muted-foreground">
+                Você pode enviar agora o que já está pronto ({done}/{total}) ou continuar e enviar tudo no fim.
+              </span>
+            )}
+            {submittedAt && (
+              <span className="ml-2 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                <CheckCircle2 className="w-3 h-3" /> Último envio: {submittedAt.toLocaleTimeString("pt-BR")}
+              </span>
+            )}
+          </div>
+          <Button
+            size="sm"
+            onClick={handleSubmitToContabilidade}
+            disabled={submitting || done === 0}
+          >
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 mr-1.5" />}
+            {done === total && total > 0 ? "Enviar tudo" : "Enviar parcial à contabilidade"}
+          </Button>
+        </div>
+      </div>
 
       <main className="max-w-3xl mx-auto p-4 space-y-3">
         {items.map((item) => {

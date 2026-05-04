@@ -162,23 +162,32 @@ export default function SettingsPage() {
   const updateMemberName = (id: string, name: string) => setDraftTeam(draftTeam.map((m) => (m.id === id ? { ...m, name } : m)));
   const updateMemberRole = (id: string, role: TeamRole) => setDraftTeam(draftTeam.map((m) => (m.id === id ? { ...m, role } : m)));
 
-  // --- Permissions ---
-  const startEditPerms = () => {
+  // --- Unified Permissions (pages + actions) ---
+  const startEditAll = () => {
     setDraftPerms(JSON.parse(JSON.stringify(permissions)));
+    setDraftActions(JSON.parse(JSON.stringify(actionPerms)));
     setEditingPerms(true);
+    setEditingActions(true);
   };
-  const savePerms = async () => {
+  const cancelEditAll = () => {
+    setEditingPerms(false);
+    setEditingActions(false);
+  };
+  const saveAll = async () => {
     setSaving(true);
-    const { error } = await supabase
-      .from("settings")
-      .update({ value: JSON.parse(JSON.stringify(draftPerms)), updated_by: user?.id })
-      .eq("key", "role_permissions");
-    if (error) {
+    const [r1, r2] = await Promise.all([
+      supabase.from("settings").update({ value: JSON.parse(JSON.stringify(draftPerms)), updated_by: user?.id }).eq("key", "role_permissions"),
+      supabase.from("settings").update({ value: JSON.parse(JSON.stringify(draftActions)), updated_by: user?.id }).eq("key", "action_permissions"),
+    ]);
+    if (r1.error || r2.error) {
       toast.error("Erro ao salvar permissões");
     } else {
       setPermissions(draftPerms);
       setRolePermissions(draftPerms);
+      setActionPermsState(draftActions);
+      setActionPermissions(draftActions);
       setEditingPerms(false);
+      setEditingActions(false);
       toast.success("Permissões atualizadas!");
     }
     setSaving(false);

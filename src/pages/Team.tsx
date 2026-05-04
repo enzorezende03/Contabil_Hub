@@ -110,15 +110,17 @@ export default function TeamPage() {
     concluidas: m.completedEntries,
   }));
 
-  const totalEntries = entries.length;
-  const totalCompleted = entries.filter((e: any) => e.status === "completed").length;
+  const visibleEntries = canSeeAll ? entries : entries.filter((e: any) => user && e.filled_by === user.id);
+  const visibleDemands = canSeeAll ? demands : demands.filter((d: any) => user && d.assignee === user.id);
+  const totalEntries = visibleEntries.length;
+  const totalCompleted = visibleEntries.filter((e: any) => e.status === "completed").length;
   const sectorCompletion = totalEntries > 0 ? Math.round((totalCompleted / totalEntries) * 100) : 0;
 
   // Type breakdown
   const typeReport = Object.entries(TYPE_LABELS).map(([k, v]) => ({
     type: v,
-    count: entries.filter((e: any) => e.demand_type === k).length,
-    completed: entries.filter((e: any) => e.demand_type === k && e.status === "completed").length,
+    count: visibleEntries.filter((e: any) => e.demand_type === k).length,
+    completed: visibleEntries.filter((e: any) => e.demand_type === k && e.status === "completed").length,
   })).filter((t) => t.count > 0);
 
   const roleLabels: Record<string, string> = {

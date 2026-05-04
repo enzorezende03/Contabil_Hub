@@ -823,6 +823,11 @@ export default function CompetenciasPage() {
             <option value="standard">Standard</option>
             <option value="basico">Básico</option>
           </select>
+          <select value={selectedEcd} onChange={(e) => setSelectedEcd(e.target.value as "all" | "yes" | "no")} className={`${selectClass} h-8 text-xs px-2 w-[130px] flex-shrink-0`}>
+            <option value="all">Todos (ECD)</option>
+            <option value="yes">Obrigados ao ECD</option>
+            <option value="no">Sem ECD</option>
+          </select>
           <select value={selectedFinalStatus} onChange={(e) => setSelectedFinalStatus(e.target.value as "all" | "open" | "finalized")} className={`${selectClass} h-8 text-xs px-2 w-[150px] flex-shrink-0`}>
             <option value="all">Todas (status)</option>
             <option value="open">Em aberto</option>

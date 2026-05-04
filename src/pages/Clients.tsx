@@ -147,6 +147,9 @@ export default function Clients() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ClientForm>(emptyForm);
   const [search, setSearch] = useState("");
+  const [filterTributacao, setFilterTributacao] = useState<string>("all");
+  const [filterUnidade, setFilterUnidade] = useState<string>("all");
+  const [filterPerfil, setFilterPerfil] = useState<string>("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: clients = [], isLoading } = useQuery({
@@ -356,11 +359,15 @@ export default function Clients() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const filtered = clients.filter(
-    (c) =>
+  const filtered = clients.filter((c) => {
+    const matchesSearch =
       (c.razao_social || "").toLowerCase().includes(search.toLowerCase()) ||
-      (c.cnpj || "").includes(search.replace(/\D/g, ""))
-  );
+      (c.cnpj || "").includes(search.replace(/\D/g, ""));
+    const matchesTrib = filterTributacao === "all" || c.tributacao === filterTributacao;
+    const matchesUni = filterUnidade === "all" || c.unidade === filterUnidade;
+    const matchesPerfil = filterPerfil === "all" || c.perfil === filterPerfil;
+    return matchesSearch && matchesTrib && matchesUni && matchesPerfil;
+  });
 
   return (
     <AppLayout>
@@ -391,20 +398,49 @@ export default function Clients() {
         </div>
 
         <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
+          <CardHeader className="pb-3 space-y-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
               <CardTitle className="text-base flex items-center gap-2">
                 <Building2 className="w-4 h-4" />
                 Clientes ({filtered.length})
               </CardTitle>
-              <div className="relative w-64">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nome ou CNPJ..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
-                />
+              <div className="flex items-center gap-2 flex-wrap">
+                <Select value={filterTributacao} onValueChange={setFilterTributacao}>
+                  <SelectTrigger className="w-[170px] h-9"><SelectValue placeholder="Tributação" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas tributações</SelectItem>
+                    {TRIBUTACAO_OPTIONS.map((t) => (
+                      <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filterUnidade} onValueChange={setFilterUnidade}>
+                  <SelectTrigger className="w-[170px] h-9"><SelectValue placeholder="Unidade" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas unidades</SelectItem>
+                    {UNIDADE_OPTIONS.map((u) => (
+                      <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filterPerfil} onValueChange={setFilterPerfil}>
+                  <SelectTrigger className="w-[140px] h-9"><SelectValue placeholder="Perfil" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos perfis</SelectItem>
+                    {PERFIL_OPTIONS.map((p) => (
+                      <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="relative w-64">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome ou CNPJ..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
               </div>
             </div>
           </CardHeader>

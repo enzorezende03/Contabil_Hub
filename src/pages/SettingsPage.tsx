@@ -319,28 +319,35 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {/* Permissions */}
+        {/* Unified Permissions Matrix */}
         <div className="rounded-lg border bg-card p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Shield className="w-4 h-4 text-primary" />
-              <h3 className="text-sm font-semibold">Permissões por Cargo</h3>
+              <h3 className="text-sm font-semibold">Permissões</h3>
             </div>
-            <EditButton editing={editingPerms} onStart={startEditPerms} onCancel={() => setEditingPerms(false)} onSave={savePerms} />
+            <EditButton editing={editingPerms} onStart={startEditAll} onCancel={cancelEditAll} onSave={saveAll} />
           </div>
-          <p className="text-xs text-muted-foreground mb-3">Define quais páginas cada cargo pode acessar no sistema.</p>
+          <p className="text-xs text-muted-foreground mb-3">
+            Marque o que cada cargo pode acessar (páginas) e fazer (ações) no sistema.
+          </p>
 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Página</th>
+                  <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Permissão</th>
                   {PROFILE_ROLES.map((r) => (
                     <th key={r.value} className="text-center px-3 py-2 font-medium text-muted-foreground text-xs">{r.label}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
+                <tr className="bg-muted/30">
+                  <td colSpan={PROFILE_ROLES.length + 1} className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                    <Shield className="w-3 h-3" /> Acesso a Páginas
+                  </td>
+                </tr>
                 {ALL_PAGES.map((page) => {
                   const permsData = editingPerms ? draftPerms : permissions;
                   return (
@@ -370,36 +377,11 @@ export default function SettingsPage() {
                     </tr>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-          {editingPerms && (
-            <p className="text-[11px] text-muted-foreground mt-2">* O Dashboard (/) é obrigatório para todos os cargos.</p>
-          )}
-        </div>
-
-        {/* Action Permissions */}
-        <div className="rounded-lg border bg-card p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-primary" />
-              <h3 className="text-sm font-semibold">Permissões de Ações</h3>
-            </div>
-            <EditButton editing={editingActions} onStart={startEditActions} onCancel={() => setEditingActions(false)} onSave={saveActions} />
-          </div>
-          <p className="text-xs text-muted-foreground mb-3">Define quais cargos podem executar ações específicas no sistema.</p>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="text-left px-3 py-2 font-medium text-muted-foreground text-xs">Ação</th>
-                  {PROFILE_ROLES.map((r) => (
-                    <th key={r.value} className="text-center px-3 py-2 font-medium text-muted-foreground text-xs">{r.label}</th>
-                  ))}
+                <tr className="bg-muted/30">
+                  <td colSpan={PROFILE_ROLES.length + 1} className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+                    <Lock className="w-3 h-3" /> Ações no Sistema
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
                 {ACTION_ITEMS.map((action) => {
                   const data = editingActions ? draftActions : actionPerms;
                   return (
@@ -433,6 +415,9 @@ export default function SettingsPage() {
               </tbody>
             </table>
           </div>
+          {editingPerms && (
+            <p className="text-[11px] text-muted-foreground mt-2">* O Dashboard é obrigatório para todos os cargos.</p>
+          )}
         </div>
       </div>
     </AppLayout>

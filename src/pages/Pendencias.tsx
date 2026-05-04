@@ -384,18 +384,167 @@ function PendencyCard({ pendency: p, clientName, responsavelName, onCobrar, onRe
         </div>
       </div>
       {!finalizada && (
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+        <div className="flex items-center gap-2 mt-3 pt-3 border-t flex-wrap">
           <Button size="sm" onClick={onCobrar}>Registrar cobrança</Button>
           <Button size="sm" variant="outline" onClick={onResolver}>Resolver</Button>
           <Button size="sm" variant="ghost" onClick={onPausar}>
             {p.followup_paused ? <><Play className="w-3.5 h-3.5 mr-1" /> Despausar</> : <><Pause className="w-3.5 h-3.5 mr-1" /> Pausar</>}
           </Button>
+          {p.tipo === "externa" && <PortalAccessButton pendencyId={p.id} />}
           <Button size="sm" variant="ghost" className="ml-auto" onClick={onDetalhes}>
             <History className="w-3.5 h-3.5 mr-1" /> Histórico
           </Button>
         </div>
       )}
     </div>
+  );
+}
+
+function PortalAccessButton({ pendencyId }: { pendencyId: string }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [code, setCode] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [hasToken, setHasToken] = useState<boolean>(false);
+
+  const portalUrl = token ? `${window.location.origin}/p/${token}` : null;
+
+  async function loadExisting() {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("pendency_access_tokens")
+        .select("token, expires_at, revoked")
+        .eq("pendency_id", pendencyId)
+        .maybeSingle();
+      if (error) throw error;
+      if (data && !data.revoked) {
+        setToken(data.token);
+        setExpiresAt(data.expires_at);
+        setHasToken(true);
+      } else {
+        setToken(null);
+        setHasToken(false);
+      }
+      setCode(null);
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao carregar link do portal");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function rotate() {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("pendency-token-create", {
+        body: { pendencyId },
+      });
+      if (error) throw error;
+      if (!data?.token) throw new Error("Falha ao gerar token");
+      setToken(data.token);
+      setCode(data.code);
+      setExpiresAt(data.expires_at);
+      setHasToken(true);
+      toast.success("Novo código gerado");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao gerar código");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function copy(text: string, label: string) {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copiado`);
+  }
+
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => { setOpen(true); loadExisting(); }}
+      >
+        <Link2 className="w-3.5 h-3.5 mr-1" /> Link do portal
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Acesso do cliente ao portal</DialogTitle>
+            <DialogDescription>
+              Envie o link e o código de acesso ao cliente para que ele responda às pendências.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {loading && <p className="text-sm text-muted-foreground">Carregando…</p>}
+
+            {!loading && !hasToken && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+                Ainda não há link gerado para esta pendência. Clique em <strong>Gerar link e código</strong> abaixo.
+              </div>
+            )}
+
+            {portalUrl && (
+              <div>
+                <Label className="text-xs">Link do portal</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input readOnly value={portalUrl} className="font-mono text-xs" />
+                  <Button size="sm" variant="outline" onClick={() => copy(portalUrl, "Link")}>
+                    <Copy className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={portalUrl} target="_blank" rel="noreferrer"><ExternalLink className="w-3.5 h-3.5" /></a>
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {code ? (
+              <div>
+                <Label className="text-xs">Código de acesso (visível apenas agora)</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input readOnly value={code} className="font-mono text-lg tracking-widest" />
+                  <Button size="sm" variant="outline" onClick={() => copy(code, "Código")}>
+                    <Copy className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Por segurança, guardamos apenas o hash. Se perder, gere um novo código.
+                </p>
+              </div>
+            ) : hasToken && (
+              <div className="rounded-md border bg-muted/40 p-3 text-sm">
+                <div className="flex items-start gap-2">
+                  <KeyRound className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">Código de acesso oculto</p>
+                    <p className="text-xs text-muted-foreground">
+                      O código original é armazenado de forma segura (hash) e não pode ser recuperado.
+                      Se o cliente não tem mais o código, gere um novo — o link continua o mesmo.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {expiresAt && (
+              <p className="text-xs text-muted-foreground">
+                Expira em: {new Date(expiresAt).toLocaleDateString("pt-BR")}
+              </p>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setOpen(false)}>Fechar</Button>
+            <Button onClick={rotate} disabled={loading}>
+              <RefreshCw className={cn("w-3.5 h-3.5 mr-1", loading && "animate-spin")} />
+              {hasToken ? "Gerar novo código" : "Gerar link e código"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

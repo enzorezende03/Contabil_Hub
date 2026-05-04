@@ -359,11 +359,15 @@ export default function Clients() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const filtered = clients.filter(
-    (c) =>
+  const filtered = clients.filter((c) => {
+    const matchesSearch =
       (c.razao_social || "").toLowerCase().includes(search.toLowerCase()) ||
-      (c.cnpj || "").includes(search.replace(/\D/g, ""))
-  );
+      (c.cnpj || "").includes(search.replace(/\D/g, ""));
+    const matchesTrib = filterTributacao === "all" || c.tributacao === filterTributacao;
+    const matchesUni = filterUnidade === "all" || c.unidade === filterUnidade;
+    const matchesPerfil = filterPerfil === "all" || c.perfil === filterPerfil;
+    return matchesSearch && matchesTrib && matchesUni && matchesPerfil;
+  });
 
   return (
     <AppLayout>

@@ -211,26 +211,6 @@ export default function SettingsPage() {
     { key: "ver_todas_demandas", label: "Ver Todas as Demandas", description: "Visualiza demandas e planejamentos de toda a equipe (operacional vê apenas os seus quando desmarcado)" },
     { key: "ver_toda_equipe", label: "Ver Produtividade de Toda Equipe", description: "Visualiza produtividade de todos os colaboradores (operacional vê apenas a sua quando desmarcado)" },
   ];
-  const startEditActions = () => {
-    setDraftActions(JSON.parse(JSON.stringify(actionPerms)));
-    setEditingActions(true);
-  };
-  const saveActions = async () => {
-    setSaving(true);
-    const { error } = await supabase
-      .from("settings")
-      .update({ value: JSON.parse(JSON.stringify(draftActions)), updated_by: user?.id })
-      .eq("key", "action_permissions");
-    if (error) {
-      toast.error("Erro ao salvar permissões de ações");
-    } else {
-      setActionPermsState(draftActions);
-      setActionPermissions(draftActions);
-      setEditingActions(false);
-      toast.success("Permissões de ações atualizadas!");
-    }
-    setSaving(false);
-  };
   const toggleActionPerm = (action: keyof ActionPermissions, role: ProfileRole) => {
     const current = draftActions[action] || [];
     const has = current.includes(role);

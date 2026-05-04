@@ -29,6 +29,7 @@ export type AppPage =
   | "/demandas"
   | "/planejamento"
   | "/equipe"
+  | "/ausencias"
   | "/competencias"
   | "/revisao"
   | "/pendencias"
@@ -39,10 +40,10 @@ export type AppPage =
 
 // Default permissions (fallback when DB not loaded yet)
 const DEFAULT_ROLE_PAGES: Record<ProfileRole, AppPage[]> = {
-  coordenacao: ["/", "/demandas", "/planejamento", "/equipe", "/competencias", "/revisao", "/pendencias", "/alertas", "/clientes", "/configuracoes", "/usuarios"],
-  analista: ["/", "/demandas", "/planejamento", "/equipe", "/competencias", "/revisao", "/pendencias", "/alertas", "/clientes"],
-  assistente: ["/", "/demandas", "/planejamento", "/competencias", "/revisao", "/pendencias", "/clientes"],
-  estagiario: ["/", "/demandas", "/planejamento", "/competencias", "/revisao", "/pendencias", "/clientes"],
+  coordenacao: ["/", "/demandas", "/planejamento", "/equipe", "/ausencias", "/competencias", "/revisao", "/pendencias", "/alertas", "/clientes", "/configuracoes", "/usuarios"],
+  analista: ["/", "/demandas", "/planejamento", "/equipe", "/ausencias", "/competencias", "/revisao", "/pendencias", "/alertas", "/clientes"],
+  assistente: ["/", "/demandas", "/planejamento", "/equipe", "/ausencias", "/competencias", "/revisao", "/pendencias", "/clientes"],
+  estagiario: ["/", "/demandas", "/planejamento", "/equipe", "/ausencias", "/competencias", "/revisao", "/pendencias", "/clientes"],
 };
 
 // Runtime permissions – can be replaced by DB values
@@ -79,6 +80,7 @@ export const ALL_PAGES: { path: AppPage; label: string }[] = [
   { path: "/demandas", label: "Solicitação de Clientes" },
   { path: "/planejamento", label: "Planejamento" },
   { path: "/equipe", label: "Produtividade Equipe" },
+  { path: "/ausencias", label: "Ausências" },
   { path: "/competencias", label: "Fechamento Contábil" },
   { path: "/revisao", label: "Revisão de Demonstrativos" },
   { path: "/pendencias", label: "Pendências" },

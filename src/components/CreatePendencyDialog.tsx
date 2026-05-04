@@ -406,22 +406,16 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1.5">
-              <Label>Prioridade</Label>
-              <Select value={prioridade} onValueChange={(v) => setPrioridade(v as PendencyPrioridade)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(PRIORIDADE_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Prazo de resposta</Label>
-              <Input type="date" value={prazo} onChange={(e) => setPrazo(e.target.value)} />
-            </div>
+          <div className="space-y-1.5">
+            <Label>Prioridade</Label>
+            <Select value={prioridade} onValueChange={(v) => setPrioridade(v as PendencyPrioridade)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(PRIORIDADE_LABELS).map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-2">

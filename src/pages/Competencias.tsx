@@ -257,6 +257,7 @@ export default function CompetenciasPage() {
   const [demandStatuses, setDemandStatuses] = useState<Record<string, DemandStatus>>({});
   const [filledByMap, setFilledByMap] = useState<Record<string, string>>({});
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
+  const [importGClickOpen, setImportGClickOpen] = useState(false);
   const [batchMonths, setBatchMonths] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);

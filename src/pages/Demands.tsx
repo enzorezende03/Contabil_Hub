@@ -20,6 +20,7 @@ import { formatMinutes, getDeadlineUrgency } from "@/lib/demand-utils";
 import { Search, Filter, LayoutGrid, List, Clock, User, AlertTriangle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreateDemandDialog } from "@/components/CreateDemandDialog";
+import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import { toast } from "sonner";
 
 type ViewMode = "list" | "kanban";

@@ -520,9 +520,9 @@ export default function CompetenciasPage() {
 
   // Build client list and tributação map from DB
   const clientsMap = useMemo(() => {
-    const map: Record<string, { tributacao: string; competencia_inicio: string; unidade: string; perfil: string }> = {};
+    const map: Record<string, { tributacao: string; competencia_inicio: string; unidade: string; perfil: string; obrigatoriedade_ecd: boolean }> = {};
     dbClients.forEach((c: any) => {
-      map[c.razao_social] = { tributacao: c.tributacao, competencia_inicio: c.competencia_inicio, unidade: c.unidade || "2m_contabilidade", perfil: c.perfil || "standard" };
+      map[c.razao_social] = { tributacao: c.tributacao, competencia_inicio: c.competencia_inicio, unidade: c.unidade || "2m_contabilidade", perfil: c.perfil || "standard", obrigatoriedade_ecd: !!c.obrigatoriedade_ecd };
     });
     return map;
   }, [dbClients]);

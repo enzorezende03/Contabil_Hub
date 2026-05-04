@@ -790,6 +790,14 @@ export default function CompetenciasPage() {
               <h1 className="text-2xl font-bold tracking-tight">Fechamento Contábil {year}</h1>
               <p className="text-sm text-muted-foreground mt-1">Evolução contábil por empresa e mês</p>
             </div>
+            <button
+              onClick={() => setImportGClickOpen(true)}
+              className="h-9 px-3 text-xs font-semibold rounded-md border border-border bg-card hover:bg-muted transition-colors flex items-center gap-1.5"
+              title="Importar planilha exportada do G-Click para preencher status em lote"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              Importar planilha G-Click
+            </button>
           </div>
         </div>
 

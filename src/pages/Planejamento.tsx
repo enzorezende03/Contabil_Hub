@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import AppLayout from "@/components/AppLayout";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useTeamMembers } from "@/hooks/use-team-members";
+import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import {
   DEMAND_TYPE_LABELS,
   DemandStatus,

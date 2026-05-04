@@ -147,6 +147,9 @@ export default function Clients() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ClientForm>(emptyForm);
   const [search, setSearch] = useState("");
+  const [filterTributacao, setFilterTributacao] = useState<string>("all");
+  const [filterUnidade, setFilterUnidade] = useState<string>("all");
+  const [filterPerfil, setFilterPerfil] = useState<string>("all");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: clients = [], isLoading } = useQuery({

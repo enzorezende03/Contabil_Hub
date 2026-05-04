@@ -49,11 +49,8 @@ const DEFAULT_ROLE_PAGES: Record<ProfileRole, AppPage[]> = {
 let ROLE_PAGES: Record<ProfileRole, AppPage[]> = { ...DEFAULT_ROLE_PAGES };
 
 export function setRolePermissions(perms: Record<string, string[]>) {
-  const roles: ProfileRole[] = ["coordenacao", "analista", "assistente", "estagiario"];
-  for (const role of roles) {
-    if (perms[role]) {
-      ROLE_PAGES[role] = perms[role] as AppPage[];
-    }
+  for (const role of Object.keys(perms || {})) {
+    ROLE_PAGES[role] = (perms[role] || []) as AppPage[];
   }
 }
 

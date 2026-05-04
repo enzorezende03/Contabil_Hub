@@ -2,3 +2,6 @@ project_id = "olyeiymugihmljbpzbnm"
 
 [functions.pendency-portal]
 verify_jwt = false
+
+[functions.compute-productivity-snapshots]
+verify_jwt = false

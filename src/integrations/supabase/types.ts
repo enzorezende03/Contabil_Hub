@@ -236,6 +236,7 @@ export type Database = {
           client: string
           client_deadline: string
           competencias: string[]
+          completed_at: string | null
           complexity: string
           created_at: string
           created_by: string
@@ -256,6 +257,7 @@ export type Database = {
           client: string
           client_deadline: string
           competencias: string[]
+          completed_at?: string | null
           complexity?: string
           created_at?: string
           created_by: string
@@ -276,6 +278,7 @@ export type Database = {
           client?: string
           client_deadline?: string
           competencias?: string[]
+          completed_at?: string | null
           complexity?: string
           created_at?: string
           created_by?: string
@@ -290,6 +293,36 @@ export type Database = {
           types?: string[]
           updated_at?: string
           weight?: number
+        }
+        Relationships: []
+      }
+      holidays: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data: string
+          descricao: string
+          escopo: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data: string
+          descricao: string
+          escopo?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          descricao?: string
+          escopo?: string
+          id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -705,6 +738,69 @@ export type Database = {
         }
         Relationships: []
       }
+      productivity_snapshots: {
+        Row: {
+          ano: number
+          calculated_at: string | null
+          capacity_minutes: number
+          composite_score: number
+          created_at: string
+          details: Json
+          effort_points: number
+          effort_score_pct: number
+          id: string
+          mes: number
+          quality_score_pct: number | null
+          submissions_approved_first: number
+          submissions_total: number
+          tasks_completed_count: number
+          tasks_on_time_count: number
+          timeliness_score_pct: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ano: number
+          calculated_at?: string | null
+          capacity_minutes?: number
+          composite_score?: number
+          created_at?: string
+          details?: Json
+          effort_points?: number
+          effort_score_pct?: number
+          id?: string
+          mes: number
+          quality_score_pct?: number | null
+          submissions_approved_first?: number
+          submissions_total?: number
+          tasks_completed_count?: number
+          tasks_on_time_count?: number
+          timeliness_score_pct?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ano?: number
+          calculated_at?: string | null
+          capacity_minutes?: number
+          composite_score?: number
+          created_at?: string
+          details?: Json
+          effort_points?: number
+          effort_score_pct?: number
+          id?: string
+          mes?: number
+          quality_score_pct?: number | null
+          submissions_approved_first?: number
+          submissions_total?: number
+          tasks_completed_count?: number
+          tasks_on_time_count?: number
+          timeliness_score_pct?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           can_review: boolean
@@ -872,6 +968,45 @@ export type Database = {
         }
         Relationships: []
       }
+      team_availability: {
+        Row: {
+          created_at: string
+          created_by: string
+          data_fim: string
+          data_inicio: string
+          descricao: string | null
+          horas_dia: number
+          id: string
+          tipo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          data_fim: string
+          data_inicio: string
+          descricao?: string | null
+          horas_dia?: number
+          id?: string
+          tipo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          data_fim?: string
+          data_inicio?: string
+          descricao?: string | null
+          horas_dia?: number
+          id?: string
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -895,6 +1030,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      business_days_in_month: {
+        Args: { p_ano: number; p_mes: number }
+        Returns: number
+      }
       can_view_submission: {
         Args: { p_submission_id: string }
         Returns: boolean

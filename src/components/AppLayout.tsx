@@ -33,6 +33,7 @@ const NAV_ITEMS = [
   { label: "Solicitação de Clientes", path: "/demandas" as AppPage, icon: ListTodo },
   { label: "Planejamento", path: "/planejamento" as AppPage, icon: ClipboardList },
   { label: "Produtividade Equipe", path: "/equipe" as AppPage, icon: Users },
+  { label: "Ausências", path: "/ausencias" as AppPage, icon: Calendar },
   { label: "Fechamento Contábil", path: "/competencias" as AppPage, icon: Calendar },
   { label: "Revisão", path: "/revisao" as AppPage, icon: ShieldCheck },
   { label: "Pendências", path: "/pendencias" as AppPage, icon: AlertOctagon },

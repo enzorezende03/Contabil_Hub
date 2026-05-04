@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Pencil, Save, Plus, Trash2, X, Shield, Lock } from "lucide-react";
 import { ALL_PAGES, type ProfileRole, type AppPage, setRolePermissions, BUILTIN_ROLES, setCustomRoles } from "@/lib/permissions";
 import { type ActionPermissions, setActionPermissions } from "@/hooks/use-action-permissions";
+import ProductivitySettings from "@/components/ProductivitySettings";
 
 const ROLE_OPTIONS: { value: TeamRole; label: string }[] = [
   { value: "estagiario", label: "Estagiário" },
@@ -33,6 +34,10 @@ export default function SettingsPage() {
     configurar_integracoes: ["coordenacao"],
     ver_todas_demandas: ["coordenacao", "analista"],
     ver_toda_equipe: ["coordenacao", "analista"],
+    ver_propria_produtividade: ["coordenacao", "analista", "assistente", "estagiario"],
+    ver_produtividade_equipe: ["coordenacao"],
+    configurar_produtividade: ["coordenacao"],
+    gerenciar_ausencias_equipe: ["coordenacao"],
   });
   const [editingWeights, setEditingWeights] = useState(false);
   const [editingTeam, setEditingTeam] = useState(false);
@@ -52,6 +57,10 @@ export default function SettingsPage() {
     configurar_integracoes: ["coordenacao"],
     ver_todas_demandas: ["coordenacao", "analista"],
     ver_toda_equipe: ["coordenacao", "analista"],
+    ver_propria_produtividade: ["coordenacao", "analista", "assistente", "estagiario"],
+    ver_produtividade_equipe: ["coordenacao"],
+    configurar_produtividade: ["coordenacao"],
+    gerenciar_ausencias_equipe: ["coordenacao"],
   });
   const [saving, setSaving] = useState(false);
 
@@ -209,7 +218,11 @@ export default function SettingsPage() {
     { key: "cancelar_submissao", label: "Cancelar Submissão", description: "Permite cancelar uma submissão de revisão ainda não revisada" },
     { key: "supervisionar_revisao", label: "Supervisionar Revisão", description: "Visão completa de todas as submissões do sistema; permite reatribuir revisora e remover bloqueios" },
     { key: "ver_todas_demandas", label: "Ver Todas as Demandas", description: "Visualiza demandas e planejamentos de toda a equipe (operacional vê apenas os seus quando desmarcado)" },
-    { key: "ver_toda_equipe", label: "Ver Produtividade de Toda Equipe", description: "Visualiza produtividade de todos os colaboradores (operacional vê apenas a sua quando desmarcado)" },
+    { key: "ver_toda_equipe", label: "Ver Produtividade de Toda Equipe (legado)", description: "Mantido por compatibilidade. Use 'Ver Produtividade da Equipe' abaixo." },
+    { key: "ver_propria_produtividade", label: "Ver Própria Produtividade", description: "Acessa a página /equipe e vê seu próprio score composto" },
+    { key: "ver_produtividade_equipe", label: "Ver Produtividade da Equipe", description: "Vê ranking completo de produtividade e detalhamento de qualquer colaborador" },
+    { key: "configurar_produtividade", label: "Configurar Produtividade", description: "Edita pesos, multiplicadores e parâmetros do score composto" },
+    { key: "gerenciar_ausencias_equipe", label: "Gerenciar Ausências da Equipe", description: "Cadastra/edita ausências de qualquer colaborador" },
   ];
   const toggleActionPerm = (action: keyof ActionPermissions, role: ProfileRole) => {
     const current = draftActions[action] || [];
@@ -419,6 +432,9 @@ export default function SettingsPage() {
             <p className="text-[11px] text-muted-foreground mt-2">* O Dashboard é obrigatório para todos os cargos.</p>
           )}
         </div>
+
+        {/* Productivity */}
+        <ProductivitySettings />
       </div>
     </AppLayout>
   );

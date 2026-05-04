@@ -12,6 +12,10 @@ export type ActionPermissions = {
   configurar_integracoes: string[];
   ver_todas_demandas: string[];
   ver_toda_equipe: string[];
+  ver_propria_produtividade: string[];
+  ver_produtividade_equipe: string[];
+  configurar_produtividade: string[];
+  gerenciar_ausencias_equipe: string[];
 };
 
 const DEFAULTS: ActionPermissions = {
@@ -25,6 +29,10 @@ const DEFAULTS: ActionPermissions = {
   configurar_integracoes: ["coordenacao"],
   ver_todas_demandas: ["coordenacao", "analista"],
   ver_toda_equipe: ["coordenacao", "analista"],
+  ver_propria_produtividade: ["coordenacao", "analista", "assistente", "estagiario"],
+  ver_produtividade_equipe: ["coordenacao"],
+  configurar_produtividade: ["coordenacao"],
+  gerenciar_ausencias_equipe: ["coordenacao"],
 };
 
 let cachedPerms: ActionPermissions = { ...DEFAULTS };

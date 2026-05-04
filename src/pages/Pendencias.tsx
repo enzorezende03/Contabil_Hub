@@ -478,7 +478,8 @@ function PortalAccessButton({ pendencyId }: { pendencyId: string }) {
           <DialogHeader>
             <DialogTitle>Acesso do cliente ao portal</DialogTitle>
             <DialogDescription>
-              Envie o link e o código de acesso ao cliente para que ele responda às pendências.
+              O link abaixo já contém o código de acesso embutido — basta enviá-lo ao cliente.
+              O código também aparece separado caso queira enviar por outro canal.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">

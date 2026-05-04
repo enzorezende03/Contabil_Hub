@@ -17,6 +17,10 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function TeamPage() {
+  const { user, profile } = useAuth();
+  useActionPermissions();
+  const canSeeAll = canPerformAction("ver_toda_equipe", profile?.role);
+
   // Fetch profiles
   const { data: profiles = [] } = useQuery({
     queryKey: ["profiles"],

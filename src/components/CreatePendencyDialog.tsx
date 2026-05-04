@@ -105,7 +105,7 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
     if (tipo === "interna") {
       payload.setor_responsavel = setor;
     } else {
-      payload.documento_solicitado = documento.trim();
+      payload.documento_solicitado = null;
       // Resolve contato escolhido (existente ou novo a cadastrar)
       let contNome: string | null = null;
       let contEmail: string | null = null;

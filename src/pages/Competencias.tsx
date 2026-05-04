@@ -580,6 +580,7 @@ export default function CompetenciasPage() {
     if (selectedTributacao !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.tributacao === selectedTributacao);
     if (selectedUnidade !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.unidade === selectedUnidade);
     if (selectedPerfil !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.perfil === selectedPerfil);
+    if (selectedEcd !== "all") clientSet = clientSet.filter((c) => !!clientsMap[c]?.obrigatoriedade_ecd === (selectedEcd === "yes"));
 
     const matrix: Record<string, Record<string, CellLevel>> = {};
 

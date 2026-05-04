@@ -250,6 +250,7 @@ export default function CompetenciasPage() {
   const [selectedUnidade, setSelectedUnidade] = usePersistedFilter("competencias", "unidade", "all");
   const [selectedPerfil, setSelectedPerfil] = usePersistedFilter("competencias", "perfil", "all");
   const [selectedFinalStatus, setSelectedFinalStatus] = usePersistedFilter<"all" | "open" | "finalized">("competencias", "finalStatus", "all");
+  const [selectedEcd, setSelectedEcd] = usePersistedFilter<"all" | "yes" | "no">("competencias", "ecd", "all");
   const [semMovimento, setSemMovimento] = useState<Set<string>>(new Set());
   const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
   const [panelClient, setPanelClient] = useState<string | null>(null);
@@ -519,9 +520,9 @@ export default function CompetenciasPage() {
 
   // Build client list and tributação map from DB
   const clientsMap = useMemo(() => {
-    const map: Record<string, { tributacao: string; competencia_inicio: string; unidade: string; perfil: string }> = {};
+    const map: Record<string, { tributacao: string; competencia_inicio: string; unidade: string; perfil: string; obrigatoriedade_ecd: boolean }> = {};
     dbClients.forEach((c: any) => {
-      map[c.razao_social] = { tributacao: c.tributacao, competencia_inicio: c.competencia_inicio, unidade: c.unidade || "2m_contabilidade", perfil: c.perfil || "standard" };
+      map[c.razao_social] = { tributacao: c.tributacao, competencia_inicio: c.competencia_inicio, unidade: c.unidade || "2m_contabilidade", perfil: c.perfil || "standard", obrigatoriedade_ecd: !!c.obrigatoriedade_ecd };
     });
     return map;
   }, [dbClients]);
@@ -579,6 +580,7 @@ export default function CompetenciasPage() {
     if (selectedTributacao !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.tributacao === selectedTributacao);
     if (selectedUnidade !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.unidade === selectedUnidade);
     if (selectedPerfil !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.perfil === selectedPerfil);
+    if (selectedEcd !== "all") clientSet = clientSet.filter((c) => !!clientsMap[c]?.obrigatoriedade_ecd === (selectedEcd === "yes"));
 
     const matrix: Record<string, Record<string, CellLevel>> = {};
 
@@ -630,7 +632,7 @@ export default function CompetenciasPage() {
     );
 
     return { clients: activeClients, matrix };
-  }, [year, selectedClient, selectedTributacao, selectedUnidade, selectedPerfil, allClientNames, clientsMap, semMovimento, demandStatuses]);
+  }, [year, selectedClient, selectedTributacao, selectedUnidade, selectedPerfil, selectedEcd, allClientNames, clientsMap, semMovimento, demandStatuses]);
 
   // Map razao_social -> client UUID for review submissions wiring
   const clientIdByName = useMemo(() => {
@@ -820,6 +822,11 @@ export default function CompetenciasPage() {
             <option value="premium">Premium</option>
             <option value="standard">Standard</option>
             <option value="basico">Básico</option>
+          </select>
+          <select value={selectedEcd} onChange={(e) => setSelectedEcd(e.target.value as "all" | "yes" | "no")} className={`${selectClass} h-8 text-xs px-2 w-[130px] flex-shrink-0`}>
+            <option value="all">Todos (ECD)</option>
+            <option value="yes">Obrigados ao ECD</option>
+            <option value="no">Sem ECD</option>
           </select>
           <select value={selectedFinalStatus} onChange={(e) => setSelectedFinalStatus(e.target.value as "all" | "open" | "finalized")} className={`${selectClass} h-8 text-xs px-2 w-[150px] flex-shrink-0`}>
             <option value="all">Todas (status)</option>

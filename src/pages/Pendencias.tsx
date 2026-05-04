@@ -739,6 +739,63 @@ function PauseDialog({ pendency, onClose }: { pendency: Pendency; onClose: () =>
 
 function DetailsDialog({ pendency, clientName, responsavelName, onClose }: { pendency: Pendency; clientName?: string; responsavelName: string; onClose: () => void }) {
   const { data: comms = [] } = usePendencyCommunications(pendency.id);
+
+  const { data: items = [] } = useQuery({
+    queryKey: ["pendency-items", pendency.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pendency_items")
+        .select("*")
+        .eq("pendency_id", pendency.id)
+        .order("ordem");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: pendency.tipo === "externa",
+  });
+
+  const { data: responses = [] } = useQuery({
+    queryKey: ["pendency-item-responses", pendency.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pendency_item_responses")
+        .select("*")
+        .eq("pendency_id", pendency.id)
+        .order("created_at");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: pendency.tipo === "externa",
+  });
+
+  const { data: itemComments = [] } = useQuery({
+    queryKey: ["pendency-item-comments", pendency.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pendency_item_comments")
+        .select("*")
+        .eq("pendency_id", pendency.id)
+        .order("created_at");
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: pendency.tipo === "externa",
+  });
+
+  async function openAttachment(path: string) {
+    const { data, error } = await supabase.storage
+      .from("pendency-attachments")
+      .createSignedUrl(path, 600);
+    if (error || !data?.signedUrl) {
+      toast.error("Não foi possível abrir o anexo");
+      return;
+    }
+    window.open(data.signedUrl, "_blank");
+  }
+
+  const totalItems = items.length;
+  const entregues = items.filter((i: any) => i.status === "entregue").length;
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
@@ -758,6 +815,85 @@ function DetailsDialog({ pendency, clientName, responsavelName, onClose }: { pen
             <div><strong>Cadência:</strong> {pendency.followup_cadence_days} dia(s) · próximo lembrete: {pendency.next_followup_at ? new Date(pendency.next_followup_at).toLocaleString("pt-BR") : "—"}</div>
             {pendency.resolution_notes && <div><strong>Resolução:</strong> {pendency.resolution_notes}</div>}
           </div>
+
+          {pendency.tipo === "externa" && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold">
+                  Respostas do cliente ({entregues}/{totalItems} entregues)
+                </h3>
+                {(pendency as any).last_client_submit_at && (
+                  <span className="text-[11px] text-muted-foreground">
+                    Último envio: {new Date((pendency as any).last_client_submit_at).toLocaleString("pt-BR")}
+                  </span>
+                )}
+              </div>
+              {totalItems === 0 ? (
+                <p className="text-xs text-muted-foreground">Nenhum item cadastrado.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {items.map((it: any) => {
+                    const itemResps = responses.filter((r: any) => r.item_id === it.id);
+                    const itemComms = itemComments.filter((c: any) => c.item_id === it.id);
+                    return (
+                      <li key={it.id} className="border rounded-md p-3">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm">{it.titulo}</div>
+                            {it.descricao && <div className="text-xs text-muted-foreground mt-0.5">{it.descricao}</div>}
+                          </div>
+                          <span className={cn(
+                            "text-[10px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap",
+                            it.status === "entregue"
+                              ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30"
+                              : "bg-amber-500/15 text-amber-700 border-amber-500/30"
+                          )}>
+                            {it.status === "entregue" ? "Entregue" : "Pendente"}
+                          </span>
+                        </div>
+
+                        {itemResps.length === 0 && itemComms.length === 0 ? (
+                          <p className="text-[11px] text-muted-foreground italic">Sem respostas ainda.</p>
+                        ) : (
+                          <div className="space-y-1.5">
+                            {itemResps.map((r: any) => (
+                              <div key={r.id} className="text-xs bg-muted/40 rounded p-2">
+                                <div className="flex items-center justify-between mb-0.5">
+                                  <span className="font-semibold">{r.sender_nome || "Cliente"}</span>
+                                  <span className="text-muted-foreground">{new Date(r.created_at).toLocaleString("pt-BR")}</span>
+                                </div>
+                                {r.tipo === "arquivo" && r.arquivo_path ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openAttachment(r.arquivo_path)}
+                                    className="text-primary hover:underline inline-flex items-center gap-1"
+                                  >
+                                    <ExternalLink className="w-3 h-3" /> {r.arquivo_nome || "Baixar anexo"}
+                                  </button>
+                                ) : (
+                                  <div className="whitespace-pre-wrap">{r.texto}</div>
+                                )}
+                              </div>
+                            ))}
+                            {itemComms.map((c: any) => (
+                              <div key={c.id} className="text-xs border-l-2 border-blue-400 bg-blue-500/5 rounded-r p-2">
+                                <div className="flex items-center justify-between mb-0.5">
+                                  <span className="font-semibold">💬 {c.sender_nome || "Cliente"}</span>
+                                  <span className="text-muted-foreground">{new Date(c.created_at).toLocaleString("pt-BR")}</span>
+                                </div>
+                                <div className="whitespace-pre-wrap">{c.texto}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          )}
+
           <div>
             <h3 className="text-sm font-semibold mb-2">Histórico de cobranças ({comms.length})</h3>
             {comms.length === 0 ? (

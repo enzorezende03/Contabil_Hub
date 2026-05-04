@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Trophy, TrendingUp, CheckCircle2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 
 const TYPE_LABELS: Record<string, string> = {
   lancamentos: "Lançamentos",

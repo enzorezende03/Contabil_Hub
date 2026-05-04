@@ -358,8 +358,8 @@ export default function Clients() {
 
   const filtered = clients.filter(
     (c) =>
-      c.razao_social.toLowerCase().includes(search.toLowerCase()) ||
-      c.cnpj.includes(search.replace(/\D/g, ""))
+      (c.razao_social || "").toLowerCase().includes(search.toLowerCase()) ||
+      (c.cnpj || "").includes(search.replace(/\D/g, ""))
   );
 
   return (

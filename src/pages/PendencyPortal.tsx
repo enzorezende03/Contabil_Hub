@@ -147,6 +147,8 @@ export default function PendencyPortal() {
 
   const [submitting, setSubmitting] = useState(false);
   const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
+  const [completed, setCompleted] = useState(false);
+  const [showItems, setShowItems] = useState(false);
 
   async function handleSubmitToContabilidade() {
     setSubmitting(true);
@@ -155,6 +157,8 @@ export default function PendencyPortal() {
       setSubmittedAt(new Date());
       if (res.allDone) {
         toast.success("Tudo enviado! Pendência concluída ✅");
+        setCompleted(true);
+        setShowItems(false);
       } else {
         toast.success(`Enviado parcialmente (${res.entregues}/${res.total}). Você pode continuar respondendo.`);
       }

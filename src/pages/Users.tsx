@@ -3,14 +3,7 @@ import AppLayout from "@/components/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { canAccessPage } from "@/lib/permissions";
-
-const ROLE_OPTIONS = [
-  { value: "estagiario", label: "Estagiário" },
-  { value: "assistente", label: "Assistente" },
-  { value: "analista", label: "Analista" },
-  { value: "coordenacao", label: "Coordenação" },
-];
+import { canAccessPage, BUILTIN_ROLES } from "@/lib/permissions";
 
 interface UserRow {
   user_id: string;
@@ -28,6 +21,8 @@ export default function UsersPage() {
   const [role, setRole] = useState("assistente");
   const [appRole, setAppRole] = useState<"admin" | "user">("user");
   const [loading, setLoading] = useState(false);
+  const [customRoles, setCustomRoles] = useState<{ value: string; label: string }[]>([]);
+  const ROLE_OPTIONS = [...BUILTIN_ROLES, ...customRoles];
 
   useEffect(() => {
     loadUsers();
@@ -36,6 +31,8 @@ export default function UsersPage() {
   const loadUsers = async () => {
     const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, role");
     const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+    const { data: settingsRow } = await supabase.from("settings").select("value").eq("key", "custom_roles").maybeSingle();
+    if (settingsRow?.value) setCustomRoles(settingsRow.value as unknown as { value: string; label: string }[]);
     if (profiles) {
       setUsers(
         profiles.map((p) => ({

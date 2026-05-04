@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Pencil, Save, Plus, Trash2, X, Shield, Lock } from "lucide-react";
-import { ALL_PAGES, type ProfileRole, type AppPage, setRolePermissions } from "@/lib/permissions";
+import { ALL_PAGES, type ProfileRole, type AppPage, setRolePermissions, BUILTIN_ROLES, setCustomRoles } from "@/lib/permissions";
 import { type ActionPermissions, setActionPermissions } from "@/hooks/use-action-permissions";
 
 const ROLE_OPTIONS: { value: TeamRole; label: string }[] = [
@@ -13,13 +13,6 @@ const ROLE_OPTIONS: { value: TeamRole; label: string }[] = [
   { value: "assistente", label: "Assistente" },
   { value: "analista", label: "Analista" },
   { value: "coordenacao", label: "Coordenação" },
-];
-
-const PROFILE_ROLES: { value: ProfileRole; label: string }[] = [
-  { value: "coordenacao", label: "Coordenação" },
-  { value: "analista", label: "Analista" },
-  { value: "assistente", label: "Assistente" },
-  { value: "estagiario", label: "Estagiário" },
 ];
 
 type RolePerms = Record<ProfileRole, AppPage[]>;
@@ -61,6 +54,12 @@ export default function SettingsPage() {
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState<TeamRole>("assistente");
 
+  // Custom roles
+  const [customRoles, setCustomRolesState] = useState<{ value: string; label: string }[]>([]);
+  const [newRoleLabel, setNewRoleLabel] = useState("");
+
+  const PROFILE_ROLES = [...BUILTIN_ROLES, ...customRoles];
+
   useEffect(() => {
     loadSettings();
   }, []);
@@ -72,11 +71,44 @@ export default function SettingsPage() {
       const tRow = data.find((r) => r.key === "team_members");
       const pRow = data.find((r) => r.key === "role_permissions");
       const aRow = data.find((r) => r.key === "action_permissions");
+      const cRow = data.find((r) => r.key === "custom_roles");
       if (wRow) setWeights(wRow.value as unknown as TaskWeight[]);
       if (tRow) setTeam(tRow.value as unknown as TeamMember[]);
       if (pRow) setPermissions(pRow.value as unknown as RolePerms);
       if (aRow) setActionPermsState(aRow.value as unknown as ActionPermissions);
+      if (cRow) {
+        const cr = (cRow.value as unknown as { value: string; label: string }[]) || [];
+        setCustomRolesState(cr);
+        setCustomRoles(cr);
+      }
     }
+  };
+
+  const addCustomRole = async () => {
+    const label = newRoleLabel.trim();
+    if (!label) return toast.error("Informe o nome do cargo");
+    const value = label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+    if (!value) return toast.error("Nome inválido");
+    if ([...BUILTIN_ROLES, ...customRoles].some((r) => r.value === value)) {
+      return toast.error("Já existe um cargo com esse nome");
+    }
+    const updated = [...customRoles, { value, label }];
+    const { error } = await supabase.from("settings").upsert({ key: "custom_roles", value: updated as any, updated_by: user?.id }, { onConflict: "key" });
+    if (error) return toast.error("Erro ao salvar cargo");
+    setCustomRolesState(updated);
+    setCustomRoles(updated);
+    setNewRoleLabel("");
+    toast.success("Cargo criado!");
+  };
+
+  const removeCustomRole = async (value: string) => {
+    if (!confirm(`Remover este cargo? Usuários com este cargo continuarão existindo, mas perderão suas permissões.`)) return;
+    const updated = customRoles.filter((r) => r.value !== value);
+    const { error } = await supabase.from("settings").upsert({ key: "custom_roles", value: updated as any, updated_by: user?.id }, { onConflict: "key" });
+    if (error) return toast.error("Erro ao remover cargo");
+    setCustomRolesState(updated);
+    setCustomRoles(updated);
+    toast.success("Cargo removido");
   };
 
   // --- Weights ---
@@ -244,6 +276,52 @@ export default function SettingsPage() {
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Custom Roles */}
+        <div className="rounded-lg border bg-card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Shield className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold">Cargos Personalizados</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Crie novos cargos além dos padrões. Eles aparecerão nas tabelas de permissões abaixo e no cadastro de usuários.
+          </p>
+          <div className="divide-y divide-border mb-3">
+            {customRoles.length === 0 && (
+              <p className="text-xs text-muted-foreground py-2">Nenhum cargo personalizado criado.</p>
+            )}
+            {customRoles.map((r) => (
+              <div key={r.value} className="flex items-center justify-between py-2">
+                <div>
+                  <span className="text-sm font-medium">{r.label}</span>
+                  <span className="text-xs text-muted-foreground ml-2">({r.value})</span>
+                </div>
+                {isAdmin && (
+                  <button onClick={() => removeCustomRole(r.value)} className="text-destructive hover:text-destructive/80 p-1">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          {isAdmin && (
+            <div className="flex items-center gap-2 pt-3 border-t">
+              <input
+                placeholder="Nome do cargo (ex: Gerente Tributário)"
+                value={newRoleLabel}
+                onChange={(e) => setNewRoleLabel(e.target.value)}
+                className="h-8 px-3 text-sm border rounded bg-background focus:outline-none focus:ring-2 focus:ring-primary flex-1"
+              />
+              <button
+                onClick={addCustomRole}
+                disabled={!newRoleLabel.trim()}
+                className="h-8 px-3 rounded bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" /> Adicionar
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Permissions */}

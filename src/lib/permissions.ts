@@ -1,7 +1,28 @@
 // Role-based page permissions
-// Profile roles: coordenacao, analista, assistente, estagiario
+// Built-in profile roles + custom roles created by admins
 
-export type ProfileRole = "coordenacao" | "analista" | "assistente" | "estagiario";
+export type ProfileRole = string;
+
+export const BUILTIN_ROLES: { value: string; label: string }[] = [
+  { value: "coordenacao", label: "Coordenação" },
+  { value: "analista", label: "Analista" },
+  { value: "assistente", label: "Assistente" },
+  { value: "estagiario", label: "Estagiário" },
+];
+
+let CUSTOM_ROLES: { value: string; label: string }[] = [];
+
+export function setCustomRoles(roles: { value: string; label: string }[]) {
+  CUSTOM_ROLES = roles || [];
+}
+
+export function getCustomRoles() {
+  return [...CUSTOM_ROLES];
+}
+
+export function getAllRoles() {
+  return [...BUILTIN_ROLES, ...CUSTOM_ROLES];
+}
 
 export type AppPage =
   | "/"
@@ -28,11 +49,8 @@ const DEFAULT_ROLE_PAGES: Record<ProfileRole, AppPage[]> = {
 let ROLE_PAGES: Record<ProfileRole, AppPage[]> = { ...DEFAULT_ROLE_PAGES };
 
 export function setRolePermissions(perms: Record<string, string[]>) {
-  const roles: ProfileRole[] = ["coordenacao", "analista", "assistente", "estagiario"];
-  for (const role of roles) {
-    if (perms[role]) {
-      ROLE_PAGES[role] = perms[role] as AppPage[];
-    }
+  for (const role of Object.keys(perms || {})) {
+    ROLE_PAGES[role] = (perms[role] || []) as AppPage[];
   }
 }
 

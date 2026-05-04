@@ -50,6 +50,11 @@ export default function PendencyPortal() {
   const [senderName, setSenderName] = useState("");
   const [textInputs, setTextInputs] = useState<Record<string, string>>({});
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  function toggleExpanded(id: string) {
+    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
 
   async function reload() {
     const data = await callPortal("load", { token, code });

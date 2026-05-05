@@ -360,9 +360,12 @@ export default function Clients() {
   };
 
   const filtered = clients.filter((c) => {
+    const searchTrim = search.trim();
+    const searchDigits = searchTrim.replace(/\D/g, "");
     const matchesSearch =
-      (c.razao_social || "").toLowerCase().includes(search.toLowerCase()) ||
-      (c.cnpj || "").includes(search.replace(/\D/g, ""));
+      !searchTrim ||
+      (c.razao_social || "").toLowerCase().includes(searchTrim.toLowerCase()) ||
+      (searchDigits.length > 0 && (c.cnpj || "").includes(searchDigits));
     const matchesTrib = filterTributacao === "all" || c.tributacao === filterTributacao;
     const matchesUni = filterUnidade === "all" || c.unidade === filterUnidade;
     const matchesPerfil = filterPerfil === "all" || c.perfil === filterPerfil;

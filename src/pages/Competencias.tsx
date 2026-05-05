@@ -247,6 +247,7 @@ export default function CompetenciasPage() {
   const [year, setYear] = usePersistedFilter("competencias", "year", currentYear);
   const [yearConfirmed, setYearConfirmed] = useState(() => sessionStorage.getItem("competencias_year_confirmed") === "true");
   const [selectedClient, setSelectedClient] = usePersistedFilter("competencias", "client", "all");
+  const [searchClient, setSearchClient] = useState("");
   const [selectedTributacao, setSelectedTributacao] = usePersistedFilter("competencias", "tributacao", "all");
   const [selectedUnidade, setSelectedUnidade] = usePersistedFilter("competencias", "unidade", "all");
   const [selectedPerfil, setSelectedPerfil] = usePersistedFilter("competencias", "perfil", "all");
@@ -578,6 +579,8 @@ export default function CompetenciasPage() {
     let clientSet = [...allClientNames];
 
     if (selectedClient !== "all") clientSet = clientSet.filter((c) => c === selectedClient);
+    const searchTrim = searchClient.trim().toLowerCase();
+    if (searchTrim) clientSet = clientSet.filter((c) => c.toLowerCase().includes(searchTrim));
     if (selectedTributacao !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.tributacao === selectedTributacao);
     if (selectedUnidade !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.unidade === selectedUnidade);
     if (selectedPerfil !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.perfil === selectedPerfil);
@@ -633,7 +636,7 @@ export default function CompetenciasPage() {
     );
 
     return { clients: activeClients, matrix };
-  }, [year, selectedClient, selectedTributacao, selectedUnidade, selectedPerfil, selectedEcd, allClientNames, clientsMap, semMovimento, demandStatuses]);
+  }, [year, selectedClient, searchClient, selectedTributacao, selectedUnidade, selectedPerfil, selectedEcd, allClientNames, clientsMap, semMovimento, demandStatuses]);
 
   // Map razao_social -> client UUID for review submissions wiring
   const clientIdByName = useMemo(() => {
@@ -802,6 +805,13 @@ export default function CompetenciasPage() {
               <option key={y} value={y}>{y}</option>
             ))}
           </select>
+          <input
+            type="text"
+            value={searchClient}
+            onChange={(e) => setSearchClient(e.target.value)}
+            placeholder="Buscar empresa..."
+            className={`${selectClass} h-8 text-xs px-2 flex-1 min-w-[160px] max-w-[240px]`}
+          />
           <select value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)} className={`${selectClass} h-8 text-xs px-2 flex-1 min-w-[140px] max-w-[220px]`}>
             <option value="all">Todas empresas</option>
             {allClientNames.map((c) => <option key={c} value={c}>{c}</option>)}

@@ -377,6 +377,8 @@ function SubmissionGrid({
                     ? "Simples"
                     : client?.tributacao === "lucro_presumido"
                     ? "Presumido"
+                    : client?.tributacao === "isenta_imune"
+                    ? "Isenta/Imune"
                     : "Real"}{" "}
                   ·{" "}
                   {client?.unidade === "2m_saude" ? "2M Saúde" : "2M Contabilidade"}

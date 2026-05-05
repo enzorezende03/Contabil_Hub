@@ -971,12 +971,12 @@ export default function CompetenciasPage() {
                       className="rounded border-border"
                     />
                   </th>
-                  <th className="text-left px-2 py-2 font-medium text-muted-foreground sticky left-0 bg-muted/50 z-10 w-[140px] max-w-[140px]">
+                  <th className="text-left px-2 py-2 font-medium text-muted-foreground sticky left-0 bg-muted/50 z-10 w-[220px] max-w-[220px]">
                     Empresa
                   </th>
-                  <th className="text-left px-2 py-2 font-medium text-muted-foreground text-xs">Unidade</th>
-                  <th className="text-left px-2 py-2 font-medium text-muted-foreground text-xs">Perfil</th>
-                  <th className="text-left px-2 py-2 font-medium text-muted-foreground text-xs">Trib.</th>
+                  <th className="text-left px-1 py-2 font-medium text-muted-foreground text-xs w-[40px]">Un.</th>
+                  <th className="text-left px-1 py-2 font-medium text-muted-foreground text-xs w-[60px]">Perfil</th>
+                  <th className="text-left px-1 py-2 font-medium text-muted-foreground text-xs w-[32px]">Trib.</th>
                   {MONTHS.map((m) => (
                     <th key={m} className="text-center px-1 py-2 font-medium text-muted-foreground min-w-[44px]">
                       {MONTH_SHORT[m]}

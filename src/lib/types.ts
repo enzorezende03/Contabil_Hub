@@ -26,12 +26,13 @@ export type DemandType =
 export type Complexity = "baixa" | "media" | "alta";
 export type Priority = "baixa" | "media" | "alta" | "urgente";
 export type TeamRole = "estagiario" | "assistente" | "analista" | "coordenacao";
-export type Tributacao = "simples_nacional" | "lucro_presumido" | "lucro_real";
+export type Tributacao = "simples_nacional" | "lucro_presumido" | "lucro_real" | "isenta_imune";
 
 export const TRIBUTACAO_LABELS: Record<Tributacao, string> = {
   simples_nacional: "Simples Nacional",
   lucro_presumido: "Lucro Presumido",
   lucro_real: "Lucro Real",
+  isenta_imune: "Isenta/Imune",
 };
 
 export interface TeamMember {

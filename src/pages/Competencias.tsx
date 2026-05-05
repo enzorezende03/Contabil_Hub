@@ -971,12 +971,12 @@ export default function CompetenciasPage() {
                       className="rounded border-border"
                     />
                   </th>
-                  <th className="text-left px-2 py-2 font-medium text-muted-foreground sticky left-0 bg-muted/50 z-10 w-[140px] max-w-[140px]">
+                  <th className="text-left px-2 py-2 font-medium text-muted-foreground sticky left-0 bg-muted/50 z-10 w-[220px] max-w-[220px]">
                     Empresa
                   </th>
-                  <th className="text-left px-2 py-2 font-medium text-muted-foreground text-xs">Unidade</th>
-                  <th className="text-left px-2 py-2 font-medium text-muted-foreground text-xs">Perfil</th>
-                  <th className="text-left px-2 py-2 font-medium text-muted-foreground text-xs">Trib.</th>
+                  <th className="text-left px-1 py-2 font-medium text-muted-foreground text-xs w-[40px]">Un.</th>
+                  <th className="text-left px-1 py-2 font-medium text-muted-foreground text-xs w-[60px]">Perfil</th>
+                  <th className="text-left px-1 py-2 font-medium text-muted-foreground text-xs w-[32px]">Trib.</th>
                   {MONTHS.map((m) => (
                     <th key={m} className="text-center px-1 py-2 font-medium text-muted-foreground min-w-[44px]">
                       {MONTH_SHORT[m]}
@@ -1005,7 +1005,7 @@ export default function CompetenciasPage() {
                         />
                       </td>
                       <td
-                        className={`px-2 py-2 font-medium text-xs whitespace-nowrap overflow-hidden text-ellipsis sticky left-0 z-10 cursor-pointer transition-colors w-[140px] max-w-[140px] ${finalized ? "bg-muted/40 text-muted-foreground hover:text-foreground" : "bg-card hover:text-primary"}`}
+                        className={`px-2 py-2 font-medium text-xs whitespace-nowrap overflow-hidden text-ellipsis sticky left-0 z-10 cursor-pointer transition-colors w-[220px] max-w-[220px] ${finalized ? "bg-muted/40 text-muted-foreground hover:text-foreground" : "bg-card hover:text-primary"}`}
                         onClick={() => setPanelClient(client)}
                         title={finalized ? `${client} — 🔒 Fechamento concluído (desativada)` : client}
                       >
@@ -1014,19 +1014,19 @@ export default function CompetenciasPage() {
                           <span className="truncate">{client}</span>
                         </span>
                       </td>
-                      <td className="px-2 py-2 whitespace-nowrap">
+                      <td className="px-1 py-2 whitespace-nowrap">
                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${
                           unidade === "2m_saude" ? "bg-emerald-500/15 text-emerald-600" : "bg-blue-500/15 text-blue-600"
                         }`}>
                           {unidadeLabel}
                         </span>
                       </td>
-                      <td className="px-2 py-2 whitespace-nowrap">
+                      <td className="px-1 py-2 whitespace-nowrap">
                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${perfilColors[perfil] || perfilColors.standard}`}>
                           {perfilLabels[perfil] || perfil}
                         </span>
                       </td>
-                      <td className="px-2 py-2 text-[10px] text-muted-foreground whitespace-nowrap">{tribLabel}</td>
+                      <td className="px-1 py-2 text-[10px] text-muted-foreground whitespace-nowrap">{tribLabel}</td>
                       {MONTHS.map((m) => {
                         const level = matrix[client][m];
                         const cfg = LEVEL_CONFIG[level];

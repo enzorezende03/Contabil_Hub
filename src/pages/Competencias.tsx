@@ -247,6 +247,7 @@ export default function CompetenciasPage() {
   const [year, setYear] = usePersistedFilter("competencias", "year", currentYear);
   const [yearConfirmed, setYearConfirmed] = useState(() => sessionStorage.getItem("competencias_year_confirmed") === "true");
   const [selectedClient, setSelectedClient] = usePersistedFilter("competencias", "client", "all");
+  const [searchClient, setSearchClient] = useState("");
   const [selectedTributacao, setSelectedTributacao] = usePersistedFilter("competencias", "tributacao", "all");
   const [selectedUnidade, setSelectedUnidade] = usePersistedFilter("competencias", "unidade", "all");
   const [selectedPerfil, setSelectedPerfil] = usePersistedFilter("competencias", "perfil", "all");

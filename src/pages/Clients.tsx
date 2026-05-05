@@ -248,6 +248,10 @@ export default function Clients() {
     "simples nacional": "simples_nacional",
     "lucro presumido": "lucro_presumido",
     "lucro real": "lucro_real",
+    "isenta": "isenta_imune",
+    "imune": "isenta_imune",
+    "isenta/imune": "isenta_imune",
+    "isenta imune": "isenta_imune",
   };
 
   const UNIDADE_MAP: Record<string, string> = {

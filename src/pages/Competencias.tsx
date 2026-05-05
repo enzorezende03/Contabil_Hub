@@ -199,6 +199,7 @@ const TRIBUTACAO_LABELS_MAP: Record<string, string> = {
   simples_nacional: "Simples Nacional",
   lucro_presumido: "Lucro Presumido",
   lucro_real: "Lucro Real",
+  isenta_imune: "Isenta/Imune",
 };
 
 /** Piso global do quadro de Fechamento Contábil: clientes com responsabilidade

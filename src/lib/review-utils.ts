@@ -39,6 +39,7 @@ export const DEFAULT_REQUIRED_BY_TRIBUTACAO: Record<string, TipoDemonstrativo[]>
   simples_nacional: ["balancete"],
   lucro_presumido: ["balancete"],
   lucro_real: ["balancete"],
+  isenta_imune: ["balancete"],
 };
 
 export type ReviewStatus =

@@ -25,6 +25,7 @@ const TRIBUTACAO_OPTIONS = [
   { value: "simples_nacional", label: "Simples Nacional" },
   { value: "lucro_presumido", label: "Lucro Presumido" },
   { value: "lucro_real", label: "Lucro Real" },
+  { value: "isenta_imune", label: "Isenta/Imune" },
 ];
 
 const UNIDADE_OPTIONS = [
@@ -247,6 +248,10 @@ export default function Clients() {
     "simples nacional": "simples_nacional",
     "lucro presumido": "lucro_presumido",
     "lucro real": "lucro_real",
+    "isenta": "isenta_imune",
+    "imune": "isenta_imune",
+    "isenta/imune": "isenta_imune",
+    "isenta imune": "isenta_imune",
   };
 
   const UNIDADE_MAP: Record<string, string> = {

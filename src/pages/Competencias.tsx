@@ -579,6 +579,8 @@ export default function CompetenciasPage() {
     let clientSet = [...allClientNames];
 
     if (selectedClient !== "all") clientSet = clientSet.filter((c) => c === selectedClient);
+    const searchTrim = searchClient.trim().toLowerCase();
+    if (searchTrim) clientSet = clientSet.filter((c) => c.toLowerCase().includes(searchTrim));
     if (selectedTributacao !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.tributacao === selectedTributacao);
     if (selectedUnidade !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.unidade === selectedUnidade);
     if (selectedPerfil !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.perfil === selectedPerfil);

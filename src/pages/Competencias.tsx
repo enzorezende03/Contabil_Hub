@@ -805,6 +805,13 @@ export default function CompetenciasPage() {
               <option key={y} value={y}>{y}</option>
             ))}
           </select>
+          <input
+            type="text"
+            value={searchClient}
+            onChange={(e) => setSearchClient(e.target.value)}
+            placeholder="Buscar empresa..."
+            className={`${selectClass} h-8 text-xs px-2 flex-1 min-w-[160px] max-w-[240px]`}
+          />
           <select value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)} className={`${selectClass} h-8 text-xs px-2 flex-1 min-w-[140px] max-w-[220px]`}>
             <option value="all">Todas empresas</option>
             {allClientNames.map((c) => <option key={c} value={c}>{c}</option>)}

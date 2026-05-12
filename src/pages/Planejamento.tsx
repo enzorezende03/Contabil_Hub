@@ -20,6 +20,7 @@ import { formatMinutes, getDeadlineUrgency } from "@/lib/demand-utils";
 import { Search, LayoutGrid, List, Clock, Plus, CalendarRange } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreatePlanningDialog } from "@/components/CreatePlanningDialog";
+import { EditPlanningDialog } from "@/components/EditPlanningDialog";
 import { WorkloadPanel } from "@/components/WorkloadPanel";
 import { PlanningTimeline } from "@/components/PlanningTimeline";
 import { toast } from "sonner";
@@ -43,6 +44,7 @@ export default function PlanejamentoPage() {
   const [filterType, setFilterType] = usePersistedFilter<string>("planejamento", "type", "all");
   const [filterAssignee, setFilterAssignee] = usePersistedFilter<string>("planejamento", "assignee", "all");
   const [createOpen, setCreateOpen] = useState(false);
+  const [editPlanning, setEditPlanning] = useState<Demand | null>(null);
   const { members: teamMembers } = useTeamMembers();
   const { user, profile } = useAuth();
   useActionPermissions();
@@ -210,7 +212,7 @@ export default function PlanejamentoPage() {
                   </div>
                   <div className="space-y-2">
                     {col.map((d) => (
-                      <div key={d.id} className="rounded-lg border bg-card p-3 hover:border-primary/30 transition-colors cursor-pointer">
+                      <div key={d.id} onClick={() => setEditPlanning(d)} className="rounded-lg border bg-card p-3 hover:border-primary/30 transition-colors cursor-pointer">
                         <div className="flex items-start justify-between mb-1.5">
                           <p className="text-sm font-medium leading-tight">{d.client}</p>
                           <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
@@ -273,7 +275,7 @@ export default function PlanejamentoPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {filtered.map((d) => (
-                  <tr key={d.id} className="hover:bg-muted/30 transition-colors cursor-pointer">
+                  <tr key={d.id} onClick={() => setEditPlanning(d)} className="hover:bg-muted/30 transition-colors cursor-pointer">
                     <td className="px-3 py-2.5 font-medium">{d.client}</td>
                     <td className="px-3 py-2.5 text-xs max-w-40">
                       <div className="flex flex-wrap gap-1">
@@ -298,6 +300,13 @@ export default function PlanejamentoPage() {
           <PlanningTimeline plannings={filtered} />
         )}
       </div>
+
+      <EditPlanningDialog
+        open={!!editPlanning}
+        onOpenChange={(o) => !o && setEditPlanning(null)}
+        planning={editPlanning}
+        onSaved={() => refetch()}
+      />
 
       <CreatePlanningDialog
         open={createOpen}

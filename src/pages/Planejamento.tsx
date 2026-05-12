@@ -275,7 +275,7 @@ export default function PlanejamentoPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {filtered.map((d) => (
-                  <tr key={d.id} className="hover:bg-muted/30 transition-colors cursor-pointer">
+                  <tr key={d.id} onClick={() => setEditPlanning(d)} className="hover:bg-muted/30 transition-colors cursor-pointer">
                     <td className="px-3 py-2.5 font-medium">{d.client}</td>
                     <td className="px-3 py-2.5 text-xs max-w-40">
                       <div className="flex flex-wrap gap-1">

@@ -301,6 +301,13 @@ export default function PlanejamentoPage() {
         )}
       </div>
 
+      <EditPlanningDialog
+        open={!!editPlanning}
+        onOpenChange={(o) => !o && setEditPlanning(null)}
+        planning={editPlanning}
+        onSaved={() => refetch()}
+      />
+
       <CreatePlanningDialog
         open={createOpen}
         onOpenChange={setCreateOpen}

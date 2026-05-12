@@ -212,7 +212,7 @@ export default function PlanejamentoPage() {
                   </div>
                   <div className="space-y-2">
                     {col.map((d) => (
-                      <div key={d.id} className="rounded-lg border bg-card p-3 hover:border-primary/30 transition-colors cursor-pointer">
+                      <div key={d.id} onClick={() => setEditPlanning(d)} className="rounded-lg border bg-card p-3 hover:border-primary/30 transition-colors cursor-pointer">
                         <div className="flex items-start justify-between mb-1.5">
                           <p className="text-sm font-medium leading-tight">{d.client}</p>
                           <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${

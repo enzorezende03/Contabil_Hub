@@ -846,11 +846,19 @@ export default function CompetenciasPage() {
     <AppLayout>
       <div className="p-6 space-y-6">
         <div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Fechamento Contábil {year}</h1>
               <p className="text-sm text-muted-foreground mt-1">Evolução contábil por empresa e mês</p>
             </div>
+            <button
+              onClick={exportToExcel}
+              className="h-9 px-3 text-xs font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-sm"
+              title="Exportar para Excel respeitando os filtros atuais"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              Exportar Excel
+            </button>
           </div>
         </div>
 

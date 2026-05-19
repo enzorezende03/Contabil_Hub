@@ -748,6 +748,61 @@ export default function CompetenciasPage() {
     }
   }, [user, year]);
 
+  const exportToExcel = useCallback(() => {
+    const LEVEL_EXPORT_LABEL: Record<CellLevel, string> = {
+      none: "Não Iniciada",
+      disabled: "—",
+      sem_movimento: "Sem Movimento",
+      aguardando_doc: "Aguardando Doc.",
+      lanc_andamento: "Lanç. em andamento",
+      lancado: "Lançado",
+      cb_andamento: "Conc. Banc. em andamento",
+      conc_bancaria: "Conc. Bancária",
+      cc_andamento: "Conc. Cont. em andamento",
+      conc_contabil: "Conc. Contábil",
+    };
+    const STATUS_LBL: Record<string, string> = {
+      not_started: "Não iniciada",
+      in_progress: "Em andamento",
+      waiting_info: "Aguardando doc.",
+      in_review: "Em revisão",
+      completed: "Concluída",
+    };
+    const PERFIL_LBL: Record<string, string> = { vip: "VIP", premium: "Premium", standard: "Standard", basico: "Básico" };
+    const UNIDADE_LBL: Record<string, string> = { "2m_contabilidade": "2M Contabilidade", "2m_saude": "2M Saúde" };
+
+    const rows = visibleClients.map((client) => {
+      const info = clientsMap[client] || ({} as any);
+      const row: Record<string, string> = {
+        "Empresa": client,
+        "Tributação": TRIBUTACAO_LABELS_MAP[info.tributacao] || info.tributacao || "",
+        "Unidade": UNIDADE_LBL[info.unidade] || info.unidade || "",
+        "Perfil": PERFIL_LBL[info.perfil] || info.perfil || "",
+        "ECD": info.obrigatoriedade_ecd ? "Sim" : "Não",
+      };
+      MONTHS.forEach((m) => {
+        const level = matrix[client]?.[m] || "none";
+        row[MONTH_SHORT[m]] = LEVEL_EXPORT_LABEL[level];
+      });
+      row["Fechamento"] = STATUS_LBL[demandStatuses[`${client}|closing|fechamento`] || "not_started"];
+      row["Revisão"] = STATUS_LBL[demandStatuses[`${client}|closing|revisao`] || "not_started"];
+      row["Anexo Demonstrações"] = attachmentMap.has(client) ? (attachmentMap.get(client)?.file_name || "Sim") : "—";
+      row["Status Final"] = isClientFinalized(client) ? "Finalizado" : "Em aberto";
+      return row;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    // Auto column widths
+    const headers = Object.keys(rows[0] || { Empresa: "" });
+    ws["!cols"] = headers.map((h) => ({
+      wch: Math.min(40, Math.max(h.length + 2, ...rows.map((r) => String(r[h] || "").length + 2))),
+    }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `Fechamento ${year}`);
+    XLSX.writeFile(wb, `fechamento_contabil_${year}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success(`Exportadas ${rows.length} empresa(s)`);
+  }, [visibleClients, clientsMap, matrix, demandStatuses, attachmentMap, isClientFinalized, year]);
+
   const selectClass = "h-8 px-3 text-sm border rounded-md bg-card focus:outline-none focus:ring-2 focus:ring-primary";
 
   const yearOptions = ["2026", "2025", "2024", "2023", "2022"];

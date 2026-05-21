@@ -79,14 +79,25 @@ export default function PlanejamentoPage() {
   const { data: statusEntries = {}, refetch: refetchStatuses } = useQuery({
     queryKey: ["demand_status_entries_map"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("demand_status_entries")
-        .select("client_name, month, year, demand_type, status");
       const map: Record<string, DemandStatus> = {};
-      (data || []).forEach((d: any) => {
-        const key = `${d.client_name}|${d.month}/${d.year}|${d.demand_type}`;
-        map[key] = d.status as DemandStatus;
-      });
+      const pageSize = 1000;
+      let from = 0;
+
+      while (true) {
+        const { data, error } = await supabase
+          .from("demand_status_entries")
+          .select("client_name, month, year, demand_type, status")
+          .range(from, from + pageSize - 1);
+
+        if (error) throw error;
+        (data || []).forEach((d: any) => {
+          const key = `${d.client_name}|${d.month}/${d.year}|${d.demand_type}`;
+          map[key] = d.status as DemandStatus;
+        });
+        if (!data || data.length < pageSize) break;
+        from += pageSize;
+      }
+
       return map;
     },
     refetchOnWindowFocus: true,

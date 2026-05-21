@@ -76,24 +76,31 @@ export default function PlanejamentoPage() {
     },
   });
 
-  const [statusEntries, setStatusEntries] = useState<Record<string, DemandStatus>>({});
-
-  useEffect(() => {
-    const load = async () => {
+  const { data: statusEntries = {}, refetch: refetchStatuses } = useQuery({
+    queryKey: ["demand_status_entries_map"],
+    queryFn: async () => {
       const { data } = await supabase
         .from("demand_status_entries")
         .select("client_name, month, year, demand_type, status");
-      if (data) {
-        const map: Record<string, DemandStatus> = {};
-        data.forEach((d: any) => {
-          const key = `${d.client_name}|${d.month}/${d.year}|${d.demand_type}`;
-          map[key] = d.status as DemandStatus;
-        });
-        setStatusEntries(map);
-      }
-    };
-    load();
-  }, []);
+      const map: Record<string, DemandStatus> = {};
+      (data || []).forEach((d: any) => {
+        const key = `${d.client_name}|${d.month}/${d.year}|${d.demand_type}`;
+        map[key] = d.status as DemandStatus;
+      });
+      return map;
+    },
+    refetchOnWindowFocus: true,
+  });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("planejamento-status-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "demand_status_entries" }, () => {
+        refetchStatuses();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [refetchStatuses]);
 
   const planningsWithDerivedStatus = useMemo(() => {
     return dbPlannings.map((d) => {

@@ -294,7 +294,7 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label>Contato para envio *</Label>
+                  <Label>Contato para envio (opcional)</Label>
                   {contacts.length > 0 && (
                     <button
                       type="button"

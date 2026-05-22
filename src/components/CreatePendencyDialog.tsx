@@ -331,7 +331,7 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
                     />
                     <Input
                       type="email"
-                      placeholder="email@cliente.com *"
+                      placeholder="email@cliente.com (opcional)"
                       value={novoContatoEmail}
                       onChange={(e) => setNovoContatoEmail(e.target.value)}
                     />

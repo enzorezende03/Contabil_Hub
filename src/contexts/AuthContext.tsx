@@ -50,12 +50,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchProfile(session.user.id);
-        fetchRole(session.user.id);
-        loadPermissions();
+        await Promise.all([
+          fetchProfile(session.user.id),
+          fetchRole(session.user.id),
+          loadPermissions(),
+        ]);
       }
       setLoading(false);
     });
+
 
     return () => subscription.unsubscribe();
   }, []);

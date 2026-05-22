@@ -37,9 +37,11 @@ function RoleRoute({ children, page }: { children: React.ReactNode; page: AppPag
   const { session, profile, loading } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
   if (!session) return <Navigate to="/login" replace />;
+  if (!profile) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
   if (!canAccessPage(profile?.role, page)) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
+
 
 const AppRoutes = () => (
   <Routes>

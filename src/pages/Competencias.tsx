@@ -207,6 +207,27 @@ const TRIBUTACAO_LABELS_MAP: Record<string, string> = {
  *  anterior a esta data não aparecem em quadros antes deste ano. */
 const CLOSING_FLOOR_YEAR = 2022;
 const CLOSING_FLOOR_MONTH = 1;
+const DEMAND_STATUS_UPSERT_BATCH_SIZE = 500;
+
+type DemandStatusUpsertRow = {
+  client_name: string;
+  month: string;
+  year: string;
+  demand_type: string;
+  status: DemandStatus;
+  filled_by: string;
+};
+
+async function upsertDemandStatusRows(rows: DemandStatusUpsertRow[]) {
+  for (let i = 0; i < rows.length; i += DEMAND_STATUS_UPSERT_BATCH_SIZE) {
+    const batch = rows.slice(i, i + DEMAND_STATUS_UPSERT_BATCH_SIZE);
+    const { error } = await supabase
+      .from("demand_status_entries")
+      .upsert(batch, { onConflict: "client_name,month,year,demand_type" });
+
+    if (error) throw error;
+  }
+}
 
 /** Returns true if the month (MM) in the given year is within responsibility */
 function isMonthEnabled(competenciaInicio: string, month: string, year: string): boolean {
@@ -430,13 +451,15 @@ export default function CompetenciasPage() {
       filled_by: user.id,
     }));
 
-    const { error } = await supabase
-      .from("demand_status_entries")
-      .upsert(rows, { onConflict: "client_name,month,year,demand_type" });
-
-    if (error) {
+    try {
+      await upsertDemandStatusRows(rows);
+    } catch (error) {
+      console.error("Erro ao salvar status em lote", error);
       toast.error("Erro ao salvar em lote");
-    } else {
+      return;
+    }
+
+    {
       toast.success(`Status atualizado para ${months.size} meses`);
     }
   }, [user, year]);
@@ -465,13 +488,15 @@ export default function CompetenciasPage() {
       }))
     );
 
-    const { error } = await supabase
-      .from("demand_status_entries")
-      .upsert(rows, { onConflict: "client_name,month,year,demand_type" });
-
-    if (error) {
+    try {
+      await upsertDemandStatusRows(rows);
+    } catch (error) {
+      console.error("Erro ao salvar status em lote", error);
       toast.error("Erro ao salvar em lote");
-    } else {
+      return;
+    }
+
+    {
       toast.success(`Status atualizado para ${clients.size} empresa(s) × ${months.size} mês(es)`);
     }
   }, [user, year]);
@@ -544,7 +569,7 @@ export default function CompetenciasPage() {
 
     const monthlyTypes = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"];
     const closingTypes = ["fechamento", "revisao"];
-    const rows: any[] = [];
+    const rows: DemandStatusUpsertRow[] = [];
     const localUpdates: Record<string, DemandStatus> = {};
 
     clientsSet.forEach((client) => {
@@ -564,13 +589,15 @@ export default function CompetenciasPage() {
 
     setDemandStatuses((prev) => ({ ...prev, ...localUpdates }));
 
-    const { error } = await supabase
-      .from("demand_status_entries")
-      .upsert(rows, { onConflict: "client_name,month,year,demand_type" });
-
-    if (error) {
+    try {
+      await upsertDemandStatusRows(rows);
+    } catch (error) {
+      console.error("Erro ao marcar fechamento em lote", error);
       toast.error("Erro ao marcar fechamento em lote");
-    } else {
+      return;
+    }
+
+    {
       toast.success(`Fechamento ${year} concluído para ${clientsSet.size} empresa(s)`);
       setSelectedClients(new Set());
     }
@@ -721,7 +748,7 @@ export default function CompetenciasPage() {
     if (!confirm(`Deseja ${action} o fechamento ${year} para ${clientsSet.size} empresa(s)?\n\nEsta ação ignora as etapas pendentes.`)) return;
 
     const status: DemandStatus = finalized ? "completed" : "not_started";
-    const rows = [...clientsSet].map((client) => ({
+    const rows: DemandStatusUpsertRow[] = [...clientsSet].map((client) => ({
       client_name: client,
       month: "closing",
       year,
@@ -736,13 +763,15 @@ export default function CompetenciasPage() {
       return next;
     });
 
-    const { error } = await supabase
-      .from("demand_status_entries")
-      .upsert(rows, { onConflict: "client_name,month,year,demand_type" });
-
-    if (error) {
+    try {
+      await upsertDemandStatusRows(rows);
+    } catch (error) {
+      console.error("Erro ao atualizar fechamento manual", error);
       toast.error("Erro ao atualizar fechamento manual");
-    } else {
+      return;
+    }
+
+    {
       toast.success(finalized ? `Fechamento ${year} finalizado para ${clientsSet.size} empresa(s)` : `Fechamento ${year} reaberto para ${clientsSet.size} empresa(s)`);
       setSelectedClients(new Set());
     }

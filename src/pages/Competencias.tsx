@@ -207,6 +207,27 @@ const TRIBUTACAO_LABELS_MAP: Record<string, string> = {
  *  anterior a esta data não aparecem em quadros antes deste ano. */
 const CLOSING_FLOOR_YEAR = 2022;
 const CLOSING_FLOOR_MONTH = 1;
+const DEMAND_STATUS_UPSERT_BATCH_SIZE = 500;
+
+type DemandStatusUpsertRow = {
+  client_name: string;
+  month: string;
+  year: string;
+  demand_type: string;
+  status: DemandStatus;
+  filled_by: string;
+};
+
+async function upsertDemandStatusRows(rows: DemandStatusUpsertRow[]) {
+  for (let i = 0; i < rows.length; i += DEMAND_STATUS_UPSERT_BATCH_SIZE) {
+    const batch = rows.slice(i, i + DEMAND_STATUS_UPSERT_BATCH_SIZE);
+    const { error } = await supabase
+      .from("demand_status_entries")
+      .upsert(batch, { onConflict: "client_name,month,year,demand_type" });
+
+    if (error) throw error;
+  }
+}
 
 /** Returns true if the month (MM) in the given year is within responsibility */
 function isMonthEnabled(competenciaInicio: string, month: string, year: string): boolean {

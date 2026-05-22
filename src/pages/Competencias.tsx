@@ -451,13 +451,15 @@ export default function CompetenciasPage() {
       filled_by: user.id,
     }));
 
-    const { error } = await supabase
-      .from("demand_status_entries")
-      .upsert(rows, { onConflict: "client_name,month,year,demand_type" });
-
-    if (error) {
+    try {
+      await upsertDemandStatusRows(rows);
+    } catch (error) {
+      console.error("Erro ao salvar status em lote", error);
       toast.error("Erro ao salvar em lote");
-    } else {
+      return;
+    }
+
+    {
       toast.success(`Status atualizado para ${months.size} meses`);
     }
   }, [user, year]);
@@ -486,13 +488,15 @@ export default function CompetenciasPage() {
       }))
     );
 
-    const { error } = await supabase
-      .from("demand_status_entries")
-      .upsert(rows, { onConflict: "client_name,month,year,demand_type" });
-
-    if (error) {
+    try {
+      await upsertDemandStatusRows(rows);
+    } catch (error) {
+      console.error("Erro ao salvar status em lote", error);
       toast.error("Erro ao salvar em lote");
-    } else {
+      return;
+    }
+
+    {
       toast.success(`Status atualizado para ${clients.size} empresa(s) × ${months.size} mês(es)`);
     }
   }, [user, year]);

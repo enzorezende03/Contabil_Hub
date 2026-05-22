@@ -45,7 +45,7 @@ export default function PlanejamentoPage() {
   const [filterAssignee, setFilterAssignee] = usePersistedFilter<string>("planejamento", "assignee", "all");
   const [createOpen, setCreateOpen] = useState(false);
   const [editPlanning, setEditPlanning] = useState<Demand | null>(null);
-  const { members: teamMembers } = useTeamMembers();
+  const { members: teamMembers } = useTeamMembers({ excludeCoordenacao: true });
   const { user, profile } = useAuth();
   useActionPermissions();
   const canSeeAll = canPerformAction("ver_todas_demandas", profile?.role);

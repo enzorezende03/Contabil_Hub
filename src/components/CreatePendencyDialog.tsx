@@ -106,35 +106,29 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
       payload.setor_responsavel = setor;
     } else {
       payload.documento_solicitado = null;
-      // Resolve contato escolhido (existente ou novo a cadastrar)
+      // Resolve contato escolhido (existente ou novo a cadastrar) — opcional
       let contNome: string | null = null;
       let contEmail: string | null = null;
       if (mostrandoNovoContato) {
-        if (!novoContatoEmail.trim()) {
-          setSaving(false);
-          toast.error("Informe o e-mail do contato");
-          return;
-        }
         contNome = novoContatoNome.trim() || null;
-        contEmail = novoContatoEmail.trim();
-        // Persiste no cadastro do cliente
-        const { data: novo } = await supabase.from("client_contacts").insert({
-          client_id: clientId,
-          nome: contNome || contEmail,
-          email: contEmail,
-          is_default: contacts.length === 0,
-          created_by: user.id,
-        }).select("id").maybeSingle();
-        if (novo?.id) setContatoId(novo.id);
-      } else {
-        const c = contacts.find((x) => x.id === contatoId);
-        if (!c) {
-          setSaving(false);
-          toast.error("Selecione um contato ou cadastre um novo");
-          return;
+        contEmail = novoContatoEmail.trim() || null;
+        // Só persiste no cadastro do cliente se informou e-mail
+        if (contEmail) {
+          const { data: novo } = await supabase.from("client_contacts").insert({
+            client_id: clientId,
+            nome: contNome || contEmail,
+            email: contEmail,
+            is_default: contacts.length === 0,
+            created_by: user.id,
+          }).select("id").maybeSingle();
+          if (novo?.id) setContatoId(novo.id);
         }
-        contNome = c.nome;
-        contEmail = c.email;
+      } else if (contatoId) {
+        const c = contacts.find((x) => x.id === contatoId);
+        if (c) {
+          contNome = c.nome;
+          contEmail = c.email;
+        }
       }
       payload.contato_cliente_nome = contNome;
       payload.contato_cliente_email = contEmail;
@@ -300,7 +294,7 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <Label>Contato para envio *</Label>
+                  <Label>Contato para envio (opcional)</Label>
                   {contacts.length > 0 && (
                     <button
                       type="button"
@@ -337,7 +331,7 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
                     />
                     <Input
                       type="email"
-                      placeholder="email@cliente.com *"
+                      placeholder="email@cliente.com (opcional)"
                       value={novoContatoEmail}
                       onChange={(e) => setNovoContatoEmail(e.target.value)}
                     />

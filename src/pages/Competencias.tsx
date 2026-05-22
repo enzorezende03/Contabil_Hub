@@ -589,13 +589,15 @@ export default function CompetenciasPage() {
 
     setDemandStatuses((prev) => ({ ...prev, ...localUpdates }));
 
-    const { error } = await supabase
-      .from("demand_status_entries")
-      .upsert(rows, { onConflict: "client_name,month,year,demand_type" });
-
-    if (error) {
+    try {
+      await upsertDemandStatusRows(rows);
+    } catch (error) {
+      console.error("Erro ao marcar fechamento em lote", error);
       toast.error("Erro ao marcar fechamento em lote");
-    } else {
+      return;
+    }
+
+    {
       toast.success(`Fechamento ${year} concluído para ${clientsSet.size} empresa(s)`);
       setSelectedClients(new Set());
     }
@@ -761,13 +763,15 @@ export default function CompetenciasPage() {
       return next;
     });
 
-    const { error } = await supabase
-      .from("demand_status_entries")
-      .upsert(rows, { onConflict: "client_name,month,year,demand_type" });
-
-    if (error) {
+    try {
+      await upsertDemandStatusRows(rows);
+    } catch (error) {
+      console.error("Erro ao atualizar fechamento manual", error);
       toast.error("Erro ao atualizar fechamento manual");
-    } else {
+      return;
+    }
+
+    {
       toast.success(finalized ? `Fechamento ${year} finalizado para ${clientsSet.size} empresa(s)` : `Fechamento ${year} reaberto para ${clientsSet.size} empresa(s)`);
       setSelectedClients(new Set());
     }

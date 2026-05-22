@@ -569,7 +569,7 @@ export default function CompetenciasPage() {
 
     const monthlyTypes = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"];
     const closingTypes = ["fechamento", "revisao"];
-    const rows: any[] = [];
+    const rows: DemandStatusUpsertRow[] = [];
     const localUpdates: Record<string, DemandStatus> = {};
 
     clientsSet.forEach((client) => {
@@ -748,7 +748,7 @@ export default function CompetenciasPage() {
     if (!confirm(`Deseja ${action} o fechamento ${year} para ${clientsSet.size} empresa(s)?\n\nEsta ação ignora as etapas pendentes.`)) return;
 
     const status: DemandStatus = finalized ? "completed" : "not_started";
-    const rows = [...clientsSet].map((client) => ({
+    const rows: DemandStatusUpsertRow[] = [...clientsSet].map((client) => ({
       client_name: client,
       month: "closing",
       year,

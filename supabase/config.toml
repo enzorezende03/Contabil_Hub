@@ -1,7 +1,4 @@
 project_id = "olyeiymugihmljbpzbnm"
 
-[functions.pendency-portal]
-verify_jwt = false
-
-[functions.compute-productivity-snapshots]
+[functions.fix-ana-email]
 verify_jwt = false

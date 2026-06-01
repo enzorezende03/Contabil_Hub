@@ -42,7 +42,7 @@ export default function LoginPage() {
       if (error) {
         toast.error("Email ou senha incorretos");
       } else {
-        navigate("/demandas");
+        navigate("/competencias");
       }
     }
     setLoading(false);

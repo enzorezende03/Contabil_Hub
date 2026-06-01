@@ -29,15 +29,13 @@ import {
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { label: "Dashboard", path: "/" as AppPage, icon: LayoutDashboard },
+  // Ocultos temporariamente até serem mais desenvolvidos:
+  // Dashboard ("/"), Produtividade Equipe ("/equipe"), Ausências ("/ausencias"), Alertas ("/alertas")
   { label: "Solicitação de Clientes", path: "/demandas" as AppPage, icon: ListTodo },
   { label: "Planejamento", path: "/planejamento" as AppPage, icon: ClipboardList },
-  { label: "Produtividade Equipe", path: "/equipe" as AppPage, icon: Users },
-  { label: "Ausências", path: "/ausencias" as AppPage, icon: Calendar },
   { label: "Fechamento Contábil", path: "/competencias" as AppPage, icon: Calendar },
   { label: "Revisão", path: "/revisao" as AppPage, icon: ShieldCheck },
   { label: "Pendências", path: "/pendencias" as AppPage, icon: AlertOctagon },
-  { label: "Alertas", path: "/alertas" as AppPage, icon: AlertTriangle },
   { label: "Clientes", path: "/clientes" as AppPage, icon: Building2 },
   { label: "Configurações", path: "/configuracoes" as AppPage, icon: Settings },
   { label: "Usuários", path: "/usuarios" as AppPage, icon: UserCog },

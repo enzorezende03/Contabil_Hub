@@ -15,7 +15,7 @@ export default function LoginPage() {
   const { session } = useAuth();
 
   useEffect(() => {
-    if (session) navigate("/demandas");
+    if (session) navigate("/competencias");
   }, [session, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,14 +35,14 @@ export default function LoginPage() {
         toast.error(error.message);
       } else {
         toast.success("Conta criada com sucesso!");
-        navigate("/demandas");
+        navigate("/competencias");
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         toast.error("Email ou senha incorretos");
       } else {
-        navigate("/demandas");
+        navigate("/competencias");
       }
     }
     setLoading(false);

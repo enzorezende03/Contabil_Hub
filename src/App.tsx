@@ -48,7 +48,7 @@ const AppRoutes = () => (
     <Route path="/login" element={<Login />} />
     <Route path="/setup" element={<Setup />} />
     <Route path="/p/:token" element={<PendencyPortal />} />
-    <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+    <Route path="/" element={<ProtectedRoute><Navigate to="/competencias" replace /></ProtectedRoute>} />
     <Route path="/demandas" element={<RoleRoute page="/demandas"><Demands /></RoleRoute>} />
     <Route path="/planejamento" element={<RoleRoute page="/planejamento"><Planejamento /></RoleRoute>} />
     <Route path="/equipe" element={<RoleRoute page="/equipe"><Team /></RoleRoute>} />

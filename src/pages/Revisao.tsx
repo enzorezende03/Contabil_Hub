@@ -975,9 +975,6 @@ function ReassignReviewerDialog({
       .eq("id", submissionId);
     setSaving(false);
     if (error) { toast.error("Erro ao reatribuir: " + error.message); return; }
-    supabase.functions
-      .invoke("notify-review-event", { body: { event: "reassigned", submission_id: submissionId } })
-      .catch(() => {});
     toast.success(`Submissão reatribuída para ${newReviewerName}.`);
     onReassigned();
     onOpenChange(false);

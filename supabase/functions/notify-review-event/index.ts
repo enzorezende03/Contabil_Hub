@@ -155,8 +155,15 @@ Deno.serve(async (req) => {
           .eq("resolved", false)
           .limit(20);
         const list = (apts || []).map((a: any) =>
-          `<li>${a.conta_referencia ? `<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">${a.conta_referencia}</code> ` : ""}${a.descricao}</li>`
+          `<li>${a.conta_referencia ? `<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">${escHtml(a.conta_referencia)}</code> ` : ""}${escHtml(a.descricao)}</li>`
         ).join("");
+        subject = `Devolução de revisão — ${client?.razao_social || ""} ${competencia}`;
+        body = `<p>A submissão de revisão foi devolvida com apontamentos.</p>
+<ul>
+  <li><strong>Cliente:</strong> ${escHtml(client?.razao_social || "—")}</li>
+  <li><strong>Competência:</strong> ${competencia}</li>
+</ul>
+${sub.review_summary ? `<p><strong>Resumo:</strong><br>${escHtml(String(sub.review_summary)).replace(/\n/g, "<br>")}</p>` : ""}
         subject = `Devolução de revisão — ${client?.razao_social || ""} ${competencia}`;
         body = `<p>A submissão de revisão foi devolvida com apontamentos.</p>
 <ul>

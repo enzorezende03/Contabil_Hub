@@ -32,7 +32,6 @@ Deno.serve(async (req) => {
     if (!roleCheck) return new Response(JSON.stringify({ error: 'Apenas administradores podem editar usuários' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
     const rawBody = await req.json()
-    console.log('update-user body:', JSON.stringify(rawBody))
     const parsed = BodySchema.safeParse(rawBody)
     if (!parsed.success) {
       console.error('validation failed:', JSON.stringify(parsed.error.flatten().fieldErrors))

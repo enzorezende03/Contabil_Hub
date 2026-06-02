@@ -206,7 +206,7 @@ export function LiberarRevisaoDialog({
 
       toast.success(`Submissão #${nextCycle} criada com ${pending.length} demonstrativo(s).`);
       // Notificar revisores (best-effort)
-      supabase.functions.invoke("notify-review-event", { body: { event: "submitted", submission_id: sub.id } }).catch(() => {});
+      
       queryClient.invalidateQueries({ queryKey: ["review-submissions"] });
       queryClient.invalidateQueries({ queryKey: ["review-submissions-year"] });
       queryClient.invalidateQueries({ queryKey: ["review-badge"] });

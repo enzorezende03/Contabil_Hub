@@ -1,4 +1,7 @@
 // Generate or rotate access token + code for a pendency. Returns plaintext code only at creation.
+// Authorization: requires authenticated user with admin role OR 'gerenciar_pendencias' /
+// 'supervisionar_pendencias' permission. Also verifies the pendency exists and is visible
+// to the calling user (via RLS) before any service-role mutation.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -6,6 +9,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 
 async function sha256(text: string): Promise<string> {
   const data = new TextEncoder().encode(text);
@@ -22,7 +31,6 @@ function randomToken(len = 24) {
 }
 
 function randomCode() {
-  // 6 letras/números legíveis (sem 0/O/I/1)
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const bytes = new Uint8Array(6);
   crypto.getRandomValues(bytes);
@@ -34,13 +42,11 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
 
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader)
-    return new Response(JSON.stringify({ error: "Não autorizado" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  if (!authHeader?.startsWith("Bearer ")) {
+    return json({ error: "Não autorizado" }, 401);
+  }
 
-  const supabase = createClient(
+  const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
@@ -50,28 +56,46 @@ Deno.serve(async (req) => {
     { global: { headers: { Authorization: authHeader } } },
   );
 
-  const { data: userData } = await userClient.auth.getUser();
+  // 1) Identify caller
+  const { data: userData, error: userErr } = await userClient.auth.getUser();
   const userId = userData?.user?.id;
-  if (!userId)
-    return new Response(JSON.stringify({ error: "Sessão inválida" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  if (userErr || !userId) return json({ error: "Sessão inválida" }, 401);
 
   try {
-    const { pendencyId, expiresInDays = 30 } = await req.json();
-    if (!pendencyId)
-      return new Response(JSON.stringify({ error: "pendencyId obrigatório" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const { pendencyId, expiresInDays = 30 } = await req.json().catch(() => ({}));
+    if (!pendencyId || typeof pendencyId !== "string") {
+      return json({ error: "pendencyId obrigatório" }, 400);
+    }
+    const days = Math.max(1, Math.min(180, Number(expiresInDays) || 30));
+
+    // 2) Permission gate (matches RLS INSERT policy on pendency_access_tokens)
+    const [{ data: isAdmin }, { data: canManage }, { data: canSupervise }] = await Promise.all([
+      admin.rpc("has_role", { _user_id: userId, _role: "admin" }),
+      admin.rpc("has_action_permission", { _user_id: userId, _action: "gerenciar_pendencias" }),
+      admin.rpc("has_action_permission", { _user_id: userId, _action: "supervisionar_pendencias" }),
+    ]);
+    if (!isAdmin && !canManage && !canSupervise) {
+      return json({ error: "Permissão insuficiente para gerar tokens de portal." }, 403);
+    }
+
+    // 3) Tenant/scope check: confirm caller can SEE the pendency via RLS
+    //    (uses userClient on purpose — service-role would bypass scope).
+    const { data: pendencyVisible, error: visErr } = await userClient
+      .from("pendencies")
+      .select("id")
+      .eq("id", pendencyId)
+      .maybeSingle();
+    if (visErr) return json({ error: visErr.message }, 500);
+    if (!pendencyVisible) {
+      return json({ error: "Pendência não encontrada ou fora do seu escopo." }, 404);
+    }
 
     const code = randomCode();
     const codeHash = await sha256(code);
-    const expires = new Date(Date.now() + expiresInDays * 86400000).toISOString();
+    const expires = new Date(Date.now() + days * 86400000).toISOString();
 
-    // Verifica se já existe um token ativo para esta pendência
-    const { data: existing } = await supabase
+    // 4) Mutation (admin client, after authz)
+    const { data: existing } = await admin
       .from("pendency_access_tokens")
       .select("id, token, revoked")
       .eq("pendency_id", pendencyId)
@@ -80,25 +104,15 @@ Deno.serve(async (req) => {
     let token: string;
 
     if (existing && !existing.revoked) {
-      // MANTÉM o token (link) existente, apenas rotaciona o código de acesso e renova o prazo
       token = existing.token;
-      const { error } = await supabase
+      const { error } = await admin
         .from("pendency_access_tokens")
-        .update({
-          access_code_hash: codeHash,
-          expires_at: expires,
-          revoked: false,
-        })
+        .update({ access_code_hash: codeHash, expires_at: expires, revoked: false })
         .eq("id", existing.id);
-      if (error)
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (error) return json({ error: error.message }, 500);
     } else {
-      // Cria novo token (primeira geração ou após revogação)
       token = randomToken();
-      const { error } = await supabase
+      const { error } = await admin
         .from("pendency_access_tokens")
         .upsert(
           {
@@ -113,20 +127,11 @@ Deno.serve(async (req) => {
           },
           { onConflict: "pendency_id" },
         );
-      if (error)
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (error) return json({ error: error.message }, 500);
     }
 
-    return new Response(JSON.stringify({ token, code, expires_at: expires }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ token, code, expires_at: expires });
   } catch (e: any) {
-    return new Response(JSON.stringify({ error: e?.message || "Erro" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ error: e?.message || "Erro" }, 500);
   }
 });

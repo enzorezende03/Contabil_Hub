@@ -164,13 +164,6 @@ Deno.serve(async (req) => {
   <li><strong>Competência:</strong> ${competencia}</li>
 </ul>
 ${sub.review_summary ? `<p><strong>Resumo:</strong><br>${escHtml(String(sub.review_summary)).replace(/\n/g, "<br>")}</p>` : ""}
-        subject = `Devolução de revisão — ${client?.razao_social || ""} ${competencia}`;
-        body = `<p>A submissão de revisão foi devolvida com apontamentos.</p>
-<ul>
-  <li><strong>Cliente:</strong> ${client?.razao_social || "—"}</li>
-  <li><strong>Competência:</strong> ${competencia}</li>
-</ul>
-${sub.review_summary ? `<p><strong>Resumo:</strong><br>${String(sub.review_summary).replace(/\n/g, "<br>")}</p>` : ""}
 ${list ? `<p><strong>Apontamentos:</strong></p><ul>${list}</ul>` : ""}
 <p><a href="${APP_URL}/revisao" style="display:inline-block;background:#3D5A80;color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none">Abrir devolução</a></p>`;
       } else {

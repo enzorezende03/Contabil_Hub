@@ -610,7 +610,7 @@ function SubmissionDetail({
       })
       .eq("id", submissionId);
     if (error) { toast.error("Erro ao devolver submissão"); return; }
-    supabase.functions.invoke("notify-review-event", { body: { event: "returned", submission_id: submissionId } }).catch(() => {});
+    
     toast.success("Submissão devolvida ao time");
     queryClient.invalidateQueries({ queryKey: ["review-submissions"] });
     queryClient.invalidateQueries({ queryKey: ["review-submissions-year"] });
@@ -667,7 +667,7 @@ function SubmissionDetail({
         .upsert(rows, { onConflict: "client_name,month,year,demand_type" });
     }
 
-    supabase.functions.invoke("notify-review-event", { body: { event: "approved", submission_id: submissionId } }).catch(() => {});
+    
     toast.success("Revisão aprovada e fechamento finalizado");
     queryClient.invalidateQueries({ queryKey: ["review-submissions"] });
     queryClient.invalidateQueries({ queryKey: ["review-submissions-year"] });
@@ -975,9 +975,6 @@ function ReassignReviewerDialog({
       .eq("id", submissionId);
     setSaving(false);
     if (error) { toast.error("Erro ao reatribuir: " + error.message); return; }
-    supabase.functions
-      .invoke("notify-review-event", { body: { event: "reassigned", submission_id: submissionId } })
-      .catch(() => {});
     toast.success(`Submissão reatribuída para ${newReviewerName}.`);
     onReassigned();
     onOpenChange(false);

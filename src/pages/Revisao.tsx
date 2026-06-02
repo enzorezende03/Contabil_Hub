@@ -610,7 +610,7 @@ function SubmissionDetail({
       })
       .eq("id", submissionId);
     if (error) { toast.error("Erro ao devolver submissão"); return; }
-    supabase.functions.invoke("notify-review-event", { body: { event: "returned", submission_id: submissionId } }).catch(() => {});
+    
     toast.success("Submissão devolvida ao time");
     queryClient.invalidateQueries({ queryKey: ["review-submissions"] });
     queryClient.invalidateQueries({ queryKey: ["review-submissions-year"] });

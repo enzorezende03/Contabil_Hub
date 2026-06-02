@@ -16,7 +16,7 @@ import Alerts from "./pages/Alerts.tsx";
 import SettingsPage from "./pages/SettingsPage.tsx";
 import Users from "./pages/Users.tsx";
 import Login from "./pages/Login.tsx";
-import Setup from "./pages/Setup.tsx";
+
 import Clients from "./pages/Clients.tsx";
 import Planejamento from "./pages/Planejamento.tsx";
 import Pendencias from "./pages/Pendencias.tsx";

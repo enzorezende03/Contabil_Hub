@@ -46,7 +46,7 @@ function RoleRoute({ children, page }: { children: React.ReactNode; page: AppPag
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<Login />} />
-    <Route path="/setup" element={<Setup />} />
+    
     <Route path="/p/:token" element={<PendencyPortal />} />
     <Route path="/" element={<ProtectedRoute><Navigate to="/competencias" replace /></ProtectedRoute>} />
     <Route path="/demandas" element={<RoleRoute page="/demandas"><Demands /></RoleRoute>} />

@@ -40,9 +40,27 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const sb = createClient(SUPABASE_URL, SERVICE_ROLE, {
       auth: { persistSession: false },
     });
+
+    // Require auth + admin or ver_produtividade_equipe / configurar_produtividade permission
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return ok({ error: "Unauthorized" }, 401);
+    }
+    const userClient = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) return ok({ error: "Unauthorized" }, 401);
+    const [{ data: isAdmin }, { data: hasPerm }] = await Promise.all([
+      sb.rpc("has_role", { _user_id: userData.user.id, _role: "admin" }),
+      sb.rpc("has_action_permission", { _user_id: userData.user.id, _action: "configurar_produtividade" }),
+    ]);
+    if (!isAdmin && !hasPerm) return ok({ error: "Forbidden" }, 403);
+
 
     let body: any = {};
     if (req.method === "POST") {

@@ -55,10 +55,39 @@ function layout(title: string, body: string) {
   </table></body></html>`;
 }
 
+function escHtml(s: string) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supabaseUrlAuth = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const userClient = createClient(supabaseUrlAuth, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const parsed = BodySchema.safeParse(await req.json());
     if (!parsed.success) {
       return new Response(JSON.stringify({ error: parsed.error.flatten() }), {
@@ -67,6 +96,7 @@ Deno.serve(async (req) => {
       });
     }
     const { event, submission_id } = parsed.data;
+
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -125,15 +155,15 @@ Deno.serve(async (req) => {
           .eq("resolved", false)
           .limit(20);
         const list = (apts || []).map((a: any) =>
-          `<li>${a.conta_referencia ? `<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">${a.conta_referencia}</code> ` : ""}${a.descricao}</li>`
+          `<li>${a.conta_referencia ? `<code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">${escHtml(a.conta_referencia)}</code> ` : ""}${escHtml(a.descricao)}</li>`
         ).join("");
         subject = `Devolução de revisão — ${client?.razao_social || ""} ${competencia}`;
         body = `<p>A submissão de revisão foi devolvida com apontamentos.</p>
 <ul>
-  <li><strong>Cliente:</strong> ${client?.razao_social || "—"}</li>
+  <li><strong>Cliente:</strong> ${escHtml(client?.razao_social || "—")}</li>
   <li><strong>Competência:</strong> ${competencia}</li>
 </ul>
-${sub.review_summary ? `<p><strong>Resumo:</strong><br>${String(sub.review_summary).replace(/\n/g, "<br>")}</p>` : ""}
+${sub.review_summary ? `<p><strong>Resumo:</strong><br>${escHtml(String(sub.review_summary)).replace(/\n/g, "<br>")}</p>` : ""}
 ${list ? `<p><strong>Apontamentos:</strong></p><ul>${list}</ul>` : ""}
 <p><a href="${APP_URL}/revisao" style="display:inline-block;background:#3D5A80;color:#fff;padding:8px 16px;border-radius:6px;text-decoration:none">Abrir devolução</a></p>`;
       } else {

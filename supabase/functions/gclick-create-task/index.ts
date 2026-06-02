@@ -195,7 +195,35 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const supabase = createClient(supabaseUrl, serviceKey);
+
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const userClient = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+  const { data: userData, error: authErr } = await userClient.auth.getUser();
+  if (authErr || !userData?.user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  // Restrict to admin or users with gerenciar_pendencias permission
+  const [{ data: isAdmin }, { data: hasPerm }] = await Promise.all([
+    supabase.rpc("has_role", { _user_id: userData.user.id, _role: "admin" }),
+    supabase.rpc("has_action_permission", { _user_id: userData.user.id, _action: "gerenciar_pendencias" }),
+  ]);
+  if (!isAdmin && !hasPerm) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
 
   try {
     const body = (await req.json()) as ReqBody;

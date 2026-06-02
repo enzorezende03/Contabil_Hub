@@ -16,7 +16,7 @@ import Alerts from "./pages/Alerts.tsx";
 import SettingsPage from "./pages/SettingsPage.tsx";
 import Users from "./pages/Users.tsx";
 import Login from "./pages/Login.tsx";
-import Setup from "./pages/Setup.tsx";
+
 import Clients from "./pages/Clients.tsx";
 import Planejamento from "./pages/Planejamento.tsx";
 import Pendencias from "./pages/Pendencias.tsx";
@@ -46,7 +46,7 @@ function RoleRoute({ children, page }: { children: React.ReactNode; page: AppPag
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<Login />} />
-    <Route path="/setup" element={<Setup />} />
+    
     <Route path="/p/:token" element={<PendencyPortal />} />
     <Route path="/" element={<ProtectedRoute><Navigate to="/competencias" replace /></ProtectedRoute>} />
     <Route path="/demandas" element={<RoleRoute page="/demandas"><Demands /></RoleRoute>} />

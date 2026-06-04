@@ -153,6 +153,23 @@ export default function PlanejamentoPage() {
     });
   }, [dbPlannings, statusEntries]);
 
+  // Sincroniza status derivado de volta para o banco quando diverge (mantém consistência com outras telas)
+  useEffect(() => {
+    const toSync = planningsWithDerivedStatus.filter((d) => {
+      const original = dbPlannings.find((o) => o.id === d.id);
+      return original && original.status !== d.status;
+    });
+    if (toSync.length === 0) return;
+    (async () => {
+      await Promise.all(
+        toSync.map((d) =>
+          supabase.from("plannings").update({ status: d.status }).eq("id", d.id)
+        )
+      );
+      refetch();
+    })();
+  }, [planningsWithDerivedStatus, dbPlannings, refetch]);
+
   const filtered = useMemo(() => {
     return planningsWithDerivedStatus
       .filter((d) => {

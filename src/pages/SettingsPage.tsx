@@ -225,6 +225,7 @@ export default function SettingsPage() {
     { key: "ver_produtividade_equipe", label: "Ver Produtividade da Equipe", description: "Vê ranking completo de produtividade e detalhamento de qualquer colaborador" },
     { key: "configurar_produtividade", label: "Configurar Produtividade", description: "Edita pesos, multiplicadores e parâmetros do score composto" },
     { key: "gerenciar_ausencias_equipe", label: "Gerenciar Ausências da Equipe", description: "Cadastra/edita ausências de qualquer colaborador" },
+    { key: "ver_carga_equipe", label: "Ver Carga da Equipe (Planejamento)", description: "Vê o painel com a carga de todos os colaboradores na página Planejamento. Sem essa permissão, só vê os próprios planejamentos." },
   ];
   const toggleActionPerm = (action: keyof ActionPermissions, role: ProfileRole) => {
     const current = draftActions[action] || [];

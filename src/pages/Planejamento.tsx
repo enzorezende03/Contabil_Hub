@@ -266,25 +266,38 @@ export default function PlanejamentoPage() {
             <label className="text-xs text-muted-foreground">Prazo:</label>
             <input
               type="date"
-              value={filterDateFrom}
-              onChange={(e) => setFilterDateFrom(e.target.value)}
+              value={draftDateFrom}
+              onChange={(e) => setDraftDateFrom(e.target.value)}
               className="h-8 px-2 text-sm border rounded-md bg-card"
             />
             <span className="text-xs text-muted-foreground">até</span>
             <input
               type="date"
-              value={filterDateTo}
-              onChange={(e) => setFilterDateTo(e.target.value)}
+              value={draftDateTo}
+              onChange={(e) => setDraftDateTo(e.target.value)}
               className="h-8 px-2 text-sm border rounded-md bg-card"
             />
-            {(filterDateFrom || filterDateTo) && (
-              <button
-                onClick={() => { setFilterDateFrom(""); setFilterDateTo(""); }}
-                className="text-xs text-muted-foreground hover:text-foreground px-1"
-              >
-                ✕
-              </button>
-            )}
+            <Button
+              size="sm"
+              variant="default"
+              className="h-8"
+              onClick={() => { setFilterDateFrom(draftDateFrom); setFilterDateTo(draftDateTo); }}
+            >
+              Filtrar
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8"
+              onClick={() => {
+                setDraftDateFrom("");
+                setDraftDateTo("");
+                setFilterDateFrom("");
+                setFilterDateTo("");
+              }}
+            >
+              Limpar
+            </Button>
           </div>
         </div>
 

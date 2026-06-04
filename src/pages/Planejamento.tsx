@@ -176,10 +176,13 @@ export default function PlanejamentoPage() {
         if (search && !d.client.toLowerCase().includes(search.toLowerCase()) && !d.description.toLowerCase().includes(search.toLowerCase())) return false;
         if (filterType !== "all" && !d.types.includes(filterType as DemandType)) return false;
         if (filterAssignee !== "all" && d.assignee !== filterAssignee) return false;
+        if (filterStatus !== "all" && d.status !== filterStatus) return false;
+        if (filterDateFrom && d.internalDeadline < filterDateFrom) return false;
+        if (filterDateTo && d.internalDeadline > filterDateTo) return false;
         return true;
       })
       .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
-  }, [search, filterType, filterAssignee, planningsWithDerivedStatus, canSeeAll, user]);
+  }, [search, filterType, filterAssignee, filterStatus, filterDateFrom, filterDateTo, planningsWithDerivedStatus, canSeeAll, user]);
 
   const getMember = (id: string) => teamMembers.find((m) => m.id === id);
 

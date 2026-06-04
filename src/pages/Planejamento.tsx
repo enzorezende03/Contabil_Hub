@@ -9,6 +9,7 @@ import { useTeamMembers } from "@/hooks/use-team-members";
 import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import {
   DEMAND_TYPE_LABELS,
+  VISIBLE_PLANNING_TYPE_ENTRIES,
   DemandStatus,
   DemandType,
   STATUS_LABELS,

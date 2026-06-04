@@ -702,6 +702,9 @@ export type Database = {
           internal_deadline: string
           notes: string
           priority: string
+          recurrence: string
+          recurrence_child_id: string | null
+          recurrence_parent_id: string | null
           status: string
           types: string[]
           updated_at: string
@@ -717,6 +720,9 @@ export type Database = {
           internal_deadline: string
           notes?: string
           priority?: string
+          recurrence?: string
+          recurrence_child_id?: string | null
+          recurrence_parent_id?: string | null
           status?: string
           types: string[]
           updated_at?: string
@@ -732,11 +738,29 @@ export type Database = {
           internal_deadline?: string
           notes?: string
           priority?: string
+          recurrence?: string
+          recurrence_child_id?: string | null
+          recurrence_parent_id?: string | null
           status?: string
           types?: string[]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "plannings_recurrence_child_id_fkey"
+            columns: ["recurrence_child_id"]
+            isOneToOne: false
+            referencedRelation: "plannings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plannings_recurrence_parent_id_fkey"
+            columns: ["recurrence_parent_id"]
+            isOneToOne: false
+            referencedRelation: "plannings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       productivity_snapshots: {
         Row: {

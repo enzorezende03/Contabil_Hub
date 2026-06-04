@@ -50,6 +50,7 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
   const [assignee, setAssignee] = useState("");
   const [description, setDescription] = useState("");
   const [internalDeadline, setInternalDeadline] = useState("");
+  const [recurrence, setRecurrence] = useState<"none"|"monthly"|"bimonthly"|"quarterly"|"semiannual">("none");
   const [clientSearch, setClientSearch] = useState("");
   const [clientPopoverOpen, setClientPopoverOpen] = useState(false);
 
@@ -105,6 +106,7 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
     setAssignee("");
     setDescription("");
     setInternalDeadline("");
+    setRecurrence("none");
     setClientSearch("");
   };
 
@@ -127,6 +129,7 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
       status: "not_started",
       notes: "",
       created_by: user.id,
+      recurrence,
     }));
 
     const { error } = await supabase.from("plannings").insert(rows);
@@ -325,6 +328,21 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
               <Input type="date" value={internalDeadline} onChange={(e) => setInternalDeadline(e.target.value)} required disabled={!canPerformAction("edit_dates", profile?.role)} />
               {!canPerformAction("edit_dates", profile?.role) && (
                 <p className="text-[10px] text-muted-foreground mt-0.5">Seu cargo não tem permissão para definir datas</p>
+              )}
+            </div>
+            <div className="col-span-2">
+              <Label>Recorrência</Label>
+              <select value={recurrence} onChange={(e) => setRecurrence(e.target.value as any)} className={selectClass}>
+                <option value="none">Sem recorrência</option>
+                <option value="monthly">Mensal</option>
+                <option value="bimonthly">Bimestral</option>
+                <option value="quarterly">Trimestral</option>
+                <option value="semiannual">Semestral</option>
+              </select>
+              {recurrence !== "none" && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Ao concluir este planejamento, o próximo será gerado automaticamente.
+                </p>
               )}
             </div>
           </div>

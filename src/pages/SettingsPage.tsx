@@ -470,6 +470,37 @@ export default function SettingsPage() {
           )}
         </div>
 
+        {/* Ver Carga Equipe – usuários específicos */}
+        <div className="rounded-lg border bg-card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Shield className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold">Ver Carga da Equipe — Usuários Específicos</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Além dos cargos marcados em "Ver Carga da Equipe" acima, você pode liberar o painel de carga (no Planejamento) para colaboradores específicos. Marque abaixo quem mais pode visualizar a carga de todos.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+            {allProfiles.map((p) => {
+              const checked = extraUsers.includes(p.user_id);
+              return (
+                <label key={p.user_id} className={`flex items-center gap-2 p-2 rounded border text-sm cursor-pointer ${checked ? "bg-primary/5 border-primary/30" : "bg-card hover:bg-muted/30"}`}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={!isAdmin || savingExtra}
+                    onChange={() => toggleExtraUser(p.user_id)}
+                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                  />
+                  <div className="flex flex-col min-w-0">
+                    <span className="truncate">{p.display_name || "Sem nome"}</span>
+                    <span className="text-[10px] text-muted-foreground capitalize">{p.role}</span>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Productivity */}
         <ProductivitySettings />
       </div>

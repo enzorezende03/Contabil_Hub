@@ -260,13 +260,26 @@ export function EditPlanningDialog({ open, onOpenChange, planning, onSaved }: Pr
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir planejamento?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O planejamento de {planning.client} será removido permanentemente.
+              {isRecurring
+                ? `Este planejamento de ${planning.client} faz parte de uma série recorrente. Você quer excluir apenas este card ou todos os planejamentos da série?`
+                : `Esta ação não pode ser desfeita. O planejamento de ${planning.client} será removido permanentemente.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir
+            {isRecurring && (
+              <AlertDialogAction
+                onClick={() => handleDelete("series")}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Excluir toda a série
+              </AlertDialogAction>
+            )}
+            <AlertDialogAction
+              onClick={() => handleDelete("single")}
+              className={isRecurring ? "" : "bg-destructive text-destructive-foreground hover:bg-destructive/90"}
+            >
+              {isRecurring ? "Excluir apenas este" : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

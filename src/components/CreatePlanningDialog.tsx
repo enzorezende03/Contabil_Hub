@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DEMAND_TYPE_LABELS,
+  VISIBLE_PLANNING_TYPE_ENTRIES,
   PRIORITY_LABELS,
   type DemandType,
   type Priority,
@@ -93,7 +94,7 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
   const toggleAllMonths = () => {
     setSelectedMonths((prev) => (prev.size === MONTHS.length ? new Set() : new Set(MONTHS)));
   };
-  const selectAllTypes = () => setSelectedTypes(new Set(Object.keys(DEMAND_TYPE_LABELS) as DemandType[]));
+  const selectAllTypes = () => setSelectedTypes(new Set(VISIBLE_PLANNING_TYPE_ENTRIES.map(([k]) => k as DemandType)));
 
   const resetForm = () => {
     setSelectedClients(new Set());
@@ -231,7 +232,7 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
               </button>
             </div>
             <div className="grid grid-cols-2 gap-1.5 rounded-md border p-2 max-h-40 overflow-y-auto">
-              {Object.entries(DEMAND_TYPE_LABELS).map(([k, v]) => (
+              {VISIBLE_PLANNING_TYPE_ENTRIES.map(([k, v]) => (
                 <label key={k} className="flex items-center gap-1.5 cursor-pointer text-xs hover:bg-muted/50 rounded px-1 py-0.5">
                   <Checkbox
                     checked={selectedTypes.has(k as DemandType)}

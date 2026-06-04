@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { DEMAND_TYPE_LABELS, PRIORITY_LABELS, type DemandType, type Priority, type Demand } from "@/lib/types";
+import { DEMAND_TYPE_LABELS, VISIBLE_PLANNING_TYPE_ENTRIES, PRIORITY_LABELS, type DemandType, type Priority, type Demand } from "@/lib/types";
 import { useTeamMembers } from "@/hooks/use-team-members";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -140,7 +140,7 @@ export function EditPlanningDialog({ open, onOpenChange, planning, onSaved }: Pr
             <div>
               <Label className="mb-1.5">Atividades *</Label>
               <div className="grid grid-cols-2 gap-1.5 rounded-md border p-2 max-h-40 overflow-y-auto">
-                {Object.entries(DEMAND_TYPE_LABELS).map(([k, v]) => (
+                {VISIBLE_PLANNING_TYPE_ENTRIES.map(([k, v]) => (
                   <label key={k} className="flex items-center gap-1.5 cursor-pointer text-xs hover:bg-muted/50 rounded px-1 py-0.5">
                     <Checkbox checked={types.has(k as DemandType)} onCheckedChange={() => toggleType(k as DemandType)} disabled={!canEdit} />
                     <span>{v}</span>

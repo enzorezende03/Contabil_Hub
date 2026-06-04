@@ -87,6 +87,21 @@ export const DEMAND_TYPE_LABELS: Record<DemandType, string> = {
   outras: "Outras Atividades",
 };
 
+// Tipos ocultos temporariamente no Planejamento (podem voltar no futuro)
+export const HIDDEN_PLANNING_TYPES: DemandType[] = [
+  "revisao",
+  "ajustes",
+  "regularizacoes",
+  "escritas_antigas",
+  "ecd",
+  "demonstrativos",
+  "atendimento",
+  "outras",
+];
+
+export const VISIBLE_PLANNING_TYPE_ENTRIES = (Object.entries(DEMAND_TYPE_LABELS) as [DemandType, string][])
+  .filter(([k]) => !HIDDEN_PLANNING_TYPES.includes(k));
+
 export const STATUS_LABELS: Record<DemandStatus, string> = {
   not_started: "Não Iniciada",
   in_progress: "Em Andamento",

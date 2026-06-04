@@ -9,6 +9,7 @@ import { useTeamMembers } from "@/hooks/use-team-members";
 import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import {
   DEMAND_TYPE_LABELS,
+  VISIBLE_PLANNING_TYPE_ENTRIES,
   DemandStatus,
   DemandType,
   STATUS_LABELS,
@@ -226,7 +227,7 @@ export default function PlanejamentoPage() {
           </div>
           <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="h-8 px-2 text-sm border rounded-md bg-card">
             <option value="all">Todos os tipos</option>
-            {Object.entries(DEMAND_TYPE_LABELS).map(([k, v]) => (
+            {VISIBLE_PLANNING_TYPE_ENTRIES.map(([k, v]) => (
               <option key={k} value={k}>{v}</option>
             ))}
           </select>

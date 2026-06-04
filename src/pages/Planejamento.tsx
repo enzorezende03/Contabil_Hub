@@ -176,7 +176,10 @@ export default function PlanejamentoPage() {
         if (search && !d.client.toLowerCase().includes(search.toLowerCase()) && !d.description.toLowerCase().includes(search.toLowerCase())) return false;
         if (filterType !== "all" && !d.types.includes(filterType as DemandType)) return false;
         if (filterAssignee !== "all" && d.assignee !== filterAssignee) return false;
-        if (filterStatus !== "all" && d.status !== filterStatus) return false;
+        if (filterStatus === "overdue") {
+          if (d.status === "completed") return false;
+          if (getDeadlineUrgency(d.internalDeadline) !== "overdue") return false;
+        } else if (filterStatus !== "all" && d.status !== filterStatus) return false;
         if (filterDateFrom && d.internalDeadline < filterDateFrom) return false;
         if (filterDateTo && d.internalDeadline > filterDateTo) return false;
         return true;
@@ -248,6 +251,7 @@ export default function PlanejamentoPage() {
             <option value="not_started">{STATUS_LABELS.not_started}</option>
             <option value="in_progress">{STATUS_LABELS.in_progress}</option>
             <option value="completed">{STATUS_LABELS.completed}</option>
+            <option value="overdue">Em atraso</option>
           </select>
           <div className="flex items-center gap-1">
             <label className="text-xs text-muted-foreground">Prazo:</label>

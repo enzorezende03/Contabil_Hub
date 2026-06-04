@@ -301,7 +301,8 @@ export default function PlanejamentoPage() {
                           </div>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                     {col.length === 0 && (
                       <div className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
                         Nenhum planejamento

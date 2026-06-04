@@ -290,6 +290,10 @@ export default function PlanejamentoPage() {
               variant="ghost"
               className="h-8"
               onClick={() => {
+                setSearch("");
+                setFilterType("all");
+                setFilterAssignee("all");
+                setFilterStatus("all");
                 setDraftDateFrom("");
                 setDraftDateTo("");
                 setFilterDateFrom("");

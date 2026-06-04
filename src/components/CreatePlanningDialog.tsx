@@ -231,7 +231,8 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
               </button>
             </div>
             <div className="grid grid-cols-2 gap-1.5 rounded-md border p-2 max-h-40 overflow-y-auto">
-              {Object.entries(DEMAND_TYPE_LABELS).map(([k, v]) => (
+              {(await import("@/lib/types"), null)}
+              {require("@/lib/types").VISIBLE_PLANNING_TYPE_ENTRIES.map(([k, v]: [string, string]) => (
                 <label key={k} className="flex items-center gap-1.5 cursor-pointer text-xs hover:bg-muted/50 rounded px-1 py-0.5">
                   <Checkbox
                     checked={selectedTypes.has(k as DemandType)}

@@ -106,9 +106,45 @@ export function EditPlanningDialog({ open, onOpenChange, planning, onSaved }: Pr
     onOpenChange(false);
   };
 
-  const handleDelete = async () => {
-    const { error } = await supabase.from("plannings").delete().eq("id", planning.id);
-    if (error) { toast.error("Erro ao excluir"); return; }
+  const handleDelete = async (scope: "single" | "series" = "single") => {
+    if (scope === "series") {
+      // Fetch this planning's recurrence/series info
+      const { data: cur } = await supabase
+        .from("plannings")
+        .select("client, assignee, types, recurrence")
+        .eq("id", planning.id)
+        .maybeSingle();
+      if (!cur || !cur.recurrence || cur.recurrence === "none") {
+        // Fall back to single delete
+        const { error } = await supabase.from("plannings").delete().eq("id", planning.id);
+        if (error) { toast.error("Erro ao excluir"); return; }
+      } else {
+        // Delete all plannings in the same series (same client + assignee + recurrence + types)
+        const { data: siblings, error: selErr } = await supabase
+          .from("plannings")
+          .select("id, types")
+          .eq("client", cur.client)
+          .eq("assignee", cur.assignee)
+          .eq("recurrence", cur.recurrence);
+        if (selErr) { toast.error("Erro ao buscar série"); return; }
+        const sameTypes = (a: string[], b: string[]) =>
+          a.length === b.length && [...a].sort().join("|") === [...b].sort().join("|");
+        const idsToDelete = (siblings || [])
+          .filter((s: any) => sameTypes(s.types || [], cur.types || []))
+          .map((s: any) => s.id);
+        if (idsToDelete.length === 0) idsToDelete.push(planning.id);
+        const { error } = await supabase.from("plannings").delete().in("id", idsToDelete);
+        if (error) { toast.error("Erro ao excluir série"); return; }
+        toast.success(`${idsToDelete.length} planejamento(s) da série excluído(s)`);
+        setConfirmDelete(false);
+        onSaved();
+        onOpenChange(false);
+        return;
+      }
+    } else {
+      const { error } = await supabase.from("plannings").delete().eq("id", planning.id);
+      if (error) { toast.error("Erro ao excluir"); return; }
+    }
     toast.success("Planejamento excluído");
     setConfirmDelete(false);
     onSaved();

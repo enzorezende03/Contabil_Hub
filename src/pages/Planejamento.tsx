@@ -259,8 +259,14 @@ export default function PlanejamentoPage() {
                     <span className="text-xs text-muted-foreground font-medium">{col.length}</span>
                   </div>
                   <div className="space-y-2">
-                    {col.map((d) => (
-                      <div key={d.id} onClick={() => setEditPlanning(d)} className="rounded-lg border bg-card p-3 hover:border-primary/30 transition-colors cursor-pointer">
+                    {col.map((d) => {
+                      const u = d.status === "completed" ? "normal" : getDeadlineUrgency(d.internalDeadline);
+                      const cardTone =
+                        u === "overdue" ? "bg-status-late/10 border-status-late/40 hover:border-status-late" :
+                        u === "today" || u === "soon" ? "bg-status-waiting/10 border-status-waiting/40 hover:border-status-waiting" :
+                        "bg-card hover:border-primary/30";
+                      return (
+                      <div key={d.id} onClick={() => setEditPlanning(d)} className={`rounded-lg border p-3 transition-colors cursor-pointer ${cardTone}`}>
                         <div className="flex items-start justify-between mb-1.5">
                           <p className="text-sm font-medium leading-tight">{d.client}</p>
                           <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
@@ -295,7 +301,8 @@ export default function PlanejamentoPage() {
                           </div>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                     {col.length === 0 && (
                       <div className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
                         Nenhum planejamento

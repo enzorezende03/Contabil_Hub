@@ -10,6 +10,7 @@ interface UserRow {
   display_name: string;
   role: string;
   isAdmin: boolean;
+  archived_at: string | null;
 }
 
 export default function UsersPage() {
@@ -30,6 +31,21 @@ export default function UsersPage() {
   const [editAppRole, setEditAppRole] = useState<"admin" | "user">("user");
   const [editPassword, setEditPassword] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+
+  const toggleArchive = async (u: UserRow) => {
+    const archiving = !u.archived_at;
+    if (archiving && !confirm(`Arquivar ${u.display_name}? O usuário perderá acesso ao sistema.`)) return;
+    const { data, error } = await supabase.functions.invoke("update-user", {
+      body: { user_id: u.user_id, archived: archiving },
+    });
+    if (error || data?.error) {
+      toast.error(data?.error || error?.message || "Erro ao atualizar");
+    } else {
+      toast.success(archiving ? "Usuário arquivado" : "Usuário reativado");
+      loadUsers();
+    }
+  };
 
   const openEdit = (u: UserRow) => {
     setEditing(u);
@@ -65,17 +81,18 @@ export default function UsersPage() {
   }, []);
 
   const loadUsers = async () => {
-    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, role");
+    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, role, archived_at");
     const { data: roles } = await supabase.from("user_roles").select("user_id, role");
     const { data: settingsRow } = await supabase.from("settings").select("value").eq("key", "custom_roles").maybeSingle();
     if (settingsRow?.value) setCustomRoles(settingsRow.value as unknown as { value: string; label: string }[]);
     if (profiles) {
       setUsers(
-        profiles.map((p) => ({
+        (profiles as any[]).map((p) => ({
           user_id: p.user_id,
           display_name: p.display_name,
           role: p.role,
           isAdmin: roles?.some((r) => r.user_id === p.user_id && r.role === "admin") || false,
+          archived_at: p.archived_at ?? null,
         }))
       );
     }
@@ -153,6 +170,15 @@ export default function UsersPage() {
 
         {/* Lista de usuários */}
         <div className="rounded-lg border bg-card overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
+            <span className="text-xs font-medium text-muted-foreground">
+              {users.filter((u) => showArchived ? u.archived_at : !u.archived_at).length} usuário(s)
+            </span>
+            <label className="flex items-center gap-2 text-xs cursor-pointer">
+              <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+              Mostrar arquivados
+            </label>
+          </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
@@ -163,17 +189,26 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {users.map((u) => (
+              {users.filter((u) => showArchived ? u.archived_at : !u.archived_at).map((u) => (
                 <tr key={u.user_id} className="hover:bg-muted/20">
-                  <td className="px-4 py-2 font-medium">{u.display_name}</td>
+                  <td className="px-4 py-2 font-medium">
+                    {u.display_name}
+                    {u.archived_at && <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Arquivado</span>}
+                  </td>
                   <td className="px-4 py-2 text-muted-foreground capitalize">{u.role}</td>
                   <td className="px-4 py-2">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${u.isAdmin ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
                       {u.isAdmin ? "Admin" : "Usuário"}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-2 text-right space-x-2">
                     <button onClick={() => openEdit(u)} className="text-xs px-3 py-1 rounded-md border hover:bg-muted transition-colors">Editar</button>
+                    <button
+                      onClick={() => toggleArchive(u)}
+                      className="text-xs px-3 py-1 rounded-md border hover:bg-muted transition-colors"
+                    >
+                      {u.archived_at ? "Reativar" : "Arquivar"}
+                    </button>
                   </td>
                 </tr>
               ))}

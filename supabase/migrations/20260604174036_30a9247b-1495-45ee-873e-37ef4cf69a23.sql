@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN archived_at timestamptz;

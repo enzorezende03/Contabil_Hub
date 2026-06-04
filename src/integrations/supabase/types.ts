@@ -803,6 +803,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          archived_at: string | null
           can_review: boolean
           created_at: string
           display_name: string
@@ -812,6 +813,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
           can_review?: boolean
           created_at?: string
           display_name: string
@@ -821,6 +823,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived_at?: string | null
           can_review?: boolean
           created_at?: string
           display_name?: string

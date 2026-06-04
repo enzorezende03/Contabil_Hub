@@ -38,6 +38,7 @@ export default function SettingsPage() {
     ver_produtividade_equipe: ["coordenacao"],
     configurar_produtividade: ["coordenacao"],
     gerenciar_ausencias_equipe: ["coordenacao"],
+    ver_carga_equipe: ["coordenacao"],
   });
   const [editingWeights, setEditingWeights] = useState(false);
   const [editingTeam, setEditingTeam] = useState(false);
@@ -61,6 +62,7 @@ export default function SettingsPage() {
     ver_produtividade_equipe: ["coordenacao"],
     configurar_produtividade: ["coordenacao"],
     gerenciar_ausencias_equipe: ["coordenacao"],
+    ver_carga_equipe: ["coordenacao"],
   });
   const [saving, setSaving] = useState(false);
 
@@ -73,9 +75,24 @@ export default function SettingsPage() {
 
   const PROFILE_ROLES = [...BUILTIN_ROLES, ...customRoles];
 
+  // Ver Carga Equipe – usuários específicos
+  const [extraUsers, setExtraUsers] = useState<string[]>([]);
+  const [allProfiles, setAllProfiles] = useState<{ user_id: string; display_name: string; role: string }[]>([]);
+  const [savingExtra, setSavingExtra] = useState(false);
+
   useEffect(() => {
     loadSettings();
+    loadProfiles();
   }, []);
+
+  const loadProfiles = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("user_id, display_name, role")
+      .is("archived_at", null)
+      .order("display_name");
+    if (data) setAllProfiles(data as any);
+  };
 
   const loadSettings = async () => {
     const { data } = await supabase.from("settings").select("key, value");
@@ -85,16 +102,35 @@ export default function SettingsPage() {
       const pRow = data.find((r) => r.key === "role_permissions");
       const aRow = data.find((r) => r.key === "action_permissions");
       const cRow = data.find((r) => r.key === "custom_roles");
+      const eRow = data.find((r) => r.key === "ver_carga_equipe_users");
       if (wRow) setWeights(wRow.value as unknown as TaskWeight[]);
       if (tRow) setTeam(tRow.value as unknown as TeamMember[]);
       if (pRow) setPermissions(pRow.value as unknown as RolePerms);
       if (aRow) setActionPermsState(aRow.value as unknown as ActionPermissions);
+      if (eRow) setExtraUsers((eRow.value as unknown as string[]) || []);
       if (cRow) {
         const cr = (cRow.value as unknown as { value: string; label: string }[]) || [];
         setCustomRolesState(cr);
         setCustomRoles(cr);
       }
     }
+  };
+
+  const toggleExtraUser = async (userId: string) => {
+    if (!isAdmin) return;
+    setSavingExtra(true);
+    const next = extraUsers.includes(userId)
+      ? extraUsers.filter((u) => u !== userId)
+      : [...extraUsers, userId];
+    const { error } = await supabase
+      .from("settings")
+      .upsert({ key: "ver_carga_equipe_users", value: next as any, updated_by: user?.id }, { onConflict: "key" });
+    if (error) toast.error("Erro ao salvar");
+    else {
+      setExtraUsers(next);
+      toast.success("Atualizado!");
+    }
+    setSavingExtra(false);
   };
 
   const addCustomRole = async () => {
@@ -223,6 +259,7 @@ export default function SettingsPage() {
     { key: "ver_produtividade_equipe", label: "Ver Produtividade da Equipe", description: "Vê ranking completo de produtividade e detalhamento de qualquer colaborador" },
     { key: "configurar_produtividade", label: "Configurar Produtividade", description: "Edita pesos, multiplicadores e parâmetros do score composto" },
     { key: "gerenciar_ausencias_equipe", label: "Gerenciar Ausências da Equipe", description: "Cadastra/edita ausências de qualquer colaborador" },
+    { key: "ver_carga_equipe", label: "Ver Carga da Equipe (Planejamento)", description: "Vê o painel com a carga de todos os colaboradores na página Planejamento. Sem essa permissão, só vê os próprios planejamentos." },
   ];
   const toggleActionPerm = (action: keyof ActionPermissions, role: ProfileRole) => {
     const current = draftActions[action] || [];
@@ -431,6 +468,37 @@ export default function SettingsPage() {
           {editingPerms && (
             <p className="text-[11px] text-muted-foreground mt-2">* O Dashboard é obrigatório para todos os cargos.</p>
           )}
+        </div>
+
+        {/* Ver Carga Equipe – usuários específicos */}
+        <div className="rounded-lg border bg-card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Shield className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold">Ver Carga da Equipe — Usuários Específicos</h3>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Além dos cargos marcados em "Ver Carga da Equipe" acima, você pode liberar o painel de carga (no Planejamento) para colaboradores específicos. Marque abaixo quem mais pode visualizar a carga de todos.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+            {allProfiles.map((p) => {
+              const checked = extraUsers.includes(p.user_id);
+              return (
+                <label key={p.user_id} className={`flex items-center gap-2 p-2 rounded border text-sm cursor-pointer ${checked ? "bg-primary/5 border-primary/30" : "bg-card hover:bg-muted/30"}`}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={!isAdmin || savingExtra}
+                    onChange={() => toggleExtraUser(p.user_id)}
+                    className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                  />
+                  <div className="flex flex-col min-w-0">
+                    <span className="truncate">{p.display_name || "Sem nome"}</span>
+                    <span className="text-[10px] text-muted-foreground capitalize">{p.role}</span>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
         </div>
 
         {/* Productivity */}

@@ -49,6 +49,21 @@ export default function PlanejamentoPage() {
   const { user, profile } = useAuth();
   useActionPermissions();
   const canSeeAll = canPerformAction("ver_todas_demandas", profile?.role);
+  const canSeeWorkloadByRole = canPerformAction("ver_carga_equipe", profile?.role);
+
+  const { data: workloadExtraUsers = [] } = useQuery({
+    queryKey: ["ver_carga_equipe_users"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "ver_carga_equipe_users")
+        .maybeSingle();
+      return ((data?.value as unknown as string[]) || []);
+    },
+    staleTime: 60_000,
+  });
+  const canSeeWorkload = canSeeWorkloadByRole || (user ? workloadExtraUsers.includes(user.id) : false);
 
   const { data: dbPlannings = [], refetch } = useQuery({
     queryKey: ["plannings"],
@@ -212,11 +227,13 @@ export default function PlanejamentoPage() {
         </div>
 
         {/* Workload Panel */}
-        <WorkloadPanel
-          plannings={planningsWithDerivedStatus}
-          activeFilter={filterAssignee}
-          onFilterByAssignee={setFilterAssignee}
-        />
+        {canSeeWorkload && (
+          <WorkloadPanel
+            plannings={planningsWithDerivedStatus}
+            activeFilter={filterAssignee}
+            onFilterByAssignee={setFilterAssignee}
+          />
+        )}
 
         {view === "kanban" && (
           <div className="flex gap-3 overflow-x-auto pb-4">

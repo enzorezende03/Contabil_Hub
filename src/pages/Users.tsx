@@ -170,6 +170,15 @@ export default function UsersPage() {
 
         {/* Lista de usuários */}
         <div className="rounded-lg border bg-card overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
+            <span className="text-xs font-medium text-muted-foreground">
+              {users.filter((u) => showArchived ? u.archived_at : !u.archived_at).length} usuário(s)
+            </span>
+            <label className="flex items-center gap-2 text-xs cursor-pointer">
+              <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+              Mostrar arquivados
+            </label>
+          </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
@@ -180,17 +189,26 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {users.map((u) => (
+              {users.filter((u) => showArchived ? u.archived_at : !u.archived_at).map((u) => (
                 <tr key={u.user_id} className="hover:bg-muted/20">
-                  <td className="px-4 py-2 font-medium">{u.display_name}</td>
+                  <td className="px-4 py-2 font-medium">
+                    {u.display_name}
+                    {u.archived_at && <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">Arquivado</span>}
+                  </td>
                   <td className="px-4 py-2 text-muted-foreground capitalize">{u.role}</td>
                   <td className="px-4 py-2">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${u.isAdmin ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
                       {u.isAdmin ? "Admin" : "Usuário"}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-2 text-right space-x-2">
                     <button onClick={() => openEdit(u)} className="text-xs px-3 py-1 rounded-md border hover:bg-muted transition-colors">Editar</button>
+                    <button
+                      onClick={() => toggleArchive(u)}
+                      className="text-xs px-3 py-1 rounded-md border hover:bg-muted transition-colors"
+                    >
+                      {u.archived_at ? "Reativar" : "Arquivar"}
+                    </button>
                   </td>
                 </tr>
               ))}

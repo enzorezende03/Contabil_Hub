@@ -243,6 +243,36 @@ export default function PlanejamentoPage() {
               <option key={m.id} value={m.id}>{m.name}</option>
             ))}
           </select>
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-8 px-2 text-sm border rounded-md bg-card">
+            <option value="all">Todos status</option>
+            <option value="not_started">{STATUS_LABELS.not_started}</option>
+            <option value="in_progress">{STATUS_LABELS.in_progress}</option>
+            <option value="completed">{STATUS_LABELS.completed}</option>
+          </select>
+          <div className="flex items-center gap-1">
+            <label className="text-xs text-muted-foreground">Prazo:</label>
+            <input
+              type="date"
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
+              className="h-8 px-2 text-sm border rounded-md bg-card"
+            />
+            <span className="text-xs text-muted-foreground">até</span>
+            <input
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              className="h-8 px-2 text-sm border rounded-md bg-card"
+            />
+            {(filterDateFrom || filterDateTo) && (
+              <button
+                onClick={() => { setFilterDateFrom(""); setFilterDateTo(""); }}
+                className="text-xs text-muted-foreground hover:text-foreground px-1"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Workload Panel */}

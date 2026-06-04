@@ -11,6 +11,7 @@ const BodySchema = z.object({
   role: z.string().min(1).optional(),
   app_role: z.enum(['admin', 'user']).optional(),
   new_password: z.string().min(6).optional(),
+  archived: z.boolean().optional(),
 })
 
 Deno.serve(async (req) => {

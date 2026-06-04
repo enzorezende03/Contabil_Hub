@@ -41,6 +41,9 @@ export default function PlanejamentoPage() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = usePersistedFilter<string>("planejamento", "type", "all");
   const [filterAssignee, setFilterAssignee] = usePersistedFilter<string>("planejamento", "assignee", "all");
+  const [filterStatus, setFilterStatus] = usePersistedFilter<string>("planejamento", "status", "all");
+  const [filterDateFrom, setFilterDateFrom] = usePersistedFilter<string>("planejamento", "dateFrom", "");
+  const [filterDateTo, setFilterDateTo] = usePersistedFilter<string>("planejamento", "dateTo", "");
   const [createOpen, setCreateOpen] = useState(false);
   const [editPlanning, setEditPlanning] = useState<Demand | null>(null);
   const { members: teamMembers } = useTeamMembers({ excludeCoordenacao: true });

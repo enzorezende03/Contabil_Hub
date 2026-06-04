@@ -60,6 +60,15 @@ export function EditPlanningDialog({ open, onOpenChange, planning, onSaved }: Pr
     setAssignee(planning.assignee);
     setDescription(planning.description || "");
     setInternalDeadline(planning.internalDeadline);
+    // Detect if this planning is part of a recurring series
+    (async () => {
+      const { data } = await supabase
+        .from("plannings")
+        .select("recurrence")
+        .eq("id", planning.id)
+        .maybeSingle();
+      setIsRecurring(!!data?.recurrence && data.recurrence !== "none");
+    })();
   }, [planning]);
 
   if (!planning) return null;

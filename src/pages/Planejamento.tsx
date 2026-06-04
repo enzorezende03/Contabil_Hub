@@ -48,8 +48,11 @@ export default function PlanejamentoPage() {
     const d = new Date(_now.getFullYear(), _now.getMonth() + 1, 0);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();
-  const [filterDateFrom, setFilterDateFrom] = usePersistedFilter<string>("planejamento", "dateFrom", _monthStart);
-  const [filterDateTo, setFilterDateTo] = usePersistedFilter<string>("planejamento", "dateTo", _monthEnd);
+  const [filterDateFrom, setFilterDateFrom] = usePersistedFilter<string>("planejamento", "dateFromV2", _monthStart);
+  const [filterDateTo, setFilterDateTo] = usePersistedFilter<string>("planejamento", "dateToV2", _monthEnd);
+  // Draft (pending) date inputs — applied only when user clicks "Filtrar"
+  const [draftDateFrom, setDraftDateFrom] = useState<string>(filterDateFrom);
+  const [draftDateTo, setDraftDateTo] = useState<string>(filterDateTo);
   const [createOpen, setCreateOpen] = useState(false);
   const [editPlanning, setEditPlanning] = useState<Demand | null>(null);
   const { members: teamMembers } = useTeamMembers({ excludeCoordenacao: true });

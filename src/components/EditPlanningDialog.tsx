@@ -41,6 +41,7 @@ export function EditPlanningDialog({ open, onOpenChange, planning, onSaved }: Pr
   const [description, setDescription] = useState("");
   const [internalDeadline, setInternalDeadline] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {

@@ -141,8 +141,6 @@ export default function PlanejamentoPage() {
 
       let derivedStatus: DemandStatus;
       if (allStatuses.every((s) => s === "completed")) derivedStatus = "completed";
-      else if (allStatuses.some((s) => s === "waiting_info")) derivedStatus = "waiting_info";
-      else if (allStatuses.some((s) => s === "blocked")) derivedStatus = "blocked";
       else if (allStatuses.some((s) => s !== "not_started")) derivedStatus = "in_progress";
       else derivedStatus = "not_started";
 

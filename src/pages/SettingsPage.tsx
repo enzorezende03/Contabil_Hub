@@ -75,9 +75,24 @@ export default function SettingsPage() {
 
   const PROFILE_ROLES = [...BUILTIN_ROLES, ...customRoles];
 
+  // Ver Carga Equipe – usuários específicos
+  const [extraUsers, setExtraUsers] = useState<string[]>([]);
+  const [allProfiles, setAllProfiles] = useState<{ user_id: string; display_name: string; role: string }[]>([]);
+  const [savingExtra, setSavingExtra] = useState(false);
+
   useEffect(() => {
     loadSettings();
+    loadProfiles();
   }, []);
+
+  const loadProfiles = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("user_id, display_name, role")
+      .is("archived_at", null)
+      .order("display_name");
+    if (data) setAllProfiles(data as any);
+  };
 
   const loadSettings = async () => {
     const { data } = await supabase.from("settings").select("key, value");
@@ -87,16 +102,35 @@ export default function SettingsPage() {
       const pRow = data.find((r) => r.key === "role_permissions");
       const aRow = data.find((r) => r.key === "action_permissions");
       const cRow = data.find((r) => r.key === "custom_roles");
+      const eRow = data.find((r) => r.key === "ver_carga_equipe_users");
       if (wRow) setWeights(wRow.value as unknown as TaskWeight[]);
       if (tRow) setTeam(tRow.value as unknown as TeamMember[]);
       if (pRow) setPermissions(pRow.value as unknown as RolePerms);
       if (aRow) setActionPermsState(aRow.value as unknown as ActionPermissions);
+      if (eRow) setExtraUsers((eRow.value as unknown as string[]) || []);
       if (cRow) {
         const cr = (cRow.value as unknown as { value: string; label: string }[]) || [];
         setCustomRolesState(cr);
         setCustomRoles(cr);
       }
     }
+  };
+
+  const toggleExtraUser = async (userId: string) => {
+    if (!isAdmin) return;
+    setSavingExtra(true);
+    const next = extraUsers.includes(userId)
+      ? extraUsers.filter((u) => u !== userId)
+      : [...extraUsers, userId];
+    const { error } = await supabase
+      .from("settings")
+      .upsert({ key: "ver_carga_equipe_users", value: next as any, updated_by: user?.id }, { onConflict: "key" });
+    if (error) toast.error("Erro ao salvar");
+    else {
+      setExtraUsers(next);
+      toast.success("Atualizado!");
+    }
+    setSavingExtra(false);
   };
 
   const addCustomRole = async () => {

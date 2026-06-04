@@ -21,7 +21,8 @@ export function useTeamMembers(options: UseTeamMembersOptions = {}) {
     queryFn: async (): Promise<TeamMember[]> => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("user_id, display_name, role")
+        .select("user_id, display_name, role, archived_at")
+        .is("archived_at", null)
         .order("display_name", { ascending: true });
       if (error) throw error;
       return (data || []).map((p: any) => ({

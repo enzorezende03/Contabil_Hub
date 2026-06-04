@@ -39,12 +39,13 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const { user_id, display_name, role, app_role, new_password } = parsed.data
+    const { user_id, display_name, role, app_role, new_password, archived } = parsed.data
 
-    if (display_name || role) {
-      const update: Record<string, string> = {}
+    if (display_name || role || typeof archived === 'boolean') {
+      const update: Record<string, unknown> = {}
       if (display_name) update.display_name = display_name
       if (role) update.role = role
+      if (typeof archived === 'boolean') update.archived_at = archived ? new Date().toISOString() : null
       const { error } = await adminClient.from('profiles').update(update).eq('user_id', user_id)
       if (error) return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }

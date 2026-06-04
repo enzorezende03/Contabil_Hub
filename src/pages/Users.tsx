@@ -31,6 +31,21 @@ export default function UsersPage() {
   const [editAppRole, setEditAppRole] = useState<"admin" | "user">("user");
   const [editPassword, setEditPassword] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
+
+  const toggleArchive = async (u: UserRow) => {
+    const archiving = !u.archived_at;
+    if (archiving && !confirm(`Arquivar ${u.display_name}? O usuário perderá acesso ao sistema.`)) return;
+    const { data, error } = await supabase.functions.invoke("update-user", {
+      body: { user_id: u.user_id, archived: archiving },
+    });
+    if (error || data?.error) {
+      toast.error(data?.error || error?.message || "Erro ao atualizar");
+    } else {
+      toast.success(archiving ? "Usuário arquivado" : "Usuário reativado");
+      loadUsers();
+    }
+  };
 
   const openEdit = (u: UserRow) => {
     setEditing(u);

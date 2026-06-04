@@ -41,6 +41,9 @@ export default function PlanejamentoPage() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = usePersistedFilter<string>("planejamento", "type", "all");
   const [filterAssignee, setFilterAssignee] = usePersistedFilter<string>("planejamento", "assignee", "all");
+  const [filterStatus, setFilterStatus] = usePersistedFilter<string>("planejamento", "status", "all");
+  const [filterDateFrom, setFilterDateFrom] = usePersistedFilter<string>("planejamento", "dateFrom", "");
+  const [filterDateTo, setFilterDateTo] = usePersistedFilter<string>("planejamento", "dateTo", "");
   const [createOpen, setCreateOpen] = useState(false);
   const [editPlanning, setEditPlanning] = useState<Demand | null>(null);
   const { members: teamMembers } = useTeamMembers({ excludeCoordenacao: true });
@@ -173,10 +176,13 @@ export default function PlanejamentoPage() {
         if (search && !d.client.toLowerCase().includes(search.toLowerCase()) && !d.description.toLowerCase().includes(search.toLowerCase())) return false;
         if (filterType !== "all" && !d.types.includes(filterType as DemandType)) return false;
         if (filterAssignee !== "all" && d.assignee !== filterAssignee) return false;
+        if (filterStatus !== "all" && d.status !== filterStatus) return false;
+        if (filterDateFrom && d.internalDeadline < filterDateFrom) return false;
+        if (filterDateTo && d.internalDeadline > filterDateTo) return false;
         return true;
       })
       .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
-  }, [search, filterType, filterAssignee, planningsWithDerivedStatus, canSeeAll, user]);
+  }, [search, filterType, filterAssignee, filterStatus, filterDateFrom, filterDateTo, planningsWithDerivedStatus, canSeeAll, user]);
 
   const getMember = (id: string) => teamMembers.find((m) => m.id === id);
 
@@ -237,6 +243,36 @@ export default function PlanejamentoPage() {
               <option key={m.id} value={m.id}>{m.name}</option>
             ))}
           </select>
+          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-8 px-2 text-sm border rounded-md bg-card">
+            <option value="all">Todos status</option>
+            <option value="not_started">{STATUS_LABELS.not_started}</option>
+            <option value="in_progress">{STATUS_LABELS.in_progress}</option>
+            <option value="completed">{STATUS_LABELS.completed}</option>
+          </select>
+          <div className="flex items-center gap-1">
+            <label className="text-xs text-muted-foreground">Prazo:</label>
+            <input
+              type="date"
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
+              className="h-8 px-2 text-sm border rounded-md bg-card"
+            />
+            <span className="text-xs text-muted-foreground">até</span>
+            <input
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              className="h-8 px-2 text-sm border rounded-md bg-card"
+            />
+            {(filterDateFrom || filterDateTo) && (
+              <button
+                onClick={() => { setFilterDateFrom(""); setFilterDateTo(""); }}
+                className="text-xs text-muted-foreground hover:text-foreground px-1"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Workload Panel */}

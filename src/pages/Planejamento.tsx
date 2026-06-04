@@ -227,11 +227,13 @@ export default function PlanejamentoPage() {
         </div>
 
         {/* Workload Panel */}
-        <WorkloadPanel
-          plannings={planningsWithDerivedStatus}
-          activeFilter={filterAssignee}
-          onFilterByAssignee={setFilterAssignee}
-        />
+        {canSeeWorkload && (
+          <WorkloadPanel
+            plannings={planningsWithDerivedStatus}
+            activeFilter={filterAssignee}
+            onFilterByAssignee={setFilterAssignee}
+          />
+        )}
 
         {view === "kanban" && (
           <div className="flex gap-3 overflow-x-auto pb-4">

@@ -118,19 +118,44 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
     const competencias = [...selectedMonths].sort().map((m) => `${m}/${compYear}`);
     const desc = description || typesArr.map((t) => DEMAND_TYPE_LABELS[t]).join(", ");
 
-    const rows = [...selectedClients].map((clientName) => ({
-      client: clientName,
-      competencias,
-      types: typesArr,
-      description: desc,
-      assignee,
-      priority,
-      internal_deadline: internalDeadline,
-      status: "not_started",
-      notes: "",
-      created_by: user.id,
-      recurrence,
-    }));
+    // Define how many occurrences to generate up-front (~12 months ahead)
+    const stepMonths =
+      recurrence === "monthly" ? 1 :
+      recurrence === "bimonthly" ? 2 :
+      recurrence === "quarterly" ? 3 :
+      recurrence === "semiannual" ? 6 : 0;
+    const occurrences = stepMonths === 0 ? 1 : Math.floor(12 / stepMonths);
+
+    const shiftComp = (comp: string, months: number) => {
+      const [mm, yyyy] = comp.split("/").map(Number);
+      const d = new Date(yyyy, mm - 1 + months, 1);
+      return `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+    };
+    const shiftDate = (iso: string, months: number) => {
+      const [y, m, d] = iso.split("-").map(Number);
+      const dt = new Date(y, m - 1 + months, d);
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+    };
+
+    const rows: any[] = [];
+    [...selectedClients].forEach((clientName) => {
+      for (let i = 0; i < occurrences; i++) {
+        const offset = stepMonths * i;
+        rows.push({
+          client: clientName,
+          competencias: competencias.map((c) => shiftComp(c, offset)),
+          types: typesArr,
+          description: desc,
+          assignee,
+          priority,
+          internal_deadline: shiftDate(internalDeadline, offset),
+          status: "not_started",
+          notes: "",
+          created_by: user.id,
+          recurrence,
+        });
+      }
+    });
 
     const { error } = await supabase.from("plannings").insert(rows);
 
@@ -139,6 +164,11 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
       return;
     }
 
+    toast.success(
+      recurrence === "none"
+        ? "Planejamento criado!"
+        : `${rows.length} planejamento(s) recorrente(s) criados!`
+    );
     onCreated();
     resetForm();
     onOpenChange(false);

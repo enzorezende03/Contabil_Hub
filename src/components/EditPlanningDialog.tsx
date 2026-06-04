@@ -41,6 +41,7 @@ export function EditPlanningDialog({ open, onOpenChange, planning, onSaved }: Pr
   const [description, setDescription] = useState("");
   const [internalDeadline, setInternalDeadline] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -59,6 +60,15 @@ export function EditPlanningDialog({ open, onOpenChange, planning, onSaved }: Pr
     setAssignee(planning.assignee);
     setDescription(planning.description || "");
     setInternalDeadline(planning.internalDeadline);
+    // Detect if this planning is part of a recurring series
+    (async () => {
+      const { data } = await supabase
+        .from("plannings")
+        .select("recurrence")
+        .eq("id", planning.id)
+        .maybeSingle();
+      setIsRecurring(!!data?.recurrence && data.recurrence !== "none");
+    })();
   }, [planning]);
 
   if (!planning) return null;
@@ -106,9 +116,45 @@ export function EditPlanningDialog({ open, onOpenChange, planning, onSaved }: Pr
     onOpenChange(false);
   };
 
-  const handleDelete = async () => {
-    const { error } = await supabase.from("plannings").delete().eq("id", planning.id);
-    if (error) { toast.error("Erro ao excluir"); return; }
+  const handleDelete = async (scope: "single" | "series" = "single") => {
+    if (scope === "series") {
+      // Fetch this planning's recurrence/series info
+      const { data: cur } = await supabase
+        .from("plannings")
+        .select("client, assignee, types, recurrence")
+        .eq("id", planning.id)
+        .maybeSingle();
+      if (!cur || !cur.recurrence || cur.recurrence === "none") {
+        // Fall back to single delete
+        const { error } = await supabase.from("plannings").delete().eq("id", planning.id);
+        if (error) { toast.error("Erro ao excluir"); return; }
+      } else {
+        // Delete all plannings in the same series (same client + assignee + recurrence + types)
+        const { data: siblings, error: selErr } = await supabase
+          .from("plannings")
+          .select("id, types")
+          .eq("client", cur.client)
+          .eq("assignee", cur.assignee)
+          .eq("recurrence", cur.recurrence);
+        if (selErr) { toast.error("Erro ao buscar série"); return; }
+        const sameTypes = (a: string[], b: string[]) =>
+          a.length === b.length && [...a].sort().join("|") === [...b].sort().join("|");
+        const idsToDelete = (siblings || [])
+          .filter((s: any) => sameTypes(s.types || [], cur.types || []))
+          .map((s: any) => s.id);
+        if (idsToDelete.length === 0) idsToDelete.push(planning.id);
+        const { error } = await supabase.from("plannings").delete().in("id", idsToDelete);
+        if (error) { toast.error("Erro ao excluir série"); return; }
+        toast.success(`${idsToDelete.length} planejamento(s) da série excluído(s)`);
+        setConfirmDelete(false);
+        onSaved();
+        onOpenChange(false);
+        return;
+      }
+    } else {
+      const { error } = await supabase.from("plannings").delete().eq("id", planning.id);
+      if (error) { toast.error("Erro ao excluir"); return; }
+    }
     toast.success("Planejamento excluído");
     setConfirmDelete(false);
     onSaved();
@@ -214,13 +260,26 @@ export function EditPlanningDialog({ open, onOpenChange, planning, onSaved }: Pr
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir planejamento?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. O planejamento de {planning.client} será removido permanentemente.
+              {isRecurring
+                ? `Este planejamento de ${planning.client} faz parte de uma série recorrente. Você quer excluir apenas este card ou todos os planejamentos da série?`
+                : `Esta ação não pode ser desfeita. O planejamento de ${planning.client} será removido permanentemente.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir
+            {isRecurring && (
+              <AlertDialogAction
+                onClick={() => handleDelete("series")}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Excluir toda a série
+              </AlertDialogAction>
+            )}
+            <AlertDialogAction
+              onClick={() => handleDelete("single")}
+              className={isRecurring ? "" : "bg-destructive text-destructive-foreground hover:bg-destructive/90"}
+            >
+              {isRecurring ? "Excluir apenas este" : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

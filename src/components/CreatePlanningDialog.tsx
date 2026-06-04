@@ -94,7 +94,7 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
   const toggleAllMonths = () => {
     setSelectedMonths((prev) => (prev.size === MONTHS.length ? new Set() : new Set(MONTHS)));
   };
-  const selectAllTypes = () => setSelectedTypes(new Set(Object.keys(DEMAND_TYPE_LABELS) as DemandType[]));
+  const selectAllTypes = () => setSelectedTypes(new Set(VISIBLE_PLANNING_TYPE_ENTRIES.map(([k]) => k as DemandType)));
 
   const resetForm = () => {
     setSelectedClients(new Set());

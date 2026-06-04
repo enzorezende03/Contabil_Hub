@@ -30,9 +30,6 @@ type ViewMode = "list" | "kanban" | "timeline";
 const KANBAN_COLUMNS: DemandStatus[] = [
   "not_started",
   "in_progress",
-  "in_review",
-  "waiting_info",
-  "blocked",
   "completed",
 ];
 

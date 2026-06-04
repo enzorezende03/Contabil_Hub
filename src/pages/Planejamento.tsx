@@ -48,8 +48,11 @@ export default function PlanejamentoPage() {
     const d = new Date(_now.getFullYear(), _now.getMonth() + 1, 0);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();
-  const [filterDateFrom, setFilterDateFrom] = usePersistedFilter<string>("planejamento", "dateFrom", _monthStart);
-  const [filterDateTo, setFilterDateTo] = usePersistedFilter<string>("planejamento", "dateTo", _monthEnd);
+  const [filterDateFrom, setFilterDateFrom] = usePersistedFilter<string>("planejamento", "dateFromV2", _monthStart);
+  const [filterDateTo, setFilterDateTo] = usePersistedFilter<string>("planejamento", "dateToV2", _monthEnd);
+  // Draft (pending) date inputs — applied only when user clicks "Filtrar"
+  const [draftDateFrom, setDraftDateFrom] = useState<string>(filterDateFrom);
+  const [draftDateTo, setDraftDateTo] = useState<string>(filterDateTo);
   const [createOpen, setCreateOpen] = useState(false);
   const [editPlanning, setEditPlanning] = useState<Demand | null>(null);
   const { members: teamMembers } = useTeamMembers({ excludeCoordenacao: true });
@@ -263,25 +266,38 @@ export default function PlanejamentoPage() {
             <label className="text-xs text-muted-foreground">Prazo:</label>
             <input
               type="date"
-              value={filterDateFrom}
-              onChange={(e) => setFilterDateFrom(e.target.value)}
+              value={draftDateFrom}
+              onChange={(e) => setDraftDateFrom(e.target.value)}
               className="h-8 px-2 text-sm border rounded-md bg-card"
             />
             <span className="text-xs text-muted-foreground">até</span>
             <input
               type="date"
-              value={filterDateTo}
-              onChange={(e) => setFilterDateTo(e.target.value)}
+              value={draftDateTo}
+              onChange={(e) => setDraftDateTo(e.target.value)}
               className="h-8 px-2 text-sm border rounded-md bg-card"
             />
-            {(filterDateFrom || filterDateTo) && (
-              <button
-                onClick={() => { setFilterDateFrom(""); setFilterDateTo(""); }}
-                className="text-xs text-muted-foreground hover:text-foreground px-1"
-              >
-                ✕
-              </button>
-            )}
+            <Button
+              size="sm"
+              variant="default"
+              className="h-8"
+              onClick={() => { setFilterDateFrom(draftDateFrom); setFilterDateTo(draftDateTo); }}
+            >
+              Filtrar
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8"
+              onClick={() => {
+                setDraftDateFrom("");
+                setDraftDateTo("");
+                setFilterDateFrom("");
+                setFilterDateTo("");
+              }}
+            >
+              Limpar
+            </Button>
           </div>
         </div>
 

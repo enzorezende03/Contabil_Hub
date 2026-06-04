@@ -62,6 +62,8 @@ export default function SettingsPage() {
     ver_produtividade_equipe: ["coordenacao"],
     configurar_produtividade: ["coordenacao"],
     gerenciar_ausencias_equipe: ["coordenacao"],
+    gerenciar_ausencias_equipe: ["coordenacao"],
+    ver_carga_equipe: ["coordenacao"],
   });
   const [saving, setSaving] = useState(false);
 

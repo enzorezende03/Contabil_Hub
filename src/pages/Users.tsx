@@ -81,17 +81,18 @@ export default function UsersPage() {
   }, []);
 
   const loadUsers = async () => {
-    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, role");
+    const { data: profiles } = await supabase.from("profiles").select("user_id, display_name, role, archived_at");
     const { data: roles } = await supabase.from("user_roles").select("user_id, role");
     const { data: settingsRow } = await supabase.from("settings").select("value").eq("key", "custom_roles").maybeSingle();
     if (settingsRow?.value) setCustomRoles(settingsRow.value as unknown as { value: string; label: string }[]);
     if (profiles) {
       setUsers(
-        profiles.map((p) => ({
+        (profiles as any[]).map((p) => ({
           user_id: p.user_id,
           display_name: p.display_name,
           role: p.role,
           isAdmin: roles?.some((r) => r.user_id === p.user_id && r.role === "admin") || false,
+          archived_at: p.archived_at ?? null,
         }))
       );
     }

@@ -10,6 +10,7 @@ interface UserRow {
   display_name: string;
   role: string;
   isAdmin: boolean;
+  archived_at: string | null;
 }
 
 export default function UsersPage() {

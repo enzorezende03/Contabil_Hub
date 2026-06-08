@@ -1212,6 +1212,7 @@ export type Database = {
         Args: { p_submission_id: string }
         Returns: boolean
       }
+      generate_backlog_snapshot: { Args: { p_force?: boolean }; Returns: Json }
       has_action_permission: {
         Args: { _action: string; _user_id: string }
         Returns: boolean

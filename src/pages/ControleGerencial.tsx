@@ -79,7 +79,7 @@ export default function ControleGerencial() {
         .select("*")
         .order("snapshot_date", { ascending: true });
       if (error) throw error;
-      return (data || []) as SnapshotRow[];
+      return ((data || []) as unknown) as SnapshotRow[];
     },
   });
 

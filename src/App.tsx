@@ -61,6 +61,7 @@ const AppRoutes = () => (
     <Route path="/configuracoes" element={<RoleRoute page="/configuracoes"><SettingsPage /></RoleRoute>} />
     <Route path="/usuarios" element={<RoleRoute page="/usuarios"><Users /></RoleRoute>} />
     <Route path="/clientes" element={<RoleRoute page="/clientes"><Clients /></RoleRoute>} />
+    <Route path="/controle-gerencial" element={<RoleRoute page="/controle-gerencial"><ControleGerencial /></RoleRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

@@ -87,6 +87,7 @@ export const ALL_PAGES: { path: AppPage; label: string }[] = [
   { path: "/pendencias", label: "Pendências" },
   { path: "/alertas", label: "Alertas" },
   { path: "/clientes", label: "Clientes" },
+  { path: "/controle-gerencial", label: "Controle Gerencial" },
   { path: "/configuracoes", label: "Configurações" },
   { path: "/usuarios", label: "Usuários" },
 ];

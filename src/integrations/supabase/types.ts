@@ -14,6 +14,114 @@ export type Database = {
   }
   public: {
     Tables: {
+      backlog_snapshots: {
+        Row: {
+          created_at: string
+          detalhes: Json
+          id: string
+          indicador: string
+          iso_week: string
+          snapshot_date: string
+          tributacao: string | null
+          unidade: string | null
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          detalhes?: Json
+          id?: string
+          indicador: string
+          iso_week: string
+          snapshot_date: string
+          tributacao?: string | null
+          unidade?: string | null
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          detalhes?: Json
+          id?: string
+          indicador?: string
+          iso_week?: string
+          snapshot_date?: string
+          tributacao?: string | null
+          unidade?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
+      briefing_drafts: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          auto_alerts: Json
+          auto_summary: string | null
+          created_at: string
+          custom_alerts: Json
+          custom_focus: Json
+          custom_summary: string | null
+          data_referencia: string
+          generated_at: string
+          id: string
+          iso_week: string
+          notes_internas: string | null
+          pptx_storage_path: string | null
+          recipients_snapshot: string[] | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          sent_at: string | null
+          sent_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          auto_alerts?: Json
+          auto_summary?: string | null
+          created_at?: string
+          custom_alerts?: Json
+          custom_focus?: Json
+          custom_summary?: string | null
+          data_referencia: string
+          generated_at?: string
+          id?: string
+          iso_week: string
+          notes_internas?: string | null
+          pptx_storage_path?: string | null
+          recipients_snapshot?: string[] | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          auto_alerts?: Json
+          auto_summary?: string | null
+          created_at?: string
+          custom_alerts?: Json
+          custom_focus?: Json
+          custom_summary?: string | null
+          data_referencia?: string
+          generated_at?: string
+          id?: string
+          iso_week?: string
+          notes_internas?: string | null
+          pptx_storage_path?: string | null
+          recipients_snapshot?: string[] | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_contacts: {
         Row: {
           client_id: string
@@ -293,6 +401,45 @@ export type Database = {
           types?: string[]
           updated_at?: string
           weight?: number
+        }
+        Relationships: []
+      }
+      gestao_metas: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          indicador: string
+          tipo_meta: string
+          unidade: string | null
+          updated_at: string
+          valor_meta: number
+          vigencia_fim: string | null
+          vigencia_inicio: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          indicador: string
+          tipo_meta: string
+          unidade?: string | null
+          updated_at?: string
+          valor_meta: number
+          vigencia_fim?: string | null
+          vigencia_inicio: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          indicador?: string
+          tipo_meta?: string
+          unidade?: string | null
+          updated_at?: string
+          valor_meta?: number
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
         }
         Relationships: []
       }

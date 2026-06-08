@@ -21,6 +21,7 @@ import Clients from "./pages/Clients.tsx";
 import Planejamento from "./pages/Planejamento.tsx";
 import Pendencias from "./pages/Pendencias.tsx";
 import Ausencias from "./pages/Ausencias.tsx";
+import ControleGerencial from "./pages/ControleGerencial.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import PendencyPortal from "./pages/PendencyPortal.tsx";
 
@@ -60,6 +61,7 @@ const AppRoutes = () => (
     <Route path="/configuracoes" element={<RoleRoute page="/configuracoes"><SettingsPage /></RoleRoute>} />
     <Route path="/usuarios" element={<RoleRoute page="/usuarios"><Users /></RoleRoute>} />
     <Route path="/clientes" element={<RoleRoute page="/clientes"><Clients /></RoleRoute>} />
+    <Route path="/controle-gerencial" element={<RoleRoute page="/controle-gerencial"><ControleGerencial /></RoleRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

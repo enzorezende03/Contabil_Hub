@@ -1,56 +1,142 @@
-## Objetivo
+# Painel gerencial — Plano de implementação
 
-Usar a planilha `Tarefas_2026-05-04-15-24-47.xlsx` (export do G-Click) para preencher em lote, na página **Competências → 2025**, o status mensal de **Lançamentos Contábeis** e **Conciliação Contábil** de cada cliente até o último mês com andamento registrado.
+Nova área `/controle-gerencial` para a reunião semanal de liderança: backlog consolidado, velocity, projeção (ETA), aderência ao planejamento, heatmap cliente × competência e briefing semanal com fluxo de revisão/aprovação antes do envio.
 
-## O que a planilha contém
+Fatiamento entregue em **9 PRs** sequenciais. Cada PR é independente e deployável.
 
-- 354 linhas, 191 CNPJs únicos.
-- Duas categorias (coluna "Assunto"): `Lançamento Contábil Anual` (165) e `Conciliação Contábil Anual` (189).
-- Coluna "Último Andamento" traz o último mês trabalhado, em formatos como `Atividade : 9 - ... - Setembro` ou só `Setembro`.
-- Apenas 40 dos 191 CNPJs têm andamento detectável (mês > 0). Os demais não terão alteração.
-- 31 clientes aparecem como "Desativado" — serão ignorados.
+---
 
-Match com a base: amostra de 11 CNPJs deu 10/11 encontrados em `clients`. Cobertura esperada alta.
+## PR 1 — Modelagem e permissões
 
-## Regra de preenchimento
+**Tabelas novas:**
+- `backlog_snapshots` (snapshot semanal versionado por indicador × unidade × tributação, único em `(snapshot_date, indicador, unidade, tributacao)`)
+- `gestao_metas` (metas configuráveis — usado só no PR 9)
+- `briefing_drafts` (rascunho semanal com workflow `em_revisao → aprovado → enviado/arquivado`, único em `iso_week`)
 
-Para cada CNPJ da planilha encontrado em `clients` (ano = 2025):
+**Índices em `demand_status_entries`:**
+- `(status, year, month)`
+- `(filled_by, status) WHERE status = 'completed'`
 
-1. `M_lanc` = último mês detectado em "Lançamento Contábil Anual" (1–12, ou 0).
-2. `M_conc` = último mês detectado em "Conciliação Contábil Anual" (1–12, ou 0).
-3. Para meses **01..M_lanc** → grava `demand_type = "lancamentos"`, `status = "completed"`.
-4. Para meses **01..M_conc** → grava `demand_type = "conciliacao_contabil"`, `status = "completed"`.
-5. Não toca em meses posteriores nem em outros tipos (fechamento, revisão, conciliação bancária etc.).
-6. Clientes sem andamento detectável: nenhuma alteração.
-7. Clientes "Desativado" na planilha: ignorados.
+**RLS:**
+- SELECT em todas: quem tem `ver_painel_gerencial`
+- `briefing_drafts` UPDATE: `revisar_briefing_semanal` e só quando `status = 'em_revisao'`
+- `gestao_metas` mutação: `configurar_metas`
+- INSERT em `backlog_snapshots`/`briefing_drafts`: service_role apenas
 
-Gravação na tabela `demand_status_entries` via upsert (mesma chave que a UI já usa: `client_name,month,year,demand_type`), usando `client_name = clients.razao_social` para bater com o que `/competencias` lê.
+**`settings.action_permissions` — chaves novas:**
+- `ver_painel_gerencial` (default: coordenacao, admin)
+- `revisar_briefing_semanal` (default: coordenacao)
+- `configurar_metas` (default: admin)
 
-## Como executar
+**`settings` — chave nova:**
+- `painel_gerencial_recipients` (array de e-mails)
 
-Adicionar um botão **"Importar planilha G-Click"** em `src/pages/Competencias.tsx` (visível para coordenação/admin), que:
+**Storage bucket:** `briefing-pptx` (privado).
 
-- Abre um diálogo para upload do `.xlsx`.
-- Faz parse no cliente com `xlsx` (já comum em projetos Vite — adicionar dependência `xlsx`).
-- Extrai CNPJ (últimos 14 dígitos da coluna "Cliente") + mês de "Último Andamento".
-- Cruza com a lista de `clients` carregada na página para obter `razao_social`.
-- Mostra **pré-visualização**: tabela com `Cliente | Lançamento até | Conciliação até | Status (encontrado/não encontrado/sem andamento)` e contador.
-- Botão "Confirmar importação" → faz os upserts em lote em `demand_status_entries` (chunks de 500).
-- Invalida o estado local (`setDemandStatuses`) e mostra toast com resumo (X clientes, Y meses preenchidos).
+---
 
-## Detalhes técnicos
+## PR 2 — Edge function `generate-backlog-snapshot`
 
-- Regex CNPJ: `/(\d{14})\s*$/` no campo "Cliente".
-- Detecção do mês:
-  1. `/atividade\s*:\s*(\d{1,2})\s*-/i` → número direto.
-  2. Fallback: nome do mês em PT (`janeiro..dezembro`, com `março/marco`).
-- Filtrar `Status do Cliente !== "Desativado"`.
-- Agrupamento por `(cnpj, Assunto)` pegando o **máx** do mês.
-- Mapeamento de "Assunto" → `demand_type`:
-  - `Lançamento Contábil Anual` → `lancamentos`
-  - `Conciliação Contábil Anual` → `conciliacao_contabil`
-- Permissão: reaproveitar o mesmo gate dos botões em massa existentes na página.
+Cron pg_cron toda segunda 06:00 America/Sao_Paulo + botão "Atualizar agora" (`force=true`).
 
-## Resultado esperado
+**Indicadores calculados** (cada um × unidade × tributação + total):
+- `lancamentos_pendentes`, `conciliacao_bancaria_pendente`, `conciliacao_contabil_pendente`, `fechamento_mensal_pendente` — count distinct (cliente, ano, mês) em `demand_status_entries` com status ≠ completed, respeitando `clients.competencia_inicio`
+- `fechamento_anual_pendente` — count distinct cliente com algum mês do ano corrente não fechado
+- `revisao_pendente` — `review_submissions` em `aguardando`/`em_revisao`
+- `velocity_*` por tipo — entries movidos para completed nos últimos 7 dias
 
-Após confirmar, ~40 clientes terão automaticamente os meses até o último andamento marcados como **Concluído** nas colunas Lançamentos e Conciliação Contábil de 2025, sem mexer em nada além disso.
+Idempotente via UPSERT. `detalhes` jsonb guarda top 10 clientes/competências para o drill-down.
+
+---
+
+## PR 3 — Página `/controle-gerencial` (versão básica)
+
+Rota nova em `App.tsx`, registrada em `src/lib/permissions.ts` com guard `ver_painel_gerencial`. Item no sidebar condicional.
+
+**Layout:**
+- Header: título, subtítulo com semana corrente + timestamp do snapshot, botão "Atualizar agora", filtros Unidade e Tributação
+- **Bloco 1 — 6 KPIs** (grid 3×2): número grande, delta vs semana anterior (verde/vermelho/—), sparkline 8 sem (Recharts), click abre drawer (stub no PR 4)
+- **Bloco 2 — Burndown** (LineChart, últimas 12 semanas, linha por tipo, linha tracejada de meta se houver)
+- **Bloco 3 — Velocity + ETA**: bar chart 8 semanas por tipo; lista ETA (`backlog/velocity` com semáforo verde/amarelo/vermelho; aviso "Backlog crescendo — capacidade insuficiente" quando entrada > saída)
+
+Skeletons em cada bloco. Tokens HSL navy/teal. Número em peso 500 32px.
+
+---
+
+## PR 4 — Drill-down e rankings
+
+- Drawer (`Sheet`) ao clicar em qualquer KPI: breakdown por unidade/tributação, lista de items agrupados por cliente, filtros (idade, responsável), botão "Exportar Excel" (xlsx), link para `/competencias` filtrado
+- **Bloco 6 — Rankings** (3 listas lado a lado): top 10 clientes com mais backlog, top 5 competências mais atrasadas, top 5 colaboradores com fila mais antiga
+
+---
+
+## PR 5 — Heatmap cliente × competência
+
+- **Bloco 5** com `<div>` grid (sem libs)
+- Linhas: top 30 clientes mais pendentes; Colunas: últimas 12 competências
+- Cor: verde / amarelo (1-2 tipos) / laranja (3+) / vermelho (todos + atrasado)
+- Hover com tooltip detalhado; click → `/competencias` filtrado
+- Cache TanStack Query 1h
+- Mobile: vira lista vertical com cor agregada
+
+---
+
+## PR 6 — Aderência ao planejamento
+
+- **Bloco 4**: planejado vs concluído na semana corrente (a partir de `plannings` com prazo dentro da semana), % aderência, barra de progresso, mini-tabela de atrasos, link para `/planejamento` filtrado
+- Snapshot da aderência adicionado ao job semanal
+
+---
+
+## PR 7 — Briefing semanal (geração + revisão, sem envio)
+
+**Edge function `generate-weekly-briefing`** (cron segunda 06:05, após snapshot):
+1. Recalcula deltas vs semana anterior
+2. Infere alertas automáticos por regras: backlog crescendo 4 semanas seguidas → crítico; aderência caiu >5pp → atenção; cliente com 3+ meses atrasados → atenção
+3. Gera PPTX 10 slides com **pptxgenjs no servidor**, paleta navy/teal
+4. Salva em Storage `briefing-pptx/{iso_week}.pptx`
+5. Cria `briefing_drafts` com `status='em_revisao'`
+6. Notificação in-app para `revisar_briefing_semanal`
+
+**Tela `/controle-gerencial/briefing/:isoWeek`** (duas colunas):
+- Esquerda: textarea resumo executivo, editor de lista de alertas (severity/title/detail, add/remove/reorder), editor de prioridades da próxima semana, notas internas (não vão pro PPTX)
+- Direita: preview do PPTX (thumbnails), botão "Regenerar PPTX", "Baixar PPTX"
+- Rodapé: Salvar rascunho · Aprovar e enviar (stub no PR 8) · Aprovar sem enviar · Arquivar
+- Read-only após aprovação
+
+---
+
+## PR 8 — Envio e histórico do briefing
+
+**Edge function `send-briefing-email`** (chamada só pelo botão "Aprovar e enviar"):
+- Lê `painel_gerencial_recipients`
+- E-mail com resumo + alertas + link, PPTX em anexo (via Lovable email infra — `email_domain--setup_email_infra` + template app email; verificar se anexos cabem ou usar signed URL do Storage como fallback)
+- Atualiza status → `enviado`, grava `sent_by`, `sent_at`, `recipients_snapshot`
+
+**Lembretes** (cron diário):
+- Rascunho > 24h sem revisão → notifica liderança
+- Rascunho > 72h → escala para admin
+
+**Página `/controle-gerencial/briefings`:**
+- Lista últimos 12 briefings (semana, status, revisor, envio, destinatários)
+- Filtro por status, métrica "taxa de aprovação no prazo" (aprovados antes de quarta / total)
+- Click abre em modo read-only
+
+---
+
+## PR 9 — Metas (v2)
+
+- Tela `/configuracoes` → aba Metas: CRUD em `gestao_metas` por indicador, unidade opcional, valor, tipo (máximo/mínimo), vigência
+- Linhas tracejadas nos gráficos; badge "fora da meta" nos KPIs
+
+---
+
+## Notas técnicas
+
+- **Stack**: React 18 + Vite + Tailwind + shadcn + Recharts + TanStack Query + Lovable Cloud (Supabase). PPTX via `pptxgenjs` em edge function Deno.
+- **Performance**: backlog atual em tempo real (com índices novos); tendências sempre via `backlog_snapshots`; heatmap top-30 cacheado 1h; drill-down lazy.
+- **Anexo de e-mail**: a infra de e-mail Lovable não suporta anexos hoje. Plano: enviar **link assinado do Storage** no corpo do e-mail em vez de anexar o PPTX. Confirmar com você antes do PR 8.
+- **Sidebar**: novo item "Controle gerencial" condicional à permissão.
+- **Mobile**: heatmap colapsa em lista; rankings empilham; KPIs viram 2×3.
+
+Confirma para começar pelo PR 1?

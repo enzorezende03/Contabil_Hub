@@ -26,6 +26,7 @@ import {
   PanelLeftOpen,
   ShieldCheck,
   AlertOctagon,
+  Gauge,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -36,6 +37,7 @@ const NAV_ITEMS = [
   { label: "Fechamento Contábil", path: "/competencias" as AppPage, icon: Calendar },
   { label: "Revisão", path: "/revisao" as AppPage, icon: ShieldCheck },
   { label: "Pendências", path: "/pendencias" as AppPage, icon: AlertOctagon },
+  { label: "Controle Gerencial", path: "/controle-gerencial" as AppPage, icon: Gauge },
   { label: "Clientes", path: "/clientes" as AppPage, icon: Building2 },
   { label: "Configurações", path: "/configuracoes" as AppPage, icon: Settings },
   { label: "Usuários", path: "/usuarios" as AppPage, icon: UserCog },

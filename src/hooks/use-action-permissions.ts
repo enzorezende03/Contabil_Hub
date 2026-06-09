@@ -17,6 +17,9 @@ export type ActionPermissions = {
   configurar_produtividade: string[];
   gerenciar_ausencias_equipe: string[];
   ver_carga_equipe: string[];
+  ver_painel_gerencial?: string[];
+  revisar_briefing_semanal?: string[];
+  configurar_metas?: string[];
 };
 
 const DEFAULTS: ActionPermissions = {
@@ -35,6 +38,9 @@ const DEFAULTS: ActionPermissions = {
   configurar_produtividade: ["coordenacao"],
   gerenciar_ausencias_equipe: ["coordenacao"],
   ver_carga_equipe: ["coordenacao"],
+  ver_painel_gerencial: ["coordenacao"],
+  revisar_briefing_semanal: ["coordenacao"],
+  configurar_metas: ["coordenacao"],
 };
 
 let cachedPerms: ActionPermissions = { ...DEFAULTS };

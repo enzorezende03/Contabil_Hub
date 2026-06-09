@@ -41,6 +41,7 @@ import {
   BarChart,
   Bar,
   Legend,
+  ReferenceLine,
 } from "recharts";
 import { RefreshCw, TrendingDown, TrendingUp, AlertTriangle, Download, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
@@ -119,6 +120,34 @@ export default function ControleGerencial() {
       return ((data || []) as unknown) as SnapshotRow[];
     },
   });
+
+  const { data: metas = [] } = useQuery({
+    queryKey: ["gestao-metas-ativas"],
+    queryFn: async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("gestao_metas" as any)
+        .select("indicador, unidade, valor_meta, tipo_meta, vigencia_inicio, vigencia_fim")
+        .lte("vigencia_inicio", today)
+        .or(`vigencia_fim.is.null,vigencia_fim.gte.${today}`);
+      if (error) throw error;
+      return ((data || []) as unknown) as Array<{
+        indicador: string;
+        unidade: string | null;
+        valor_meta: number;
+        tipo_meta: "maximo" | "minimo";
+      }>;
+    },
+  });
+
+  const metaFor = (indicador: string) => {
+    const uniMatch = unidade === "all" ? null : unidade;
+    return (
+      metas.find((m) => m.indicador === indicador && m.unidade === uniMatch) ||
+      metas.find((m) => m.indicador === indicador && m.unidade === null) ||
+      null
+    );
+  };
 
   const refreshMutation = useMutation({
     mutationFn: async () => {
@@ -246,6 +275,7 @@ export default function ControleGerencial() {
                   key={ind.key}
                   label={ind.label}
                   series={seriesByIndicator.get(ind.key) || []}
+                  meta={metaFor(ind.key)}
                   onClick={() => setDrilldown({ key: ind.key, label: ind.label })}
                 />
               ))}
@@ -274,6 +304,20 @@ export default function ControleGerencial() {
                   <Line type="monotone" dataKey="conciliacao_bancaria_pendente" name="Concil. bancária" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="conciliacao_contabil_pendente" name="Concil. contábil" stroke="hsl(var(--chart-3, 200 70% 50%))" strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="fechamento_mensal_pendente" name="Fechamento" stroke="hsl(var(--destructive))" strokeWidth={2} dot={false} />
+                  {(["lancamentos_pendentes","conciliacao_bancaria_pendente","conciliacao_contabil_pendente","fechamento_mensal_pendente"] as const).map((k) => {
+                    const m = metaFor(k);
+                    if (!m) return null;
+                    return (
+                      <ReferenceLine
+                        key={`meta-${k}`}
+                        y={m.valor_meta}
+                        stroke="hsl(var(--muted-foreground))"
+                        strokeDasharray="4 4"
+                        ifOverflow="extendDomain"
+                        label={{ value: `meta ${k.split("_")[0]}`, position: "right", fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      />
+                    );
+                  })}
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -339,21 +383,39 @@ export default function ControleGerencial() {
   );
 }
 
-function KpiCard({ label, series, onClick }: { label: string; series: SnapshotRow[]; onClick?: () => void }) {
+function KpiCard({ label, series, meta, onClick }: {
+  label: string;
+  series: SnapshotRow[];
+  meta?: { valor_meta: number; tipo_meta: "maximo" | "minimo" } | null;
+  onClick?: () => void;
+}) {
   const last = series[series.length - 1];
   const prev = series[series.length - 2];
   const value = last?.valor ?? 0;
   const delta = last && prev ? value - prev.valor : null;
   const spark = series.slice(-8).map((r) => ({ v: r.valor }));
+  const foraDaMeta =
+    meta != null &&
+    ((meta.tipo_meta === "maximo" && value > meta.valor_meta) ||
+      (meta.tipo_meta === "minimo" && value < meta.valor_meta));
 
   return (
     <Card
       className="p-4 flex flex-col gap-2 cursor-pointer hover:border-primary/40 hover:shadow-sm transition-all"
       onClick={onClick}
     >
-      <div className="flex items-center justify-between">
-        <div className="text-xs text-muted-foreground font-medium">{label}</div>
-        <ChevronRight className="w-3 h-3 text-muted-foreground" />
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-xs text-muted-foreground font-medium truncate">{label}</div>
+        <div className="flex items-center gap-1 shrink-0">
+          {meta && (
+            foraDaMeta ? (
+              <Badge variant="destructive" className="text-[10px] h-4 px-1.5">fora da meta</Badge>
+            ) : (
+              <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 text-[10px] h-4 px-1.5">meta ok</Badge>
+            )
+          )}
+          <ChevronRight className="w-3 h-3 text-muted-foreground" />
+        </div>
       </div>
       <div className="flex items-end justify-between gap-2">
         <div className="text-3xl font-medium tracking-tight">{value}</div>

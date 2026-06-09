@@ -231,6 +231,9 @@ export default function ControleGerencial() {
                 Briefing semanal
               </Link>
             </Button>
+            <Button asChild size="sm" variant="ghost">
+              <Link to="/controle-gerencial/briefings">Histórico</Link>
+            </Button>
           </div>
         </header>
 

@@ -314,7 +314,7 @@ export default function ControleGerencial() {
   );
 }
 
-function KpiCard({ label, series }: { label: string; series: SnapshotRow[] }) {
+function KpiCard({ label, series, onClick }: { label: string; series: SnapshotRow[]; onClick?: () => void }) {
   const last = series[series.length - 1];
   const prev = series[series.length - 2];
   const value = last?.valor ?? 0;
@@ -322,8 +322,14 @@ function KpiCard({ label, series }: { label: string; series: SnapshotRow[] }) {
   const spark = series.slice(-8).map((r) => ({ v: r.valor }));
 
   return (
-    <Card className="p-4 flex flex-col gap-2">
-      <div className="text-xs text-muted-foreground font-medium">{label}</div>
+    <Card
+      className="p-4 flex flex-col gap-2 cursor-pointer hover:border-primary/40 hover:shadow-sm transition-all"
+      onClick={onClick}
+    >
+      <div className="flex items-center justify-between">
+        <div className="text-xs text-muted-foreground font-medium">{label}</div>
+        <ChevronRight className="w-3 h-3 text-muted-foreground" />
+      </div>
       <div className="flex items-end justify-between gap-2">
         <div className="text-3xl font-medium tracking-tight">{value}</div>
         <div className="text-xs flex items-center gap-1">

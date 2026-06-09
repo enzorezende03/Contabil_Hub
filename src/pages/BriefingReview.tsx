@@ -435,8 +435,8 @@ export default function BriefingReview() {
                       className="w-full"
                       size="sm"
                       variant="secondary"
-                      disabled
-                      title="Disponível no PR 8"
+                      onClick={() => setConfirmAction("send")}
+                      disabled={sendMutation.isPending}
                     >
                       <CheckCircle2 className="w-4 h-4" /> Aprovar e enviar
                     </Button>

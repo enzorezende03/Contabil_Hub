@@ -390,9 +390,18 @@ function KpiCard({ label, series, meta, onClick }: {
       className="p-4 flex flex-col gap-2 cursor-pointer hover:border-primary/40 hover:shadow-sm transition-all"
       onClick={onClick}
     >
-      <div className="flex items-center justify-between">
-        <div className="text-xs text-muted-foreground font-medium">{label}</div>
-        <ChevronRight className="w-3 h-3 text-muted-foreground" />
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-xs text-muted-foreground font-medium truncate">{label}</div>
+        <div className="flex items-center gap-1 shrink-0">
+          {meta && (
+            foraDaMeta ? (
+              <Badge variant="destructive" className="text-[10px] h-4 px-1.5">fora da meta</Badge>
+            ) : (
+              <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 text-[10px] h-4 px-1.5">meta ok</Badge>
+            )
+          )}
+          <ChevronRight className="w-3 h-3 text-muted-foreground" />
+        </div>
       </div>
       <div className="flex items-end justify-between gap-2">
         <div className="text-3xl font-medium tracking-tight">{value}</div>

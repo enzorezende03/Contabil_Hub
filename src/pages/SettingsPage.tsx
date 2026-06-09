@@ -296,9 +296,17 @@ export default function SettingsPage() {
   return (
     <AppLayout>
       <div className="p-6 space-y-6 max-w-4xl">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
-          <p className="text-sm text-muted-foreground mt-1">Pesos, equipe, permissões e parâmetros do sistema</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
+            <p className="text-sm text-muted-foreground mt-1">Pesos, equipe, permissões e parâmetros do sistema</p>
+          </div>
+          <a
+            href="/configuracoes/metas"
+            className="text-sm px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors"
+          >
+            Metas gerenciais →
+          </a>
         </div>
 
         {/* Weights */}

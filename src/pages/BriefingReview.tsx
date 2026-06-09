@@ -191,6 +191,34 @@ export default function BriefingReview() {
     onError: (e: any) => toast.error("Erro ao arquivar: " + (e?.message || "")),
   });
 
+  const sendMutation = useMutation({
+    mutationFn: async () => {
+      if (!draft) return;
+      // Save current edits first
+      await supabase
+        .from("briefing_drafts" as any)
+        .update({
+          custom_summary: summary,
+          custom_alerts: alerts as any,
+          custom_focus: focus as any,
+          notes_internas: notes,
+        })
+        .eq("id", draft.id);
+
+      const { data, error } = await supabase.functions.invoke("send-briefing-email", {
+        body: { iso_week: isoWeek },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data;
+    },
+    onSuccess: (data: any) => {
+      toast.success(`Briefing enviado para ${data?.sent ?? "?"} destinatário(s)`);
+      queryClient.invalidateQueries({ queryKey: ["briefing-draft", isoWeek] });
+    },
+    onError: (e: any) => toast.error("Falha no envio: " + (e?.message || "erro")),
+  });
+
   return (
     <AppLayout>
       <div className="p-6 space-y-4 max-w-[1400px] mx-auto">

@@ -88,7 +88,7 @@ export default function BriefingReview() {
   const [focus, setFocus] = useState<FocusItem[]>([]);
   const [notes, setNotes] = useState("");
   const [pptxUrl, setPptxUrl] = useState<string | null>(null);
-  const [confirmAction, setConfirmAction] = useState<null | "approve" | "archive">(null);
+  const [confirmAction, setConfirmAction] = useState<null | "send" | "approve" | "archive">(null);
 
   useEffect(() => {
     if (!draft) return;
@@ -189,6 +189,34 @@ export default function BriefingReview() {
       queryClient.invalidateQueries({ queryKey: ["briefing-draft", isoWeek] });
     },
     onError: (e: any) => toast.error("Erro ao arquivar: " + (e?.message || "")),
+  });
+
+  const sendMutation = useMutation({
+    mutationFn: async () => {
+      if (!draft) return;
+      // Save current edits first
+      await supabase
+        .from("briefing_drafts" as any)
+        .update({
+          custom_summary: summary,
+          custom_alerts: alerts as any,
+          custom_focus: focus as any,
+          notes_internas: notes,
+        })
+        .eq("id", draft.id);
+
+      const { data, error } = await supabase.functions.invoke("send-briefing-email", {
+        body: { iso_week: isoWeek },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      return data;
+    },
+    onSuccess: (data: any) => {
+      toast.success(`Briefing enviado para ${data?.sent ?? "?"} destinatário(s)`);
+      queryClient.invalidateQueries({ queryKey: ["briefing-draft", isoWeek] });
+    },
+    onError: (e: any) => toast.error("Falha no envio: " + (e?.message || "erro")),
   });
 
   return (
@@ -407,8 +435,8 @@ export default function BriefingReview() {
                       className="w-full"
                       size="sm"
                       variant="secondary"
-                      disabled
-                      title="Disponível no PR 8"
+                      onClick={() => setConfirmAction("send")}
+                      disabled={sendMutation.isPending}
                     >
                       <CheckCircle2 className="w-4 h-4" /> Aprovar e enviar
                     </Button>
@@ -451,10 +479,14 @@ export default function BriefingReview() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmAction === "approve" ? "Aprovar briefing sem envio?" : "Arquivar briefing?"}
+              {confirmAction === "send" ? "Aprovar e enviar briefing?"
+                : confirmAction === "approve" ? "Aprovar briefing sem envio?"
+                : "Arquivar briefing?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmAction === "approve"
+              {confirmAction === "send"
+                ? "O briefing será enviado por e-mail para os destinatários configurados em /controle-gerencial/briefings. O status passa para 'enviado' e o briefing fica somente leitura."
+                : confirmAction === "approve"
                 ? "O briefing ficará marcado como aprovado e sairá da fila de revisão. Ele não será enviado por e-mail."
                 : "O briefing será arquivado e não aparecerá mais nas pendências de revisão."}
             </AlertDialogDescription>
@@ -463,7 +495,8 @@ export default function BriefingReview() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (confirmAction === "approve") approveMutation.mutate();
+                if (confirmAction === "send") sendMutation.mutate();
+                else if (confirmAction === "approve") approveMutation.mutate();
                 else if (confirmAction === "archive") archiveMutation.mutate();
                 setConfirmAction(null);
               }}

@@ -23,6 +23,7 @@ import Pendencias from "./pages/Pendencias.tsx";
 import Ausencias from "./pages/Ausencias.tsx";
 import ControleGerencial from "./pages/ControleGerencial.tsx";
 import BriefingReview from "./pages/BriefingReview.tsx";
+import BriefingHistory from "./pages/BriefingHistory.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import PendencyPortal from "./pages/PendencyPortal.tsx";
 
@@ -64,6 +65,7 @@ const AppRoutes = () => (
     <Route path="/clientes" element={<RoleRoute page="/clientes"><Clients /></RoleRoute>} />
     <Route path="/controle-gerencial" element={<RoleRoute page="/controle-gerencial"><ControleGerencial /></RoleRoute>} />
     <Route path="/controle-gerencial/briefing/:isoWeek" element={<RoleRoute page="/controle-gerencial"><BriefingReview /></RoleRoute>} />
+    <Route path="/controle-gerencial/briefings" element={<RoleRoute page="/controle-gerencial"><BriefingHistory /></RoleRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

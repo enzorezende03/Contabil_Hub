@@ -479,10 +479,14 @@ export default function BriefingReview() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {confirmAction === "approve" ? "Aprovar briefing sem envio?" : "Arquivar briefing?"}
+              {confirmAction === "send" ? "Aprovar e enviar briefing?"
+                : confirmAction === "approve" ? "Aprovar briefing sem envio?"
+                : "Arquivar briefing?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmAction === "approve"
+              {confirmAction === "send"
+                ? "O briefing será enviado por e-mail para os destinatários configurados em /controle-gerencial/briefings. O status passa para 'enviado' e o briefing fica somente leitura."
+                : confirmAction === "approve"
                 ? "O briefing ficará marcado como aprovado e sairá da fila de revisão. Ele não será enviado por e-mail."
                 : "O briefing será arquivado e não aparecerá mais nas pendências de revisão."}
             </AlertDialogDescription>
@@ -491,7 +495,8 @@ export default function BriefingReview() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (confirmAction === "approve") approveMutation.mutate();
+                if (confirmAction === "send") sendMutation.mutate();
+                else if (confirmAction === "approve") approveMutation.mutate();
                 else if (confirmAction === "archive") archiveMutation.mutate();
                 setConfirmAction(null);
               }}

@@ -38,6 +38,9 @@ const DEFAULTS: ActionPermissions = {
   configurar_produtividade: ["coordenacao"],
   gerenciar_ausencias_equipe: ["coordenacao"],
   ver_carga_equipe: ["coordenacao"],
+  ver_painel_gerencial: ["coordenacao"],
+  revisar_briefing_semanal: ["coordenacao"],
+  configurar_metas: ["coordenacao"],
 };
 
 let cachedPerms: ActionPermissions = { ...DEFAULTS };

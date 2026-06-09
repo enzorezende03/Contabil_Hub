@@ -13,6 +13,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import {
   LineChart,
   Line,
   ResponsiveContainer,
@@ -24,8 +40,16 @@ import {
   Bar,
   Legend,
 } from "recharts";
-import { RefreshCw, TrendingDown, TrendingUp, AlertTriangle } from "lucide-react";
+import { RefreshCw, TrendingDown, TrendingUp, AlertTriangle, Download, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+
+const INDICATOR_TO_DEMAND_TYPE: Record<string, string | "all"> = {
+  lancamentos_pendentes: "lancamentos",
+  conciliacao_bancaria_pendente: "conciliacao_bancaria",
+  conciliacao_contabil_pendente: "conciliacao_contabil",
+  fechamento_mensal_pendente: "fechamento",
+  fechamento_anual_pendente: "all",
+};
 
 type SnapshotRow = {
   snapshot_date: string;

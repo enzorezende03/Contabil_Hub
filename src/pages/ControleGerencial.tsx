@@ -41,6 +41,7 @@ import {
   BarChart,
   Bar,
   Legend,
+  ReferenceLine,
 } from "recharts";
 import { RefreshCw, TrendingDown, TrendingUp, AlertTriangle, Download, ChevronRight } from "lucide-react";
 import { toast } from "sonner";

@@ -260,6 +260,9 @@ export default function SettingsPage() {
     { key: "configurar_produtividade", label: "Configurar Produtividade", description: "Edita pesos, multiplicadores e parâmetros do score composto" },
     { key: "gerenciar_ausencias_equipe", label: "Gerenciar Ausências da Equipe", description: "Cadastra/edita ausências de qualquer colaborador" },
     { key: "ver_carga_equipe", label: "Ver Carga da Equipe (Planejamento)", description: "Vê o painel com a carga de todos os colaboradores na página Planejamento. Sem essa permissão, só vê os próprios planejamentos." },
+    { key: "ver_painel_gerencial" as any, label: "Ver Painel Gerencial", description: "Acessa /controle-gerencial e o histórico de briefings semanais" },
+    { key: "revisar_briefing_semanal" as any, label: "Revisar Briefing Semanal", description: "Edita, aprova e envia o briefing semanal da diretoria" },
+    { key: "configurar_metas" as any, label: "Configurar Metas", description: "Cria, edita e remove metas por indicador em /configuracoes/metas" },
   ];
   const toggleActionPerm = (action: keyof ActionPermissions, role: ProfileRole) => {
     const current = draftActions[action] || [];

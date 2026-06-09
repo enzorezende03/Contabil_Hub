@@ -62,6 +62,7 @@ const AppRoutes = () => (
     <Route path="/alertas" element={<RoleRoute page="/alertas"><Alerts /></RoleRoute>} />
     <Route path="/ausencias" element={<RoleRoute page="/ausencias"><Ausencias /></RoleRoute>} />
     <Route path="/configuracoes" element={<RoleRoute page="/configuracoes"><SettingsPage /></RoleRoute>} />
+    <Route path="/configuracoes/metas" element={<RoleRoute page="/configuracoes"><MetasPage /></RoleRoute>} />
     <Route path="/usuarios" element={<RoleRoute page="/usuarios"><Users /></RoleRoute>} />
     <Route path="/clientes" element={<RoleRoute page="/clientes"><Clients /></RoleRoute>} />
     <Route path="/controle-gerencial" element={<RoleRoute page="/controle-gerencial"><ControleGerencial /></RoleRoute>} />

@@ -216,6 +216,11 @@ export default function ControleGerencial() {
               <RefreshCw className={`w-4 h-4 ${refreshMutation.isPending ? "animate-spin" : ""}`} />
               Atualizar agora
             </Button>
+            <Button asChild size="sm">
+              <Link to={`/controle-gerencial/briefing/${getCurrentIsoWeek()}`}>
+                Briefing semanal
+              </Link>
+            </Button>
           </div>
         </header>
 

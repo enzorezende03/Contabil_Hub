@@ -831,3 +831,180 @@ function LegendSwatch({ className, label }: { className: string; label: string }
   );
 }
 
+// ============================================================================
+// PR 6 — Aderência ao planejamento (semana corrente)
+// ============================================================================
+
+function getCurrentWeekRange(): { start: Date; end: Date } {
+  const now = new Date();
+  const day = now.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMonday);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
+type PlanningRow = {
+  id: string;
+  client: string;
+  assignee: string | null;
+  status: string;
+  internal_deadline: string;
+  updated_at: string;
+  types: string[] | null;
+};
+
+function AdherenceBlock({ unidade, tributacao }: { unidade: string; tributacao: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["adherence-week", unidade, tributacao],
+    queryFn: async () => {
+      const { start, end } = getCurrentWeekRange();
+      const startStr = start.toISOString().slice(0, 10);
+      const endStr = end.toISOString().slice(0, 10);
+
+      const { data: plannings, error } = await supabase
+        .from("plannings")
+        .select("id, client, assignee, status, internal_deadline, updated_at, types")
+        .gte("internal_deadline", startStr)
+        .lte("internal_deadline", endStr);
+      if (error) throw error;
+
+      const list = (plannings || []) as PlanningRow[];
+
+      let filtered = list;
+      if (unidade !== "all" || tributacao !== "all") {
+        const names = Array.from(new Set(list.map((p) => p.client)));
+        const cmap = new Map<string, { unidade: string | null; tributacao: string | null }>();
+        if (names.length) {
+          const { data: cs } = await supabase
+            .from("clients")
+            .select("razao_social, unidade, tributacao")
+            .in("razao_social", names);
+          for (const c of (cs || []) as any[]) cmap.set(c.razao_social, c);
+        }
+        filtered = list.filter((p) => {
+          const m = cmap.get(p.client);
+          if (!m) return false;
+          if (unidade !== "all" && m.unidade !== unidade) return false;
+          if (tributacao !== "all" && m.tributacao !== tributacao) return false;
+          return true;
+        });
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const total = filtered.length;
+      const completed = filtered.filter((p) => p.status === "completed");
+      const completedOnTime = completed.filter(
+        (p) => new Date(p.updated_at) <= new Date(p.internal_deadline + "T23:59:59"),
+      );
+      const overdue = filtered.filter(
+        (p) => p.status !== "completed" && new Date(p.internal_deadline) < today,
+      );
+      const adherencePct = total === 0 ? 0 : Math.round((completedOnTime.length / total) * 100);
+
+      return {
+        weekRange: `${start.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} a ${end.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`,
+        total,
+        completed: completed.length,
+        completedOnTime: completedOnTime.length,
+        overdue,
+        adherencePct,
+      };
+    },
+  });
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h2 className="font-semibold">Aderência ao planejamento</h2>
+          <p className="text-xs text-muted-foreground">
+            Semana corrente {data ? `(${data.weekRange})` : ""}
+          </p>
+        </div>
+        <Link to="/planejamento" className="text-xs text-primary hover:underline">
+          Ver planejamento →
+        </Link>
+      </div>
+
+      {isLoading ? (
+        <Skeleton className="h-40" />
+      ) : !data || data.total === 0 ? (
+        <div className="h-32 flex items-center justify-center text-sm text-muted-foreground">
+          Nenhum planejamento com prazo nesta semana.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="md:col-span-2 space-y-3">
+            <div className="flex items-end justify-between">
+              <div>
+                <div className="text-3xl font-medium tracking-tight">{data.adherencePct}%</div>
+                <div className="text-xs text-muted-foreground">
+                  {data.completedOnTime} concluídos no prazo de {data.total} planejados
+                </div>
+              </div>
+              <Badge
+                variant="outline"
+                className={
+                  data.adherencePct >= 80
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                    : data.adherencePct >= 60
+                    ? "border-amber-300 bg-amber-50 text-amber-800"
+                    : "border-red-300 bg-red-50 text-red-800"
+                }
+              >
+                {data.adherencePct >= 80 ? "Saudável" : data.adherencePct >= 60 ? "Atenção" : "Crítico"}
+              </Badge>
+            </div>
+            <Progress value={data.adherencePct} className="h-2" />
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+              <Stat label="Planejados" value={data.total} />
+              <Stat label="Concluídos" value={data.completed} accent="text-emerald-700" />
+              <Stat label="Atrasados" value={data.overdue.length} accent="text-red-700" />
+            </div>
+          </div>
+
+          <div className="border rounded-md p-2 bg-muted/30">
+            <div className="text-xs font-medium mb-2 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3 text-red-600" /> Atrasos da semana
+            </div>
+            {data.overdue.length === 0 ? (
+              <div className="text-xs text-muted-foreground py-4 text-center">Nenhum atraso 🎉</div>
+            ) : (
+              <ul className="space-y-1 max-h-40 overflow-y-auto">
+                {data.overdue.slice(0, 8).map((p) => (
+                  <li key={p.id} className="text-xs flex items-center justify-between gap-2">
+                    <span className="truncate font-medium">{p.client}</span>
+                    <span className="text-muted-foreground whitespace-nowrap">
+                      {new Date(p.internal_deadline + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
+                    </span>
+                  </li>
+                ))}
+                {data.overdue.length > 8 && (
+                  <li className="text-[10px] text-muted-foreground pt-1">
+                    +{data.overdue.length - 8} outros atrasos
+                  </li>
+                )}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function Stat({ label, value, accent }: { label: string; value: number; accent?: string }) {
+  return (
+    <div className="rounded-md border bg-card p-2">
+      <div className={`text-lg font-semibold ${accent || ""}`}>{value}</div>
+      <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</div>
+    </div>
+  );
+}
+
+

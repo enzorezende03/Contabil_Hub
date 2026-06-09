@@ -414,3 +414,199 @@ function EmptyChart() {
     </div>
   );
 }
+
+type DrilldownRow = {
+  client_name: string;
+  unidade: string | null;
+  tributacao: string | null;
+  pendentes: number;
+  demand_types: string[];
+  ultima_atualizacao: string | null;
+};
+
+function DrilldownSheet({
+  open,
+  onClose,
+  indicator,
+  unidade,
+  tributacao,
+}: {
+  open: boolean;
+  onClose: () => void;
+  indicator: { key: string; label: string } | null;
+  unidade: string;
+  tributacao: string;
+}) {
+  const indicatorKey = indicator?.key ?? "";
+  const isReview = indicatorKey === "revisao_pendente";
+  const isAnnual = indicatorKey === "fechamento_anual_pendente";
+  const demandType = INDICATOR_TO_DEMAND_TYPE[indicatorKey];
+
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["drilldown", indicatorKey, unidade, tributacao],
+    enabled: open && !!indicator,
+    queryFn: async (): Promise<DrilldownRow[]> => {
+      if (isReview) {
+        const { data, error } = await supabase
+          .from("review_submissions")
+          .select("id, client_name, status, updated_at")
+          .in("status", ["aguardando", "em_revisao"]);
+        if (error) throw error;
+        const map = new Map<string, DrilldownRow>();
+        for (const r of (data || []) as any[]) {
+          const key = r.client_name || "(sem cliente)";
+          const cur = map.get(key) || { client_name: key, unidade: null, tributacao: null, pendentes: 0, demand_types: [], ultima_atualizacao: null };
+          cur.pendentes += 1;
+          if (!cur.ultima_atualizacao || r.updated_at > cur.ultima_atualizacao) cur.ultima_atualizacao = r.updated_at;
+          map.set(key, cur);
+        }
+        return Array.from(map.values()).sort((a, b) => b.pendentes - a.pendentes);
+      }
+
+      let q = supabase
+        .from("demand_status_entries")
+        .select("client_name, demand_type, year, month, updated_at")
+        .neq("status", "completed");
+
+      if (isAnnual) {
+        const currentYear = new Date().getFullYear().toString();
+        q = q.in("demand_type", ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil", "fechamento"]).eq("year", currentYear);
+      } else if (demandType && demandType !== "all") {
+        q = q.eq("demand_type", demandType);
+      }
+
+      const { data: entries, error } = await q;
+      if (error) throw error;
+
+      // join with clients for unidade/tributacao
+      const clientNames = Array.from(new Set((entries || []).map((e: any) => e.client_name)));
+      let clientMap = new Map<string, { unidade: string | null; tributacao: string | null }>();
+      if (clientNames.length) {
+        const { data: cs } = await supabase
+          .from("clients")
+          .select("razao_social, unidade, tributacao")
+          .in("razao_social", clientNames);
+        for (const c of (cs || []) as any[]) {
+          clientMap.set(c.razao_social, { unidade: c.unidade, tributacao: c.tributacao });
+        }
+      }
+
+      const map = new Map<string, DrilldownRow>();
+      for (const e of (entries || []) as any[]) {
+        const meta = clientMap.get(e.client_name) || { unidade: null, tributacao: null };
+        if (unidade !== "all" && meta.unidade !== unidade) continue;
+        if (tributacao !== "all" && meta.tributacao !== tributacao) continue;
+        const cur = map.get(e.client_name) || {
+          client_name: e.client_name,
+          unidade: meta.unidade,
+          tributacao: meta.tributacao,
+          pendentes: 0,
+          demand_types: [],
+          ultima_atualizacao: null,
+        };
+        cur.pendentes += 1;
+        if (!cur.demand_types.includes(e.demand_type)) cur.demand_types.push(e.demand_type);
+        if (!cur.ultima_atualizacao || e.updated_at > cur.ultima_atualizacao) cur.ultima_atualizacao = e.updated_at;
+        map.set(e.client_name, cur);
+      }
+      return Array.from(map.values()).sort((a, b) => b.pendentes - a.pendentes);
+    },
+  });
+
+  const total = rows.reduce((s, r) => s + r.pendentes, 0);
+
+  function exportCsv() {
+    const header = ["Cliente", "Unidade", "Tributação", "Pendentes", "Tipos", "Última atualização"];
+    const lines = [header.join(";")];
+    for (const r of rows) {
+      lines.push([
+        `"${r.client_name.replace(/"/g, '""')}"`,
+        r.unidade ?? "",
+        r.tributacao ?? "",
+        r.pendentes,
+        r.demand_types.join("|"),
+        r.ultima_atualizacao ? new Date(r.ultima_atualizacao).toLocaleString("pt-BR") : "",
+      ].join(";"));
+    }
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${indicatorKey}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV exportado");
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{indicator?.label}</SheetTitle>
+          <SheetDescription>
+            {isLoading ? "Carregando..." : `${rows.length} clientes • ${total} pendências no total`}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="flex items-center justify-between mt-4 mb-2">
+          <div className="text-xs text-muted-foreground">
+            {unidade !== "all" && <Badge variant="outline" className="mr-1">{unidade}</Badge>}
+            {tributacao !== "all" && <Badge variant="outline">{tributacao}</Badge>}
+          </div>
+          <Button size="sm" variant="outline" onClick={exportCsv} disabled={!rows.length}>
+            <Download className="w-4 h-4" /> Exportar CSV
+          </Button>
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-2">
+            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
+          </div>
+        ) : rows.length === 0 ? (
+          <div className="text-center text-sm text-muted-foreground py-10">
+            Nenhuma pendência encontrada com os filtros atuais.
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Cliente</TableHead>
+                <TableHead className="w-20 text-right">Pend.</TableHead>
+                <TableHead>Tipos</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.slice(0, 100).map((r) => (
+                <TableRow key={r.client_name}>
+                  <TableCell>
+                    <div className="font-medium text-sm">{r.client_name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {r.unidade || "—"} • {r.tributacao || "—"}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right font-semibold">{r.pendentes}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {r.demand_types.length === 0 ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        r.demand_types.map((t) => (
+                          <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>
+                        ))
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+        {rows.length > 100 && (
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            Mostrando 100 de {rows.length} — use "Exportar CSV" para a lista completa.
+          </p>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}

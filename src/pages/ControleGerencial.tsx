@@ -226,6 +226,7 @@ export default function ControleGerencial() {
                   key={ind.key}
                   label={ind.label}
                   series={seriesByIndicator.get(ind.key) || []}
+                  onClick={() => setDrilldown({ key: ind.key, label: ind.label })}
                 />
               ))}
         </section>

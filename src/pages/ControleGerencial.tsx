@@ -304,6 +304,8 @@ export default function ControleGerencial() {
           </Card>
         </div>
 
+        <AdherenceBlock unidade={unidade} tributacao={tributacao} />
+
         <HeatmapBlock unidade={unidade} tributacao={tributacao} />
 
         <DrilldownSheet

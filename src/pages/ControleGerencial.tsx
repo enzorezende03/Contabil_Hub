@@ -302,6 +302,8 @@ export default function ControleGerencial() {
           </Card>
         </div>
 
+        <HeatmapBlock unidade={unidade} tributacao={tributacao} />
+
         <DrilldownSheet
           open={!!drilldown}
           onClose={() => setDrilldown(null)}
@@ -309,6 +311,7 @@ export default function ControleGerencial() {
           unidade={unidade}
           tributacao={tributacao}
         />
+
       </div>
     </AppLayout>
   );

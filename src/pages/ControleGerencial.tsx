@@ -92,6 +92,16 @@ function formatWeekRange(snapshotDate: string) {
   return `${fmt(d)} a ${fmt(end)}`;
 }
 
+function getCurrentIsoWeek(): string {
+  const d = new Date();
+  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = tmp.getUTCDay() || 7;
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  const weekNum = Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return `${tmp.getUTCFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+}
+
 export default function ControleGerencial() {
   const queryClient = useQueryClient();
   const [unidade, setUnidade] = useState<string>("all");
@@ -215,6 +225,11 @@ export default function ControleGerencial() {
             >
               <RefreshCw className={`w-4 h-4 ${refreshMutation.isPending ? "animate-spin" : ""}`} />
               Atualizar agora
+            </Button>
+            <Button asChild size="sm">
+              <Link to={`/controle-gerencial/briefing/${getCurrentIsoWeek()}`}>
+                Briefing semanal
+              </Link>
             </Button>
           </div>
         </header>

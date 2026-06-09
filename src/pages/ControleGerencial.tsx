@@ -369,12 +369,21 @@ export default function ControleGerencial() {
   );
 }
 
-function KpiCard({ label, series, onClick }: { label: string; series: SnapshotRow[]; onClick?: () => void }) {
+function KpiCard({ label, series, meta, onClick }: {
+  label: string;
+  series: SnapshotRow[];
+  meta?: { valor_meta: number; tipo_meta: "maximo" | "minimo" } | null;
+  onClick?: () => void;
+}) {
   const last = series[series.length - 1];
   const prev = series[series.length - 2];
   const value = last?.valor ?? 0;
   const delta = last && prev ? value - prev.valor : null;
   const spark = series.slice(-8).map((r) => ({ v: r.valor }));
+  const foraDaMeta =
+    meta != null &&
+    ((meta.tipo_meta === "maximo" && value > meta.valor_meta) ||
+      (meta.tipo_meta === "minimo" && value < meta.valor_meta));
 
   return (
     <Card

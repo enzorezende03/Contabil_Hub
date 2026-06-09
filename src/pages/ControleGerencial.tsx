@@ -121,6 +121,34 @@ export default function ControleGerencial() {
     },
   });
 
+  const { data: metas = [] } = useQuery({
+    queryKey: ["gestao-metas-ativas"],
+    queryFn: async () => {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from("gestao_metas" as any)
+        .select("indicador, unidade, valor_meta, tipo_meta, vigencia_inicio, vigencia_fim")
+        .lte("vigencia_inicio", today)
+        .or(`vigencia_fim.is.null,vigencia_fim.gte.${today}`);
+      if (error) throw error;
+      return (data || []) as Array<{
+        indicador: string;
+        unidade: string | null;
+        valor_meta: number;
+        tipo_meta: "maximo" | "minimo";
+      }>;
+    },
+  });
+
+  const metaFor = (indicador: string) => {
+    const uniMatch = unidade === "all" ? null : unidade;
+    return (
+      metas.find((m) => m.indicador === indicador && m.unidade === uniMatch) ||
+      metas.find((m) => m.indicador === indicador && m.unidade === null) ||
+      null
+    );
+  };
+
   const refreshMutation = useMutation({
     mutationFn: async () => {
       const { data, error } = await supabase.functions.invoke("generate-backlog-snapshot", {

@@ -94,6 +94,7 @@ export default function ControleGerencial() {
   const queryClient = useQueryClient();
   const [unidade, setUnidade] = useState<string>("all");
   const [tributacao, setTributacao] = useState<string>("all");
+  const [drilldown, setDrilldown] = useState<{ key: string; label: string } | null>(null);
 
   const { data: snapshots = [], isLoading } = useQuery({
     queryKey: ["backlog-snapshots"],

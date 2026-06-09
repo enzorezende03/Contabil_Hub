@@ -131,7 +131,7 @@ export default function ControleGerencial() {
         .lte("vigencia_inicio", today)
         .or(`vigencia_fim.is.null,vigencia_fim.gte.${today}`);
       if (error) throw error;
-      return (data || []) as Array<{
+      return ((data || []) as unknown) as Array<{
         indicador: string;
         unidade: string | null;
         valor_meta: number;

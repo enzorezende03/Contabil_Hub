@@ -88,6 +88,7 @@ Deno.serve(async (req) => {
           body: {
             templateName: "briefing-semanal",
             recipientEmail: email,
+            replyTo: "danielle.campos@2mgrupo.com.br",
             idempotencyKey: `briefing-${isoWeek}-${email}`,
             templateData: {
               isoWeek,
@@ -96,6 +97,8 @@ Deno.serve(async (req) => {
               alerts: draft.custom_alerts || [],
               focus: draft.custom_focus || [],
               pptxUrl,
+              senderName: "Danielle Campos — 2M Grupo",
+              replyTo: "danielle.campos@2mgrupo.com.br",
             },
           },
         });

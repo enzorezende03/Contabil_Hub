@@ -301,6 +301,14 @@ export default function ControleGerencial() {
             </div>
           </Card>
         </div>
+
+        <DrilldownSheet
+          open={!!drilldown}
+          onClose={() => setDrilldown(null)}
+          indicator={drilldown}
+          unidade={unidade}
+          tributacao={tributacao}
+        />
       </div>
     </AppLayout>
   );

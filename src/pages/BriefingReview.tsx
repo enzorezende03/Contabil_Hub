@@ -88,7 +88,7 @@ export default function BriefingReview() {
   const [focus, setFocus] = useState<FocusItem[]>([]);
   const [notes, setNotes] = useState("");
   const [pptxUrl, setPptxUrl] = useState<string | null>(null);
-  const [confirmAction, setConfirmAction] = useState<null | "approve" | "archive">(null);
+  const [confirmAction, setConfirmAction] = useState<null | "send" | "approve" | "archive">(null);
 
   useEffect(() => {
     if (!draft) return;

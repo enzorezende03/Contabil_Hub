@@ -23,6 +23,7 @@ import Pendencias from "./pages/Pendencias.tsx";
 import Ausencias from "./pages/Ausencias.tsx";
 import ControleGerencial from "./pages/ControleGerencial.tsx";
 import BriefingReview from "./pages/BriefingReview.tsx";
+import BriefingHistory from "./pages/BriefingHistory.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import PendencyPortal from "./pages/PendencyPortal.tsx";
 

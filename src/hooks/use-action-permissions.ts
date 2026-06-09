@@ -17,9 +17,9 @@ export type ActionPermissions = {
   configurar_produtividade: string[];
   gerenciar_ausencias_equipe: string[];
   ver_carga_equipe: string[];
-  ver_painel_gerencial: string[];
-  revisar_briefing_semanal: string[];
-  configurar_metas: string[];
+  ver_painel_gerencial?: string[];
+  revisar_briefing_semanal?: string[];
+  configurar_metas?: string[];
 };
 
 const DEFAULTS: ActionPermissions = {

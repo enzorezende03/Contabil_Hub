@@ -304,6 +304,20 @@ export default function ControleGerencial() {
                   <Line type="monotone" dataKey="conciliacao_bancaria_pendente" name="Concil. bancária" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="conciliacao_contabil_pendente" name="Concil. contábil" stroke="hsl(var(--chart-3, 200 70% 50%))" strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="fechamento_mensal_pendente" name="Fechamento" stroke="hsl(var(--destructive))" strokeWidth={2} dot={false} />
+                  {(["lancamentos_pendentes","conciliacao_bancaria_pendente","conciliacao_contabil_pendente","fechamento_mensal_pendente"] as const).map((k) => {
+                    const m = metaFor(k);
+                    if (!m) return null;
+                    return (
+                      <ReferenceLine
+                        key={`meta-${k}`}
+                        y={m.valor_meta}
+                        stroke="hsl(var(--muted-foreground))"
+                        strokeDasharray="4 4"
+                        ifOverflow="extendDomain"
+                        label={{ value: `meta ${k.split("_")[0]}`, position: "right", fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      />
+                    );
+                  })}
                 </LineChart>
               </ResponsiveContainer>
             </div>

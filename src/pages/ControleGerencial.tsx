@@ -613,3 +613,217 @@ function DrilldownSheet({
     </Sheet>
   );
 }
+
+// ============================================================================
+// PR 5 — Heatmap cliente × competência
+// ============================================================================
+
+type HeatCell = {
+  clientName: string;
+  comp: string; // YYYY-MM
+  typesPending: Set<string>;
+  hasLate: boolean;
+};
+
+const HEAT_DEMAND_TYPES = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil", "fechamento"];
+
+function HeatmapBlock({ unidade, tributacao }: { unidade: string; tributacao: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ["heatmap-cliente-competencia", unidade, tributacao],
+    staleTime: 60 * 60 * 1000, // 1h
+    queryFn: async () => {
+      // last 12 months (current included)
+      const now = new Date();
+      const months: { year: string; month: string; label: string; key: string }[] = [];
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const y = String(d.getFullYear());
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        months.push({ year: y, month: String(d.getMonth() + 1), label: `${m}/${y.slice(2)}`, key: `${y}-${m}` });
+      }
+
+      const minYear = months[0].year;
+
+      let q = supabase
+        .from("demand_status_entries")
+        .select("client_name, demand_type, year, month, status")
+        .neq("status", "completed")
+        .in("demand_type", HEAT_DEMAND_TYPES)
+        .gte("year", minYear);
+
+      const { data: entries, error } = await q;
+      if (error) throw error;
+
+      // Join with clients for unidade/tributação
+      const clientNames = Array.from(new Set((entries || []).map((e: any) => e.client_name)));
+      const clientMap = new Map<string, { unidade: string | null; tributacao: string | null }>();
+      if (clientNames.length) {
+        const { data: cs } = await supabase
+          .from("clients")
+          .select("razao_social, unidade, tributacao")
+          .in("razao_social", clientNames);
+        for (const c of (cs || []) as any[]) {
+          clientMap.set(c.razao_social, { unidade: c.unidade, tributacao: c.tributacao });
+        }
+      }
+
+      // Build matrix
+      const monthSet = new Set(months.map((m) => m.key));
+      const matrix = new Map<string, Map<string, HeatCell>>();
+      const totals = new Map<string, number>();
+
+      for (const e of (entries || []) as any[]) {
+        const meta = clientMap.get(e.client_name);
+        if (!meta) continue;
+        if (unidade !== "all" && meta.unidade !== unidade) continue;
+        if (tributacao !== "all" && meta.tributacao !== tributacao) continue;
+
+        const mm = String(e.month).padStart(2, "0");
+        const key = `${e.year}-${mm}`;
+        if (!monthSet.has(key)) continue;
+
+        let row = matrix.get(e.client_name);
+        if (!row) {
+          row = new Map();
+          matrix.set(e.client_name, row);
+        }
+        let cell = row.get(key);
+        if (!cell) {
+          cell = { clientName: e.client_name, comp: key, typesPending: new Set(), hasLate: false };
+          row.set(key, cell);
+        }
+        cell.typesPending.add(e.demand_type);
+        if (e.status === "late") cell.hasLate = true;
+
+        totals.set(e.client_name, (totals.get(e.client_name) || 0) + 1);
+      }
+
+      // Top 30 clients by pending
+      const topClients = Array.from(totals.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 30)
+        .map(([name]) => name);
+
+      return { months, topClients, matrix };
+    },
+  });
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-semibold">Heatmap — cliente × competência</h2>
+        <span className="text-xs text-muted-foreground">Top 30 • últimas 12 competências</span>
+      </div>
+
+      {isLoading ? (
+        <Skeleton className="h-72" />
+      ) : !data || data.topClients.length === 0 ? (
+        <div className="h-40 flex items-center justify-center text-sm text-muted-foreground">
+          Nenhuma pendência nos filtros atuais.
+        </div>
+      ) : (
+        <>
+          {/* Legend */}
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mb-3">
+            <LegendSwatch className="bg-emerald-200 border-emerald-300" label="OK" />
+            <LegendSwatch className="bg-amber-200 border-amber-300" label="1-2 tipos" />
+            <LegendSwatch className="bg-orange-300 border-orange-400" label="3+ tipos" />
+            <LegendSwatch className="bg-red-500 border-red-600" label="Todos + atrasado" />
+          </div>
+
+          {/* Desktop grid */}
+          <div className="hidden md:block overflow-x-auto">
+            <div
+              className="grid gap-0.5 min-w-fit"
+              style={{
+                gridTemplateColumns: `minmax(180px, 220px) repeat(${data.months.length}, minmax(38px, 1fr))`,
+              }}
+            >
+              {/* header row */}
+              <div />
+              {data.months.map((m) => (
+                <div key={m.key} className="text-[10px] text-muted-foreground text-center px-1 py-1 font-medium">
+                  {m.label}
+                </div>
+              ))}
+
+              {data.topClients.map((c) => (
+                <HeatRow key={c} clientName={c} months={data.months} cells={data.matrix.get(c)} />
+              ))}
+            </div>
+          </div>
+
+          {/* Mobile: simplified list */}
+          <div className="md:hidden space-y-1">
+            {data.topClients.map((c) => {
+              const row = data.matrix.get(c);
+              const total = row ? Array.from(row.values()).reduce((s, x) => s + x.typesPending.size, 0) : 0;
+              const monthsAffected = row?.size ?? 0;
+              const cls = heatClassFromCount(monthsAffected >= 6 ? 4 : monthsAffected >= 3 ? 3 : monthsAffected >= 1 ? 2 : 0, false);
+              return (
+                <div key={c} className="flex items-center justify-between p-2 rounded border bg-card">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className={`w-3 h-3 rounded ${cls}`} />
+                    <div className="text-sm truncate">{c}</div>
+                  </div>
+                  <div className="text-xs text-muted-foreground">{monthsAffected} comp • {total} pend</div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </Card>
+  );
+}
+
+function HeatRow({
+  clientName,
+  months,
+  cells,
+}: {
+  clientName: string;
+  months: { key: string; label: string }[];
+  cells: Map<string, HeatCell> | undefined;
+}) {
+  return (
+    <>
+      <div className="text-xs font-medium truncate pr-2 py-1.5 flex items-center" title={clientName}>
+        {clientName}
+      </div>
+      {months.map((m) => {
+        const c = cells?.get(m.key);
+        const count = c?.typesPending.size ?? 0;
+        const isFull = count >= HEAT_DEMAND_TYPES.length;
+        const cls = heatClassFromCount(count, isFull && !!c?.hasLate);
+        const tooltip = c
+          ? `${clientName} • ${m.label}\n${count} tipo(s) pendente(s): ${Array.from(c.typesPending).join(", ")}${c.hasLate ? "\n⚠ atrasado" : ""}`
+          : `${clientName} • ${m.label}\nSem pendências`;
+        return (
+          <div
+            key={m.key}
+            className={`h-7 rounded-sm border ${cls} hover:ring-2 hover:ring-primary/40 transition-all cursor-default`}
+            title={tooltip}
+          />
+        );
+      })}
+    </>
+  );
+}
+
+function heatClassFromCount(count: number, isCriticalLate: boolean): string {
+  if (isCriticalLate) return "bg-red-500 border-red-600";
+  if (count >= 3) return "bg-orange-300 border-orange-400";
+  if (count >= 1) return "bg-amber-200 border-amber-300";
+  return "bg-emerald-100 border-emerald-200";
+}
+
+function LegendSwatch({ className, label }: { className: string; label: string }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className={`w-3 h-3 rounded-sm border ${className}`} />
+      <span>{label}</span>
+    </div>
+  );
+}
+

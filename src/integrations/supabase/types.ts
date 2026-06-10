@@ -1204,6 +1204,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      backlog_drilldown: {
+        Args: {
+          p_demand_type: string
+          p_only_current_year?: boolean
+          p_tributacao?: string
+          p_unidade?: string
+        }
+        Returns: {
+          client_name: string
+          demand_type: string
+          month: number
+          tributacao: string
+          unidade: string
+          year: number
+        }[]
+      }
+      backlog_overview: {
+        Args: { p_tributacao?: string; p_unidade?: string }
+        Returns: Json
+      }
       business_days_in_month: {
         Args: { p_ano: number; p_mes: number }
         Returns: number
@@ -1211,6 +1231,22 @@ export type Database = {
       can_view_submission: {
         Args: { p_submission_id: string }
         Returns: boolean
+      }
+      expected_pending_cells: {
+        Args: {
+          p_demand_types?: string[]
+          p_tributacao?: string
+          p_unidade?: string
+        }
+        Returns: {
+          client_id: string
+          client_name: string
+          demand_type: string
+          month: number
+          tributacao: string
+          unidade: string
+          year: number
+        }[]
       }
       generate_backlog_snapshot: { Args: { p_force?: boolean }; Returns: Json }
       has_action_permission: {

@@ -39,7 +39,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setTimeout(() => {
           fetchProfile(session.user.id);
           fetchRole(session.user.id);
+          loadPermissions();
         }, 0);
+
       } else {
         setProfile(null);
         setIsAdmin(false);

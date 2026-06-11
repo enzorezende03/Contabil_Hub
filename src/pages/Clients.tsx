@@ -85,6 +85,8 @@ interface ClientForm {
   obrigatoriedade_ecd: boolean;
   competencia_inicio: string;
   perfil: string;
+  data_fim_contrato: string;
+  motivo_distrato: string;
 }
 
 const emptyForm: ClientForm = {
@@ -95,6 +97,8 @@ const emptyForm: ClientForm = {
   obrigatoriedade_ecd: false,
   competencia_inicio: "",
   perfil: "standard",
+  data_fim_contrato: "",
+  motivo_distrato: "",
 };
 
 function formatCnpj(value: string) {

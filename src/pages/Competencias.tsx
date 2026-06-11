@@ -1229,7 +1229,7 @@ export default function CompetenciasPage() {
                       {selectedMonths.size === 12 ? "Limpar" : "Todos"}
                     </button>
                     {MONTHS.map((m) => {
-                      const monthDisabled = !isMonthEnabled(panelData.competencia_inicio, m, year);
+                      const monthDisabled = !isMonthEnabled(panelData.competencia_inicio, m, year, panelData.data_fim_contrato);
                       return (
                         <button
                           key={m}
@@ -1267,7 +1267,7 @@ export default function CompetenciasPage() {
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold">Preencher por Mês</h3>
                   {MONTHS.map((m) => {
-                    const monthDisabled = !isMonthEnabled(panelData.competencia_inicio, m, year);
+                    const monthDisabled = !isMonthEnabled(panelData.competencia_inicio, m, year, panelData.data_fim_contrato);
                     if (monthDisabled) {
                       return (
                         <div key={m} className="rounded-md border bg-muted/10 p-3 opacity-40 cursor-not-allowed">

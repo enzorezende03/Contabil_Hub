@@ -538,11 +538,26 @@ export default function Clients() {
                       <TableHead>Unidade</TableHead>
                       <TableHead>Tributação</TableHead>
                       <TableHead>Responsabilidade desde</TableHead>
+                      <TableHead>Status do contrato</TableHead>
                       <TableHead className="w-24 text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map((c) => (
+                    {filtered.map((c) => {
+                      const hasPending = (pendingByClient[c.razao_social] || 0) > 0;
+                      const cstatus = getContractStatus((c as any).data_fim_contrato, hasPending);
+                      const statusStyles: Record<ContractStatus, string> = {
+                        ativo: "bg-emerald-500/15 text-emerald-600",
+                        encerrando: "bg-amber-500/15 text-amber-600",
+                        encerrado_ok: "bg-gray-500/15 text-gray-600",
+                        encerrado_pendente: "bg-red-500/15 text-red-600",
+                      };
+                      const statusLabel =
+                        cstatus === "ativo" ? "Ativo" :
+                        cstatus === "encerrando" ? `Encerrando em ${formatDateBR((c as any).data_fim_contrato)}` :
+                        cstatus === "encerrado_ok" ? `Encerrado em ${formatDateBR((c as any).data_fim_contrato)}` :
+                        `Encerrado em ${formatDateBR((c as any).data_fim_contrato)} • c/ pendências`;
+                      return (
                       <TableRow key={c.id} onClick={() => openEdit(c)} className="cursor-pointer">
                         <TableCell className="font-medium">{c.razao_social}</TableCell>
                         <TableCell className="font-mono text-sm">{formatCnpj(c.cnpj)}</TableCell>
@@ -565,6 +580,11 @@ export default function Clients() {
                           )}
                         </TableCell>
                         <TableCell>{c.competencia_inicio}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyles[cstatus]}`}>
+                            {statusLabel}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-end gap-1">
                             <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>

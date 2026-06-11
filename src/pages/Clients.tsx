@@ -2,10 +2,12 @@ import { useState, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { canPerformAction, useActionPermissions } from "@/hooks/use-action-permissions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -16,10 +18,26 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Pencil, Trash2, Building2, Search, Upload, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Search, Upload, Download, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import { ClientContactsManager } from "@/components/ClientContactsManager";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+
+function formatDateBR(iso: string | null | undefined) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+export type ContractStatus = "ativo" | "encerrando" | "encerrado_ok" | "encerrado_pendente";
+
+export function getContractStatus(dataFim: string | null | undefined, hasOpenBacklog: boolean): ContractStatus {
+  if (!dataFim) return "ativo";
+  const today = new Date(); today.setHours(0,0,0,0);
+  const fim = new Date(dataFim + "T00:00:00");
+  if (fim.getTime() >= today.getTime()) return "encerrando";
+  return hasOpenBacklog ? "encerrado_pendente" : "encerrado_ok";
+}
 
 const TRIBUTACAO_OPTIONS = [
   { value: "simples_nacional", label: "Simples Nacional" },

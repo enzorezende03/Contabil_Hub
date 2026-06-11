@@ -920,38 +920,79 @@ export default function CompetenciasPage() {
             placeholder="Buscar empresa..."
             className={`${selectClass} h-8 text-xs px-2 flex-1 min-w-[160px] max-w-[240px]`}
           />
-          <select value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)} className={`${selectClass} h-8 text-xs px-2 flex-1 min-w-[140px] max-w-[220px]`}>
-            <option value="all">Todas empresas</option>
-            {allClientNames.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={selectedTributacao} onChange={(e) => setSelectedTributacao(e.target.value)} className={`${selectClass} h-8 text-xs px-2 w-[140px] flex-shrink-0`}>
-            <option value="all">Todas tributações</option>
-            {allTributacoes.map((t) => (
-              <option key={t} value={t}>{TRIBUTACAO_LABELS_MAP[t] || t}</option>
-            ))}
-          </select>
-          <select value={selectedUnidade} onChange={(e) => setSelectedUnidade(e.target.value)} className={`${selectClass} h-8 text-xs px-2 w-[140px] flex-shrink-0`}>
-            <option value="all">Todas unidades</option>
-            <option value="2m_contabilidade">2M Contabilidade</option>
-            <option value="2m_saude">2M Saúde</option>
-          </select>
-          <select value={selectedPerfil} onChange={(e) => setSelectedPerfil(e.target.value)} className={`${selectClass} h-8 text-xs px-2 w-[120px] flex-shrink-0`}>
-            <option value="all">Todos perfis</option>
-            <option value="vip">VIP</option>
-            <option value="premium">Premium</option>
-            <option value="standard">Standard</option>
-            <option value="basico">Básico</option>
-          </select>
-          <select value={selectedEcd} onChange={(e) => setSelectedEcd(e.target.value as "all" | "yes" | "no")} className={`${selectClass} h-8 text-xs px-2 w-[130px] flex-shrink-0`}>
-            <option value="all">Todos (ECD)</option>
-            <option value="yes">Obrigados ao ECD</option>
-            <option value="no">Sem ECD</option>
-          </select>
-          <select value={selectedFinalStatus} onChange={(e) => setSelectedFinalStatus(e.target.value as "all" | "open" | "finalized")} className={`${selectClass} h-8 text-xs px-2 w-[150px] flex-shrink-0`}>
-            <option value="all">Todas (status)</option>
-            <option value="open">Em aberto</option>
-            <option value="finalized">Finalizadas</option>
-          </select>
+          <MultiSelectFilter
+            allLabel="Todas empresas"
+            options={allClientNames.map((c) => ({ value: c, label: c }))}
+            value={selectedClientsFilter}
+            onChange={setSelectedClientsFilter}
+            className="flex-1 min-w-[140px] max-w-[220px]"
+          />
+          <MultiSelectFilter
+            allLabel="Todas tributações"
+            options={allTributacoes.map((t) => ({ value: t, label: TRIBUTACAO_LABELS_MAP[t] || t }))}
+            value={selectedTributacao}
+            onChange={setSelectedTributacao}
+            width="140px"
+          />
+          <MultiSelectFilter
+            allLabel="Todas unidades"
+            options={[
+              { value: "2m_contabilidade", label: "2M Contabilidade" },
+              { value: "2m_saude", label: "2M Saúde" },
+            ]}
+            value={selectedUnidade}
+            onChange={setSelectedUnidade}
+            width="140px"
+          />
+          <MultiSelectFilter
+            allLabel="Todos perfis"
+            options={[
+              { value: "vip", label: "VIP" },
+              { value: "premium", label: "Premium" },
+              { value: "standard", label: "Standard" },
+              { value: "basico", label: "Básico" },
+            ]}
+            value={selectedPerfil}
+            onChange={setSelectedPerfil}
+            width="120px"
+          />
+          <MultiSelectFilter
+            allLabel="Todos (ECD)"
+            options={[
+              { value: "yes", label: "Obrigados ao ECD" },
+              { value: "no", label: "Sem ECD" },
+            ]}
+            value={selectedEcd}
+            onChange={setSelectedEcd}
+            width="130px"
+          />
+          <MultiSelectFilter
+            allLabel="Todas (status)"
+            options={[
+              { value: "open", label: "Em aberto" },
+              { value: "finalized", label: "Finalizadas" },
+            ]}
+            value={selectedFinalStatus}
+            onChange={setSelectedFinalStatus}
+            width="150px"
+          />
+          {(selectedClientsFilter.length + selectedTributacao.length + selectedUnidade.length + selectedPerfil.length + selectedEcd.length + selectedFinalStatus.length > 0 || searchClient.trim().length > 0) && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedClientsFilter([]);
+                setSelectedTributacao([]);
+                setSelectedUnidade([]);
+                setSelectedPerfil([]);
+                setSelectedEcd([]);
+                setSelectedFinalStatus([]);
+                setSearchClient("");
+              }}
+              className="h-8 text-xs px-3 rounded-md border border-input bg-background hover:bg-accent/40 flex-shrink-0 text-muted-foreground"
+            >
+              Limpar filtros
+            </button>
+          )}
         </div>
 
         {/* Legenda */}

@@ -426,7 +426,15 @@ export default function Clients() {
     const matchesTrib = filterTributacao === "all" || c.tributacao === filterTributacao;
     const matchesUni = filterUnidade === "all" || c.unidade === filterUnidade;
     const matchesPerfil = filterPerfil === "all" || c.perfil === filterPerfil;
-    return matchesSearch && matchesTrib && matchesUni && matchesPerfil;
+    const hasPending = (pendingByClient[c.razao_social] || 0) > 0;
+    const cstatus = getContractStatus((c as any).data_fim_contrato, hasPending);
+    const matchesContrato =
+      filterContrato === "all" ||
+      (filterContrato === "ativos" && cstatus === "ativo") ||
+      (filterContrato === "encerrando" && cstatus === "encerrando") ||
+      (filterContrato === "encerrados_ok" && cstatus === "encerrado_ok") ||
+      (filterContrato === "encerrados_pendente" && cstatus === "encerrado_pendente");
+    return matchesSearch && matchesTrib && matchesUni && matchesPerfil && matchesContrato;
   });
 
   return (

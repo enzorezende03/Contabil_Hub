@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import AppLayout from "@/components/AppLayout";
 import { TRIBUTACAO_LABELS, Tributacao, DemandStatus } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";

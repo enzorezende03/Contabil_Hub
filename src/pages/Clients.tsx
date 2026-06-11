@@ -712,6 +712,67 @@ export default function Clients() {
                 maxLength={7}
               />
             </div>
+
+            {canEditFimContrato && (
+              <div className="pt-2 border-t">
+                <button
+                  type="button"
+                  onClick={() => setEncerramentoOpen((o) => !o)}
+                  className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary"
+                >
+                  {encerramentoOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  {form.data_fim_contrato ? "Encerramento de contrato" : "+ Registrar encerramento de contrato"}
+                </button>
+                {encerramentoOpen && (
+                  <div className="space-y-3 mt-3">
+                    <div className="space-y-2">
+                      <Label>Data fim de contrato</Label>
+                      <Input
+                        type="date"
+                        value={form.data_fim_contrato}
+                        min={(() => {
+                          const c = normalizeCompetencia(form.competencia_inicio);
+                          if (!c) return undefined;
+                          const [mm, yyyy] = c.split("/");
+                          return `${yyyy}-${mm}-01`;
+                        })()}
+                        onChange={(e) => setForm({ ...form, data_fim_contrato: e.target.value })}
+                      />
+                      {form.data_fim_contrato && (
+                        <div className="flex items-start gap-2 p-2.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-xs text-amber-700 dark:text-amber-400">
+                          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                          <span>
+                            Após salvar, este cliente será considerado encerrado a partir de{" "}
+                            <strong>{formatDateBR(form.data_fim_contrato)}</strong>. Competências posteriores não serão contadas no backlog, mas o histórico fica preservado.
+                          </span>
+                        </div>
+                      )}
+                      {form.data_fim_contrato && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => setForm({ ...form, data_fim_contrato: "", motivo_distrato: "" })}
+                        >
+                          Limpar (cliente voltou)
+                        </Button>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Motivo do distrato (opcional)</Label>
+                      <Textarea
+                        placeholder="Ex.: cliente mudou para escritório próprio, inadimplência, encerramento de atividade..."
+                        value={form.motivo_distrato}
+                        rows={2}
+                        onChange={(e) => setForm({ ...form, motivo_distrato: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {editingId && (
               <div className="pt-2 border-t">
                 <ClientContactsManager clientId={editingId} />

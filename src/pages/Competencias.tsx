@@ -679,7 +679,7 @@ export default function CompetenciasPage() {
     );
 
     return { clients: activeClients, matrix };
-  }, [year, selectedClient, searchClient, selectedTributacao, selectedUnidade, selectedPerfil, selectedEcd, allClientNames, clientsMap, semMovimento, demandStatuses]);
+  }, [year, selectedClientsFilter, searchClient, selectedTributacao, selectedUnidade, selectedPerfil, selectedEcd, allClientNames, clientsMap, semMovimento, demandStatuses]);
 
   // Map razao_social -> client UUID for review submissions wiring
   const clientIdByName = useMemo(() => {

@@ -581,8 +581,9 @@ export default function CompetenciasPage() {
 
     clientsSet.forEach((client) => {
       const compInicio = clientsMap[client]?.competencia_inicio || "01/2000";
+      const fim = clientsMap[client]?.data_fim_contrato || null;
       MONTHS.forEach((m) => {
-        if (!isMonthEnabled(compInicio, m, year)) return;
+        if (!isMonthEnabled(compInicio, m, year, fim)) return;
         monthlyTypes.forEach((t) => {
           rows.push({ client_name: client, month: m, year, demand_type: t, status: "completed", filled_by: user.id });
           localUpdates[`${client}|${m}|${t}`] = "completed";

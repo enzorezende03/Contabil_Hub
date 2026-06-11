@@ -230,7 +230,7 @@ async function upsertDemandStatusRows(rows: DemandStatusUpsertRow[]) {
 }
 
 /** Returns true if the month (MM) in the given year is within responsibility */
-function isMonthEnabled(competenciaInicio: string, month: string, year: string): boolean {
+function isMonthEnabled(competenciaInicio: string, month: string, year: string, dataFimContrato?: string | null): boolean {
   // Aceita: MM/YYYY, YYYY-MM, YYYY-MM-DD
   let startMonth: number | null = null;
   let startYear: number | null = null;
@@ -247,9 +247,6 @@ function isMonthEnabled(competenciaInicio: string, month: string, year: string):
 
   if (!startMonth || !startYear) return true;
 
-  // Aplica o piso: se a responsabilidade começou antes de CLOSING_FLOOR,
-  // tratamos como se tivesse começado no piso (clientes antigos já fechados
-  // ficam ocultos antes do ano-piso).
   if (startYear < CLOSING_FLOOR_YEAR ||
      (startYear === CLOSING_FLOOR_YEAR && startMonth < CLOSING_FLOOR_MONTH)) {
     startYear = CLOSING_FLOOR_YEAR;
@@ -258,6 +255,16 @@ function isMonthEnabled(competenciaInicio: string, month: string, year: string):
 
   const currentMonth = parseInt(month, 10);
   const currentYear = parseInt(year, 10);
+
+  // After end of contract → disabled
+  if (dataFimContrato) {
+    const fim = new Date(dataFimContrato + "T00:00:00");
+    const endYear = fim.getFullYear();
+    const endMonth = fim.getMonth() + 1;
+    if (currentYear > endYear) return false;
+    if (currentYear === endYear && currentMonth > endMonth) return false;
+  }
+
   if (currentYear > startYear) return true;
   if (currentYear < startYear) return false;
   return currentMonth >= startMonth;

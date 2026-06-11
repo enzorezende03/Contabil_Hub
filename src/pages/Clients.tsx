@@ -164,15 +164,19 @@ export function normalizeCompetencia(input: unknown): string | null {
 }
 
 export default function Clients() {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
+  useActionPermissions();
+  const canEditFimContrato = canPerformAction("editar_fim_contrato", profile?.role);
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ClientForm>(emptyForm);
+  const [encerramentoOpen, setEncerramentoOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [filterTributacao, setFilterTributacao] = useState<string>("all");
   const [filterUnidade, setFilterUnidade] = useState<string>("all");
   const [filterPerfil, setFilterPerfil] = useState<string>("all");
+  const [filterContrato, setFilterContrato] = useState<string>("ativos");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: clients = [], isLoading } = useQuery({
@@ -187,6 +191,23 @@ export default function Clients() {
     },
   });
 
+  // Compute pending backlog per client (clients with at least 1 expected pending cell)
+  const { data: pendingByClient = {} } = useQuery({
+    queryKey: ["clients-pending-cells"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("expected_pending_cells" as any, {});
+      if (error) {
+        console.warn("expected_pending_cells:", error);
+        return {} as Record<string, number>;
+      }
+      const map: Record<string, number> = {};
+      (data as any[] || []).forEach((r: any) => {
+        map[r.client_name] = (map[r.client_name] || 0) + 1;
+      });
+      return map;
+    },
+  });
+
   const upsertMutation = useMutation({
     mutationFn: async (payload: ClientForm & { id?: string }) => {
       const cnpjDigits = payload.cnpj.replace(/\D/g, "");
@@ -196,7 +217,7 @@ export default function Clients() {
       const compNorm = normalizeCompetencia(payload.competencia_inicio);
       if (!compNorm) throw new Error("Competência inválida. Use o formato MM/AAAA.");
 
-      const record = {
+      const record: any = {
         cnpj: cnpjDigits,
         razao_social: payload.razao_social.trim(),
         tributacao: payload.tributacao,
@@ -206,6 +227,10 @@ export default function Clients() {
         perfil: payload.perfil,
         created_by: session!.user.id,
       };
+      if (canEditFimContrato) {
+        record.data_fim_contrato = payload.data_fim_contrato || null;
+        record.motivo_distrato = payload.motivo_distrato.trim() || null;
+      }
 
       if (payload.id) {
         const { error } = await supabase
@@ -223,6 +248,7 @@ export default function Clients() {
       setDialogOpen(false);
       setEditingId(null);
       setForm(emptyForm);
+      setEncerramentoOpen(false);
       toast.success(editingId ? "Cliente atualizado!" : "Cliente cadastrado!");
     },
     onError: (err: any) => {
@@ -249,6 +275,7 @@ export default function Clients() {
   const openNew = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setEncerramentoOpen(false);
     setDialogOpen(true);
   };
 
@@ -262,7 +289,10 @@ export default function Clients() {
       obrigatoriedade_ecd: client.obrigatoriedade_ecd || false,
       competencia_inicio: client.competencia_inicio,
       perfil: client.perfil || "standard",
+      data_fim_contrato: client.data_fim_contrato || "",
+      motivo_distrato: client.motivo_distrato || "",
     });
+    setEncerramentoOpen(!!client.data_fim_contrato);
     setDialogOpen(true);
   };
 

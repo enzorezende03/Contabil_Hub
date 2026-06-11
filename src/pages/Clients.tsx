@@ -500,6 +500,16 @@ export default function Clients() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Select value={filterContrato} onValueChange={setFilterContrato}>
+                  <SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Contrato" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os contratos</SelectItem>
+                    <SelectItem value="ativos">Ativos</SelectItem>
+                    <SelectItem value="encerrando">Encerrando (data futura)</SelectItem>
+                    <SelectItem value="encerrados_ok">Encerrados sem pendências</SelectItem>
+                    <SelectItem value="encerrados_pendente">Encerrados c/ pendências</SelectItem>
+                  </SelectContent>
+                </Select>
                 <div className="relative w-64">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input

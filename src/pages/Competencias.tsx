@@ -230,7 +230,7 @@ async function upsertDemandStatusRows(rows: DemandStatusUpsertRow[]) {
 }
 
 /** Returns true if the month (MM) in the given year is within responsibility */
-function isMonthEnabled(competenciaInicio: string, month: string, year: string): boolean {
+function isMonthEnabled(competenciaInicio: string, month: string, year: string, dataFimContrato?: string | null): boolean {
   // Aceita: MM/YYYY, YYYY-MM, YYYY-MM-DD
   let startMonth: number | null = null;
   let startYear: number | null = null;
@@ -247,9 +247,6 @@ function isMonthEnabled(competenciaInicio: string, month: string, year: string):
 
   if (!startMonth || !startYear) return true;
 
-  // Aplica o piso: se a responsabilidade começou antes de CLOSING_FLOOR,
-  // tratamos como se tivesse começado no piso (clientes antigos já fechados
-  // ficam ocultos antes do ano-piso).
   if (startYear < CLOSING_FLOOR_YEAR ||
      (startYear === CLOSING_FLOOR_YEAR && startMonth < CLOSING_FLOOR_MONTH)) {
     startYear = CLOSING_FLOOR_YEAR;
@@ -258,6 +255,16 @@ function isMonthEnabled(competenciaInicio: string, month: string, year: string):
 
   const currentMonth = parseInt(month, 10);
   const currentYear = parseInt(year, 10);
+
+  // After end of contract → disabled
+  if (dataFimContrato) {
+    const fim = new Date(dataFimContrato + "T00:00:00");
+    const endYear = fim.getFullYear();
+    const endMonth = fim.getMonth() + 1;
+    if (currentYear > endYear) return false;
+    if (currentYear === endYear && currentMonth > endMonth) return false;
+  }
+
   if (currentYear > startYear) return true;
   if (currentYear < startYear) return false;
   return currentMonth >= startMonth;
@@ -548,9 +555,9 @@ export default function CompetenciasPage() {
 
   // Build client list and tributação map from DB
   const clientsMap = useMemo(() => {
-    const map: Record<string, { tributacao: string; competencia_inicio: string; unidade: string; perfil: string; obrigatoriedade_ecd: boolean }> = {};
+    const map: Record<string, { tributacao: string; competencia_inicio: string; unidade: string; perfil: string; obrigatoriedade_ecd: boolean; data_fim_contrato: string | null }> = {};
     dbClients.forEach((c: any) => {
-      map[c.razao_social] = { tributacao: c.tributacao, competencia_inicio: c.competencia_inicio, unidade: c.unidade || "2m_contabilidade", perfil: c.perfil || "standard", obrigatoriedade_ecd: !!c.obrigatoriedade_ecd };
+      map[c.razao_social] = { tributacao: c.tributacao, competencia_inicio: c.competencia_inicio, unidade: c.unidade || "2m_contabilidade", perfil: c.perfil || "standard", obrigatoriedade_ecd: !!c.obrigatoriedade_ecd, data_fim_contrato: c.data_fim_contrato || null };
     });
     return map;
   }, [dbClients]);
@@ -574,8 +581,9 @@ export default function CompetenciasPage() {
 
     clientsSet.forEach((client) => {
       const compInicio = clientsMap[client]?.competencia_inicio || "01/2000";
+      const fim = clientsMap[client]?.data_fim_contrato || null;
       MONTHS.forEach((m) => {
-        if (!isMonthEnabled(compInicio, m, year)) return;
+        if (!isMonthEnabled(compInicio, m, year, fim)) return;
         monthlyTypes.forEach((t) => {
           rows.push({ client_name: client, month: m, year, demand_type: t, status: "completed", filled_by: user.id });
           localUpdates[`${client}|${m}|${t}`] = "completed";
@@ -619,8 +627,9 @@ export default function CompetenciasPage() {
     clientSet.forEach((client) => {
       matrix[client] = {};
       const compInicio = clientsMap[client]?.competencia_inicio || "01/2000";
+      const fim = clientsMap[client]?.data_fim_contrato || null;
       MONTHS.forEach((m) => {
-        if (!isMonthEnabled(compInicio, m, year)) {
+        if (!isMonthEnabled(compInicio, m, year, fim)) {
           matrix[client][m] = "disabled";
           return;
         }
@@ -701,7 +710,7 @@ export default function CompetenciasPage() {
   const panelData = useMemo(() => {
     if (!panelClient) return null;
     const info = clientsMap[panelClient];
-    return { client: panelClient, tributacao: info?.tributacao, unidade: info?.unidade, competencia_inicio: info?.competencia_inicio || "01/2000" };
+    return { client: panelClient, tributacao: info?.tributacao, unidade: info?.unidade, competencia_inicio: info?.competencia_inicio || "01/2000", data_fim_contrato: info?.data_fim_contrato || null };
   }, [panelClient, clientsMap]);
 
   const totalClients = clients.length;
@@ -1220,7 +1229,7 @@ export default function CompetenciasPage() {
                       {selectedMonths.size === 12 ? "Limpar" : "Todos"}
                     </button>
                     {MONTHS.map((m) => {
-                      const monthDisabled = !isMonthEnabled(panelData.competencia_inicio, m, year);
+                      const monthDisabled = !isMonthEnabled(panelData.competencia_inicio, m, year, panelData.data_fim_contrato);
                       return (
                         <button
                           key={m}
@@ -1258,7 +1267,7 @@ export default function CompetenciasPage() {
                 <div className="space-y-3">
                   <h3 className="text-sm font-semibold">Preencher por Mês</h3>
                   {MONTHS.map((m) => {
-                    const monthDisabled = !isMonthEnabled(panelData.competencia_inicio, m, year);
+                    const monthDisabled = !isMonthEnabled(panelData.competencia_inicio, m, year, panelData.data_fim_contrato);
                     if (monthDisabled) {
                       return (
                         <div key={m} className="rounded-md border bg-muted/10 p-3 opacity-40 cursor-not-allowed">

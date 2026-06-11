@@ -2,10 +2,12 @@ import { useState, useRef } from "react";
 import AppLayout from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { canPerformAction, useActionPermissions } from "@/hooks/use-action-permissions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -16,10 +18,26 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Pencil, Trash2, Building2, Search, Upload, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, Search, Upload, Download, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
 import { ClientContactsManager } from "@/components/ClientContactsManager";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+
+function formatDateBR(iso: string | null | undefined) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+
+export type ContractStatus = "ativo" | "encerrando" | "encerrado_ok" | "encerrado_pendente";
+
+export function getContractStatus(dataFim: string | null | undefined, hasOpenBacklog: boolean): ContractStatus {
+  if (!dataFim) return "ativo";
+  const today = new Date(); today.setHours(0,0,0,0);
+  const fim = new Date(dataFim + "T00:00:00");
+  if (fim.getTime() >= today.getTime()) return "encerrando";
+  return hasOpenBacklog ? "encerrado_pendente" : "encerrado_ok";
+}
 
 const TRIBUTACAO_OPTIONS = [
   { value: "simples_nacional", label: "Simples Nacional" },
@@ -67,6 +85,8 @@ interface ClientForm {
   obrigatoriedade_ecd: boolean;
   competencia_inicio: string;
   perfil: string;
+  data_fim_contrato: string;
+  motivo_distrato: string;
 }
 
 const emptyForm: ClientForm = {
@@ -77,6 +97,8 @@ const emptyForm: ClientForm = {
   obrigatoriedade_ecd: false,
   competencia_inicio: "",
   perfil: "standard",
+  data_fim_contrato: "",
+  motivo_distrato: "",
 };
 
 function formatCnpj(value: string) {
@@ -142,15 +164,19 @@ export function normalizeCompetencia(input: unknown): string | null {
 }
 
 export default function Clients() {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
+  useActionPermissions();
+  const canEditFimContrato = canPerformAction("editar_fim_contrato", profile?.role);
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ClientForm>(emptyForm);
+  const [encerramentoOpen, setEncerramentoOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [filterTributacao, setFilterTributacao] = useState<string>("all");
   const [filterUnidade, setFilterUnidade] = useState<string>("all");
   const [filterPerfil, setFilterPerfil] = useState<string>("all");
+  const [filterContrato, setFilterContrato] = useState<string>("ativos");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: clients = [], isLoading } = useQuery({
@@ -165,6 +191,23 @@ export default function Clients() {
     },
   });
 
+  // Compute pending backlog per client (clients with at least 1 expected pending cell)
+  const { data: pendingByClient = {} } = useQuery({
+    queryKey: ["clients-pending-cells"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("expected_pending_cells" as any, {});
+      if (error) {
+        console.warn("expected_pending_cells:", error);
+        return {} as Record<string, number>;
+      }
+      const map: Record<string, number> = {};
+      (data as any[] || []).forEach((r: any) => {
+        map[r.client_name] = (map[r.client_name] || 0) + 1;
+      });
+      return map;
+    },
+  });
+
   const upsertMutation = useMutation({
     mutationFn: async (payload: ClientForm & { id?: string }) => {
       const cnpjDigits = payload.cnpj.replace(/\D/g, "");
@@ -174,7 +217,7 @@ export default function Clients() {
       const compNorm = normalizeCompetencia(payload.competencia_inicio);
       if (!compNorm) throw new Error("Competência inválida. Use o formato MM/AAAA.");
 
-      const record = {
+      const record: any = {
         cnpj: cnpjDigits,
         razao_social: payload.razao_social.trim(),
         tributacao: payload.tributacao,
@@ -184,6 +227,10 @@ export default function Clients() {
         perfil: payload.perfil,
         created_by: session!.user.id,
       };
+      if (canEditFimContrato) {
+        record.data_fim_contrato = payload.data_fim_contrato || null;
+        record.motivo_distrato = payload.motivo_distrato.trim() || null;
+      }
 
       if (payload.id) {
         const { error } = await supabase
@@ -201,6 +248,7 @@ export default function Clients() {
       setDialogOpen(false);
       setEditingId(null);
       setForm(emptyForm);
+      setEncerramentoOpen(false);
       toast.success(editingId ? "Cliente atualizado!" : "Cliente cadastrado!");
     },
     onError: (err: any) => {
@@ -227,6 +275,7 @@ export default function Clients() {
   const openNew = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setEncerramentoOpen(false);
     setDialogOpen(true);
   };
 
@@ -240,7 +289,10 @@ export default function Clients() {
       obrigatoriedade_ecd: client.obrigatoriedade_ecd || false,
       competencia_inicio: client.competencia_inicio,
       perfil: client.perfil || "standard",
+      data_fim_contrato: client.data_fim_contrato || "",
+      motivo_distrato: client.motivo_distrato || "",
     });
+    setEncerramentoOpen(!!client.data_fim_contrato);
     setDialogOpen(true);
   };
 
@@ -374,7 +426,15 @@ export default function Clients() {
     const matchesTrib = filterTributacao === "all" || c.tributacao === filterTributacao;
     const matchesUni = filterUnidade === "all" || c.unidade === filterUnidade;
     const matchesPerfil = filterPerfil === "all" || c.perfil === filterPerfil;
-    return matchesSearch && matchesTrib && matchesUni && matchesPerfil;
+    const hasPending = (pendingByClient[c.razao_social] || 0) > 0;
+    const cstatus = getContractStatus((c as any).data_fim_contrato, hasPending);
+    const matchesContrato =
+      filterContrato === "all" ||
+      (filterContrato === "ativos" && cstatus === "ativo") ||
+      (filterContrato === "encerrando" && cstatus === "encerrando") ||
+      (filterContrato === "encerrados_ok" && cstatus === "encerrado_ok") ||
+      (filterContrato === "encerrados_pendente" && cstatus === "encerrado_pendente");
+    return matchesSearch && matchesTrib && matchesUni && matchesPerfil && matchesContrato;
   });
 
   return (
@@ -440,6 +500,16 @@ export default function Clients() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Select value={filterContrato} onValueChange={setFilterContrato}>
+                  <SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Contrato" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os contratos</SelectItem>
+                    <SelectItem value="ativos">Ativos</SelectItem>
+                    <SelectItem value="encerrando">Encerrando (data futura)</SelectItem>
+                    <SelectItem value="encerrados_ok">Encerrados sem pendências</SelectItem>
+                    <SelectItem value="encerrados_pendente">Encerrados c/ pendências</SelectItem>
+                  </SelectContent>
+                </Select>
                 <div className="relative w-64">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -468,11 +538,26 @@ export default function Clients() {
                       <TableHead>Unidade</TableHead>
                       <TableHead>Tributação</TableHead>
                       <TableHead>Responsabilidade desde</TableHead>
+                      <TableHead>Status do contrato</TableHead>
                       <TableHead className="w-24 text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map((c) => (
+                    {filtered.map((c) => {
+                      const hasPending = (pendingByClient[c.razao_social] || 0) > 0;
+                      const cstatus = getContractStatus((c as any).data_fim_contrato, hasPending);
+                      const statusStyles: Record<ContractStatus, string> = {
+                        ativo: "bg-emerald-500/15 text-emerald-600",
+                        encerrando: "bg-amber-500/15 text-amber-600",
+                        encerrado_ok: "bg-gray-500/15 text-gray-600",
+                        encerrado_pendente: "bg-red-500/15 text-red-600",
+                      };
+                      const statusLabel =
+                        cstatus === "ativo" ? "Ativo" :
+                        cstatus === "encerrando" ? `Encerrando em ${formatDateBR((c as any).data_fim_contrato)}` :
+                        cstatus === "encerrado_ok" ? `Encerrado em ${formatDateBR((c as any).data_fim_contrato)}` :
+                        `Encerrado em ${formatDateBR((c as any).data_fim_contrato)} • c/ pendências`;
+                      return (
                       <TableRow key={c.id} onClick={() => openEdit(c)} className="cursor-pointer">
                         <TableCell className="font-medium">{c.razao_social}</TableCell>
                         <TableCell className="font-mono text-sm">{formatCnpj(c.cnpj)}</TableCell>
@@ -495,6 +580,11 @@ export default function Clients() {
                           )}
                         </TableCell>
                         <TableCell>{c.competencia_inicio}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyles[cstatus]}`}>
+                            {statusLabel}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex justify-end gap-1">
                             <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
@@ -512,7 +602,8 @@ export default function Clients() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -522,7 +613,7 @@ export default function Clients() {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? "Editar Cliente" : "Novo Cliente"}</DialogTitle>
             <DialogDescription>Preencha os dados do cliente</DialogDescription>
@@ -621,6 +712,67 @@ export default function Clients() {
                 maxLength={7}
               />
             </div>
+
+            {canEditFimContrato && (
+              <div className="pt-2 border-t">
+                <button
+                  type="button"
+                  onClick={() => setEncerramentoOpen((o) => !o)}
+                  className="flex items-center gap-1.5 text-sm font-medium text-foreground hover:text-primary"
+                >
+                  {encerramentoOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  {form.data_fim_contrato ? "Encerramento de contrato" : "+ Registrar encerramento de contrato"}
+                </button>
+                {encerramentoOpen && (
+                  <div className="space-y-3 mt-3">
+                    <div className="space-y-2">
+                      <Label>Data fim de contrato</Label>
+                      <Input
+                        type="date"
+                        value={form.data_fim_contrato}
+                        min={(() => {
+                          const c = normalizeCompetencia(form.competencia_inicio);
+                          if (!c) return undefined;
+                          const [mm, yyyy] = c.split("/");
+                          return `${yyyy}-${mm}-01`;
+                        })()}
+                        onChange={(e) => setForm({ ...form, data_fim_contrato: e.target.value })}
+                      />
+                      {form.data_fim_contrato && (
+                        <div className="flex items-start gap-2 p-2.5 rounded-md bg-amber-500/10 border border-amber-500/30 text-xs text-amber-700 dark:text-amber-400">
+                          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                          <span>
+                            Após salvar, este cliente será considerado encerrado a partir de{" "}
+                            <strong>{formatDateBR(form.data_fim_contrato)}</strong>. Competências posteriores não serão contadas no backlog, mas o histórico fica preservado.
+                          </span>
+                        </div>
+                      )}
+                      {form.data_fim_contrato && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => setForm({ ...form, data_fim_contrato: "", motivo_distrato: "" })}
+                        >
+                          Limpar (cliente voltou)
+                        </Button>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Motivo do distrato (opcional)</Label>
+                      <Textarea
+                        placeholder="Ex.: cliente mudou para escritório próprio, inadimplência, encerramento de atividade..."
+                        value={form.motivo_distrato}
+                        rows={2}
+                        onChange={(e) => setForm({ ...form, motivo_distrato: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {editingId && (
               <div className="pt-2 border-t">
                 <ClientContactsManager clientId={editingId} />

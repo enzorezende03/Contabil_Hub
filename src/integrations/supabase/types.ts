@@ -161,8 +161,10 @@ export type Database = {
           competencia_inicio: string
           created_at: string
           created_by: string
+          data_fim_contrato: string | null
           gclick_cliente_id: string | null
           id: string
+          motivo_distrato: string | null
           obrigatoriedade_ecd: boolean
           perfil: string
           razao_social: string
@@ -175,8 +177,10 @@ export type Database = {
           competencia_inicio: string
           created_at?: string
           created_by: string
+          data_fim_contrato?: string | null
           gclick_cliente_id?: string | null
           id?: string
+          motivo_distrato?: string | null
           obrigatoriedade_ecd?: boolean
           perfil?: string
           razao_social: string
@@ -189,8 +193,10 @@ export type Database = {
           competencia_inicio?: string
           created_at?: string
           created_by?: string
+          data_fim_contrato?: string | null
           gclick_cliente_id?: string | null
           id?: string
+          motivo_distrato?: string | null
           obrigatoriedade_ecd?: boolean
           perfil?: string
           razao_social?: string

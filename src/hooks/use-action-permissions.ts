@@ -20,6 +20,7 @@ export type ActionPermissions = {
   ver_painel_gerencial?: string[];
   revisar_briefing_semanal?: string[];
   configurar_metas?: string[];
+  editar_fim_contrato?: string[];
 };
 
 const DEFAULTS: ActionPermissions = {
@@ -41,6 +42,7 @@ const DEFAULTS: ActionPermissions = {
   ver_painel_gerencial: ["coordenacao"],
   revisar_briefing_semanal: ["coordenacao"],
   configurar_metas: ["coordenacao"],
+  editar_fim_contrato: ["coordenacao"],
 };
 
 let cachedPerms: ActionPermissions = { ...DEFAULTS };

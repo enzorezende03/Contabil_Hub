@@ -20,6 +20,7 @@ export type ActionPermissions = {
   ver_painel_gerencial?: string[];
   revisar_briefing_semanal?: string[];
   configurar_metas?: string[];
+  editar_fim_contrato?: string[];
 };
 
 const DEFAULTS: ActionPermissions = {

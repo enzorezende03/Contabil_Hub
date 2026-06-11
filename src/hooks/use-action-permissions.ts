@@ -42,6 +42,7 @@ const DEFAULTS: ActionPermissions = {
   ver_painel_gerencial: ["coordenacao"],
   revisar_briefing_semanal: ["coordenacao"],
   configurar_metas: ["coordenacao"],
+  editar_fim_contrato: ["coordenacao"],
 };
 
 let cachedPerms: ActionPermissions = { ...DEFAULTS };

@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
+import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import AppLayout from "@/components/AppLayout";
 import { TRIBUTACAO_LABELS, Tributacao, DemandStatus } from "@/lib/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -275,13 +276,19 @@ export default function CompetenciasPage() {
   const currentYear = new Date().getFullYear().toString();
   const [year, setYear] = usePersistedFilter("competencias", "year", currentYear);
   const [yearConfirmed, setYearConfirmed] = useState(() => sessionStorage.getItem("competencias_year_confirmed") === "true");
-  const [selectedClient, setSelectedClient] = usePersistedFilter("competencias", "client", "all");
+  const [selectedClientsFilterRaw, setSelectedClientsFilter] = usePersistedFilter<string[]>("competencias", "client_multi", []);
   const [searchClient, setSearchClient] = useState("");
-  const [selectedTributacao, setSelectedTributacao] = usePersistedFilter("competencias", "tributacao", "all");
-  const [selectedUnidade, setSelectedUnidade] = usePersistedFilter("competencias", "unidade", "all");
-  const [selectedPerfil, setSelectedPerfil] = usePersistedFilter("competencias", "perfil", "all");
-  const [selectedFinalStatus, setSelectedFinalStatus] = usePersistedFilter<"all" | "open" | "finalized">("competencias", "finalStatus", "all");
-  const [selectedEcd, setSelectedEcd] = usePersistedFilter<"all" | "yes" | "no">("competencias", "ecd", "all");
+  const [selectedTributacaoRaw, setSelectedTributacao] = usePersistedFilter<string[]>("competencias", "tributacao_multi", []);
+  const [selectedUnidadeRaw, setSelectedUnidade] = usePersistedFilter<string[]>("competencias", "unidade_multi", []);
+  const [selectedPerfilRaw, setSelectedPerfil] = usePersistedFilter<string[]>("competencias", "perfil_multi", []);
+  const [selectedFinalStatusRaw, setSelectedFinalStatus] = usePersistedFilter<string[]>("competencias", "finalStatus_multi", []);
+  const [selectedEcdRaw, setSelectedEcd] = usePersistedFilter<string[]>("competencias", "ecd_multi", []);
+  const selectedClientsFilter = Array.isArray(selectedClientsFilterRaw) ? selectedClientsFilterRaw : [];
+  const selectedTributacao = Array.isArray(selectedTributacaoRaw) ? selectedTributacaoRaw : [];
+  const selectedUnidade = Array.isArray(selectedUnidadeRaw) ? selectedUnidadeRaw : [];
+  const selectedPerfil = Array.isArray(selectedPerfilRaw) ? selectedPerfilRaw : [];
+  const selectedFinalStatus = Array.isArray(selectedFinalStatusRaw) ? selectedFinalStatusRaw : [];
+  const selectedEcd = Array.isArray(selectedEcdRaw) ? selectedEcdRaw : [];
   const [semMovimento, setSemMovimento] = useState<Set<string>>(new Set());
   const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
   const [panelClient, setPanelClient] = useState<string | null>(null);
@@ -614,13 +621,13 @@ export default function CompetenciasPage() {
   const { clients, matrix } = useMemo(() => {
     let clientSet = [...allClientNames];
 
-    if (selectedClient !== "all") clientSet = clientSet.filter((c) => c === selectedClient);
+    if (selectedClientsFilter.length > 0) clientSet = clientSet.filter((c) => selectedClientsFilter.includes(c));
     const searchTrim = searchClient.trim().toLowerCase();
     if (searchTrim) clientSet = clientSet.filter((c) => c.toLowerCase().includes(searchTrim));
-    if (selectedTributacao !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.tributacao === selectedTributacao);
-    if (selectedUnidade !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.unidade === selectedUnidade);
-    if (selectedPerfil !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.perfil === selectedPerfil);
-    if (selectedEcd !== "all") clientSet = clientSet.filter((c) => !!clientsMap[c]?.obrigatoriedade_ecd === (selectedEcd === "yes"));
+    if (selectedTributacao.length > 0) clientSet = clientSet.filter((c) => selectedTributacao.includes(clientsMap[c]?.tributacao));
+    if (selectedUnidade.length > 0) clientSet = clientSet.filter((c) => selectedUnidade.includes(clientsMap[c]?.unidade));
+    if (selectedPerfil.length > 0) clientSet = clientSet.filter((c) => selectedPerfil.includes(clientsMap[c]?.perfil));
+    if (selectedEcd.length > 0 && selectedEcd.length < 2) clientSet = clientSet.filter((c) => !!clientsMap[c]?.obrigatoriedade_ecd === (selectedEcd[0] === "yes"));
 
     const matrix: Record<string, Record<string, CellLevel>> = {};
 
@@ -673,7 +680,7 @@ export default function CompetenciasPage() {
     );
 
     return { clients: activeClients, matrix };
-  }, [year, selectedClient, searchClient, selectedTributacao, selectedUnidade, selectedPerfil, selectedEcd, allClientNames, clientsMap, semMovimento, demandStatuses]);
+  }, [year, selectedClientsFilter, searchClient, selectedTributacao, selectedUnidade, selectedPerfil, selectedEcd, allClientNames, clientsMap, semMovimento, demandStatuses]);
 
   // Map razao_social -> client UUID for review submissions wiring
   const clientIdByName = useMemo(() => {
@@ -745,8 +752,8 @@ export default function CompetenciasPage() {
 
   // Filter visible clients by closing status (does not affect totals)
   const visibleClients = useMemo(() => {
-    if (selectedFinalStatus === "all") return clients;
-    if (selectedFinalStatus === "open") return clients.filter((c) => !isClientFinalized(c));
+    if (selectedFinalStatus.length === 0 || selectedFinalStatus.length === 2) return clients;
+    if (selectedFinalStatus.includes("open")) return clients.filter((c) => !isClientFinalized(c));
     return clients.filter((c) => isClientFinalized(c));
   }, [clients, selectedFinalStatus, isClientFinalized]);
 
@@ -914,38 +921,79 @@ export default function CompetenciasPage() {
             placeholder="Buscar empresa..."
             className={`${selectClass} h-8 text-xs px-2 flex-1 min-w-[160px] max-w-[240px]`}
           />
-          <select value={selectedClient} onChange={(e) => setSelectedClient(e.target.value)} className={`${selectClass} h-8 text-xs px-2 flex-1 min-w-[140px] max-w-[220px]`}>
-            <option value="all">Todas empresas</option>
-            {allClientNames.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select value={selectedTributacao} onChange={(e) => setSelectedTributacao(e.target.value)} className={`${selectClass} h-8 text-xs px-2 w-[140px] flex-shrink-0`}>
-            <option value="all">Todas tributações</option>
-            {allTributacoes.map((t) => (
-              <option key={t} value={t}>{TRIBUTACAO_LABELS_MAP[t] || t}</option>
-            ))}
-          </select>
-          <select value={selectedUnidade} onChange={(e) => setSelectedUnidade(e.target.value)} className={`${selectClass} h-8 text-xs px-2 w-[140px] flex-shrink-0`}>
-            <option value="all">Todas unidades</option>
-            <option value="2m_contabilidade">2M Contabilidade</option>
-            <option value="2m_saude">2M Saúde</option>
-          </select>
-          <select value={selectedPerfil} onChange={(e) => setSelectedPerfil(e.target.value)} className={`${selectClass} h-8 text-xs px-2 w-[120px] flex-shrink-0`}>
-            <option value="all">Todos perfis</option>
-            <option value="vip">VIP</option>
-            <option value="premium">Premium</option>
-            <option value="standard">Standard</option>
-            <option value="basico">Básico</option>
-          </select>
-          <select value={selectedEcd} onChange={(e) => setSelectedEcd(e.target.value as "all" | "yes" | "no")} className={`${selectClass} h-8 text-xs px-2 w-[130px] flex-shrink-0`}>
-            <option value="all">Todos (ECD)</option>
-            <option value="yes">Obrigados ao ECD</option>
-            <option value="no">Sem ECD</option>
-          </select>
-          <select value={selectedFinalStatus} onChange={(e) => setSelectedFinalStatus(e.target.value as "all" | "open" | "finalized")} className={`${selectClass} h-8 text-xs px-2 w-[150px] flex-shrink-0`}>
-            <option value="all">Todas (status)</option>
-            <option value="open">Em aberto</option>
-            <option value="finalized">Finalizadas</option>
-          </select>
+          <MultiSelectFilter
+            allLabel="Todas empresas"
+            options={allClientNames.map((c) => ({ value: c, label: c }))}
+            value={selectedClientsFilter}
+            onChange={setSelectedClientsFilter}
+            className="flex-1 min-w-[140px] max-w-[220px]"
+          />
+          <MultiSelectFilter
+            allLabel="Todas tributações"
+            options={allTributacoes.map((t) => ({ value: t, label: TRIBUTACAO_LABELS_MAP[t] || t }))}
+            value={selectedTributacao}
+            onChange={setSelectedTributacao}
+            width="140px"
+          />
+          <MultiSelectFilter
+            allLabel="Todas unidades"
+            options={[
+              { value: "2m_contabilidade", label: "2M Contabilidade" },
+              { value: "2m_saude", label: "2M Saúde" },
+            ]}
+            value={selectedUnidade}
+            onChange={setSelectedUnidade}
+            width="140px"
+          />
+          <MultiSelectFilter
+            allLabel="Todos perfis"
+            options={[
+              { value: "vip", label: "VIP" },
+              { value: "premium", label: "Premium" },
+              { value: "standard", label: "Standard" },
+              { value: "basico", label: "Básico" },
+            ]}
+            value={selectedPerfil}
+            onChange={setSelectedPerfil}
+            width="120px"
+          />
+          <MultiSelectFilter
+            allLabel="Todos (ECD)"
+            options={[
+              { value: "yes", label: "Obrigados ao ECD" },
+              { value: "no", label: "Sem ECD" },
+            ]}
+            value={selectedEcd}
+            onChange={setSelectedEcd}
+            width="130px"
+          />
+          <MultiSelectFilter
+            allLabel="Todas (status)"
+            options={[
+              { value: "open", label: "Em aberto" },
+              { value: "finalized", label: "Finalizadas" },
+            ]}
+            value={selectedFinalStatus}
+            onChange={setSelectedFinalStatus}
+            width="150px"
+          />
+          {(selectedClientsFilter.length + selectedTributacao.length + selectedUnidade.length + selectedPerfil.length + selectedEcd.length + selectedFinalStatus.length > 0 || searchClient.trim().length > 0) && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedClientsFilter([]);
+                setSelectedTributacao([]);
+                setSelectedUnidade([]);
+                setSelectedPerfil([]);
+                setSelectedEcd([]);
+                setSelectedFinalStatus([]);
+                setSearchClient("");
+              }}
+              className="h-8 text-xs px-3 rounded-md border border-input bg-background hover:bg-accent/40 flex-shrink-0 text-muted-foreground"
+            >
+              Limpar filtros
+            </button>
+          )}
         </div>
 
         {/* Legenda */}

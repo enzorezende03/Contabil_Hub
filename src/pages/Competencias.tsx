@@ -627,8 +627,9 @@ export default function CompetenciasPage() {
     clientSet.forEach((client) => {
       matrix[client] = {};
       const compInicio = clientsMap[client]?.competencia_inicio || "01/2000";
+      const fim = clientsMap[client]?.data_fim_contrato || null;
       MONTHS.forEach((m) => {
-        if (!isMonthEnabled(compInicio, m, year)) {
+        if (!isMonthEnabled(compInicio, m, year, fim)) {
           matrix[client][m] = "disabled";
           return;
         }

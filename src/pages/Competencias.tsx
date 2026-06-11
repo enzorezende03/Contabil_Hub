@@ -751,8 +751,8 @@ export default function CompetenciasPage() {
 
   // Filter visible clients by closing status (does not affect totals)
   const visibleClients = useMemo(() => {
-    if (selectedFinalStatus === "all") return clients;
-    if (selectedFinalStatus === "open") return clients.filter((c) => !isClientFinalized(c));
+    if (selectedFinalStatus.length === 0 || selectedFinalStatus.length === 2) return clients;
+    if (selectedFinalStatus.includes("open")) return clients.filter((c) => !isClientFinalized(c));
     return clients.filter((c) => isClientFinalized(c));
   }, [clients, selectedFinalStatus, isClientFinalized]);
 

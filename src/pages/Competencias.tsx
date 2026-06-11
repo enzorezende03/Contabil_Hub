@@ -710,7 +710,7 @@ export default function CompetenciasPage() {
   const panelData = useMemo(() => {
     if (!panelClient) return null;
     const info = clientsMap[panelClient];
-    return { client: panelClient, tributacao: info?.tributacao, unidade: info?.unidade, competencia_inicio: info?.competencia_inicio || "01/2000" };
+    return { client: panelClient, tributacao: info?.tributacao, unidade: info?.unidade, competencia_inicio: info?.competencia_inicio || "01/2000", data_fim_contrato: info?.data_fim_contrato || null };
   }, [panelClient, clientsMap]);
 
   const totalClients = clients.length;

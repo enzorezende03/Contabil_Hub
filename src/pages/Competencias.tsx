@@ -620,13 +620,13 @@ export default function CompetenciasPage() {
   const { clients, matrix } = useMemo(() => {
     let clientSet = [...allClientNames];
 
-    if (selectedClient !== "all") clientSet = clientSet.filter((c) => c === selectedClient);
+    if (selectedClientsFilter.length > 0) clientSet = clientSet.filter((c) => selectedClientsFilter.includes(c));
     const searchTrim = searchClient.trim().toLowerCase();
     if (searchTrim) clientSet = clientSet.filter((c) => c.toLowerCase().includes(searchTrim));
-    if (selectedTributacao !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.tributacao === selectedTributacao);
-    if (selectedUnidade !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.unidade === selectedUnidade);
-    if (selectedPerfil !== "all") clientSet = clientSet.filter((c) => clientsMap[c]?.perfil === selectedPerfil);
-    if (selectedEcd !== "all") clientSet = clientSet.filter((c) => !!clientsMap[c]?.obrigatoriedade_ecd === (selectedEcd === "yes"));
+    if (selectedTributacao.length > 0) clientSet = clientSet.filter((c) => selectedTributacao.includes(clientsMap[c]?.tributacao));
+    if (selectedUnidade.length > 0) clientSet = clientSet.filter((c) => selectedUnidade.includes(clientsMap[c]?.unidade));
+    if (selectedPerfil.length > 0) clientSet = clientSet.filter((c) => selectedPerfil.includes(clientsMap[c]?.perfil));
+    if (selectedEcd.length > 0 && selectedEcd.length < 2) clientSet = clientSet.filter((c) => !!clientsMap[c]?.obrigatoriedade_ecd === (selectedEcd[0] === "yes"));
 
     const matrix: Record<string, Record<string, CellLevel>> = {};
 

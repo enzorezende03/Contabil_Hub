@@ -165,7 +165,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     return () => { supabase.removeChannel(ch); };
   }, [queryClient]);
 
-  const navItems = NAV_ITEMS.filter((item) => canAccessPage(userRole, item.path));
+  const navItems = NAV_ITEMS.filter((item) => isAdmin || canAccessPage(userRole, item.path));
 
   return (
     <div className="flex h-screen overflow-hidden">

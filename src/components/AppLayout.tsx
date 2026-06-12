@@ -49,7 +49,7 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
-  const { profile, signOut, user } = useAuth();
+  const { profile, signOut, user, isAdmin } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const initials = profile?.display_name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "??";
   const userRole = profile?.role;

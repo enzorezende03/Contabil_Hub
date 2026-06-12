@@ -38,11 +38,11 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function RoleRoute({ children, page }: { children: React.ReactNode; page: AppPage }) {
-  const { session, profile, loading } = useAuth();
+  const { session, profile, isAdmin, loading } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
   if (!session) return <Navigate to="/login" replace />;
   if (!profile) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
-  if (!canAccessPage(profile?.role, page)) return <Navigate to="/" replace />;
+  if (!isAdmin && !canAccessPage(profile?.role, page)) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 

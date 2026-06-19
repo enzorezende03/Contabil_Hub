@@ -22,6 +22,10 @@ import { RegistrarCobrancaDialog } from "@/components/RegistrarCobrancaDialog";
 import { CreatePendencyDialog } from "@/components/CreatePendencyDialog";
 import { ImportPendenciesDialog } from "@/components/ImportPendenciesDialog";
 import { PendencyCardCompact } from "@/components/pendency/PendencyCardCompact";
+import { BulkActionBar } from "@/components/pendency/BulkActionBar";
+import { BulkCobrarDialog } from "@/components/pendency/BulkCobrarDialog";
+import { BulkReassignDialog } from "@/components/pendency/BulkReassignDialog";
+import { useUserRole } from "@/hooks/use-user-role";
 import { AlertCircle, Clock, CheckCircle2, Inbox, Plus, Pause, Play, Building2, History, ExternalLink, RefreshCw, Link2, Copy, KeyRound, FileSpreadsheet, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 

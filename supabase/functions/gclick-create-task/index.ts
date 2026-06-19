@@ -211,6 +211,18 @@ Deno.serve(async (req) => {
       .eq("id", pend.client_id).maybeSingle();
     if (clientErr || !client) throw new Error(`Cliente não encontrado: ${clientErr?.message || ""}`);
 
+    // 2M Saúde não utiliza GClick — pular sincronização silenciosamente
+    if (client.unidade === "2m_saude") {
+      await supabase.from("pendencies").update({
+        gclick_sync_error: null,
+        gclick_synced_at: new Date().toISOString(),
+        gclick_status: "nao_aplicavel",
+      }).eq("id", pend.id);
+      return json({ ok: true, code: "skipped", message: "Unidade 2M Saúde não utiliza GClick." });
+    }
+
+
+
     const { data: credRow } = await supabase
       .from("gclick_credentials").select("*").eq("unidade", client.unidade).maybeSingle();
     if (!credRow || !credRow.enabled) {

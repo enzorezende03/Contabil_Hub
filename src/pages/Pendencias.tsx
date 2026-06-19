@@ -114,7 +114,7 @@ export default function PendenciasPage() {
     const ativas = pendencies.filter((p) => p.status !== "resolvida" && p.status !== "cancelada");
     return {
       abertas: ativas.length,
-      vencidas: ativas.filter((p) => p.prazo_resposta && new Date(p.prazo_resposta) < today).length,
+      criticas: ativas.filter((p) => pendencyCriticality(p) === "critica").length,
       semContato7d: ativas.filter((p) => {
         if (!p.ultimo_contato_em) return diasAberta(p.created_at) > 7;
         return diasUltimoContato(p.ultimo_contato_em)! > 7;
@@ -141,7 +141,7 @@ export default function PendenciasPage() {
         {/* KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <KpiBlock icon={Inbox} label="Pendências abertas" value={kpis.abertas} color="text-foreground" />
-          <KpiBlock icon={AlertCircle} label="Vencidas" value={kpis.vencidas} color={kpis.vencidas > 0 ? "text-red-500" : "text-foreground"} />
+          <KpiBlock icon={AlertCircle} label="Críticas" value={kpis.criticas} color={kpis.criticas > 0 ? "text-destructive" : "text-foreground"} />
           <KpiBlock icon={Clock} label="Sem contato > 7d" value={kpis.semContato7d} color={kpis.semContato7d > 0 ? "text-orange-500" : "text-foreground"} />
           <KpiBlock icon={CheckCircle2} label="Resolvidas no mês" value={kpis.resolvidasMes} color="text-emerald-500" />
         </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plug, CheckCircle2, XCircle, Loader2, Save, RefreshCw } from "lucide-react";
+import { Plug, CheckCircle2, XCircle, Loader2, Save, RefreshCw, ListTree } from "lucide-react";
 
 type Setor = "fiscal" | "departamento_pessoal" | "societario" | "tributario" | "outros";
 const SETORES: { key: Setor; label: string }[] = [

@@ -85,6 +85,54 @@ export function useActivePendenciesByCell(year: string) {
   });
 }
 
+export interface CellPendencyInfo { id: string; tipo: "interna" | "externa"; vencida: boolean; demand_type: string | null; status: string; descricao: string; }
+
+/** Active pendencies keyed by `${clientName}|${MM/YYYY}` — used by planning lists. */
+export function useActivePendenciesByPlanning() {
+  const qc = useQueryClient();
+  const q = useQuery({
+    queryKey: ["pendencies-by-planning"],
+    queryFn: async () => {
+      const [pendRes, clientsRes] = await Promise.all([
+        supabase
+          .from("pendencies")
+          .select("id, client_id, competencia, demand_type, tipo, status, prazo_resposta, descricao")
+          .not("status", "in", "(resolvida,cancelada)"),
+        supabase.from("clients").select("id, razao_social"),
+      ]);
+      if (pendRes.error) throw pendRes.error;
+      if (clientsRes.error) throw clientsRes.error;
+      const idToName = new Map<string, string>((clientsRes.data || []).map((c: any) => [c.id, c.razao_social]));
+      const map = new Map<string, CellPendencyInfo[]>();
+      const today = new Date(new Date().toDateString());
+      (pendRes.data || []).forEach((p: any) => {
+        const name = idToName.get(p.client_id);
+        if (!name) return;
+        const mm = p.competencia.slice(5, 7);
+        const yyyy = p.competencia.slice(0, 4);
+        const key = `${name}|${mm}/${yyyy}`;
+        const vencida = !!p.prazo_resposta && new Date(p.prazo_resposta) < today;
+        const arr = map.get(key) || [];
+        arr.push({ id: p.id, tipo: p.tipo, vencida, demand_type: p.demand_type, status: p.status, descricao: p.descricao });
+        map.set(key, arr);
+      });
+      return map;
+    },
+  });
+
+  useEffect(() => {
+    const ch = supabase
+      .channel("pendencies-by-planning-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "pendencies" }, () => {
+        qc.invalidateQueries({ queryKey: ["pendencies-by-planning"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
+
+  return q;
+}
+
 export function usePendencyCommunications(pendencyId: string | null) {
   return useQuery({
     queryKey: ["pendency-comms", pendencyId],

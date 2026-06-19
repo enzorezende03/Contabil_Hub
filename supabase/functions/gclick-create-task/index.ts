@@ -173,6 +173,22 @@ function departamentoFromConfig(value: string): string {
   return match?.[0] || trimmed;
 }
 
+function decodeJwtPayload(token: string): any | null {
+  try {
+    const part = token.split(".")[1];
+    if (!part) return null;
+    const padded = part.padEnd(part.length + ((4 - part.length % 4) % 4), "=");
+    return JSON.parse(atob(padded.replace(/-/g, "+").replace(/_/g, "/")));
+  } catch {
+    return null;
+  }
+}
+
+function getEmpresaIdFromToken(token: string): string | null {
+  const payload = decodeJwtPayload(token);
+  return payload?.empresa?.id ? String(payload.empresa.id) : null;
+}
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -250,10 +266,14 @@ Deno.serve(async (req) => {
       const { data: cred } = await supabase
         .from("gclick_credentials").select("*").eq("unidade", cli?.unidade).maybeSingle();
       if (!cred) return json({ ok: true, url: pend.gclick_task_url });
-      const buildLegacyUrl = (eveId: string | number) =>
-        `https://app.gclick.com.br/csListar.do?obj=csevento&csid=${(cred as any).sistema_id}&eveId=${eveId}&empId=${cli?.gclick_cliente_id ?? ""}`;
       try {
         const token = await getToken(supabase, cred as Credential);
+        const empresaId = getEmpresaIdFromToken(token);
+        const buildLegacyUrl = (eveId: string | number, csid?: string | number | null) => {
+          const safeCsid = String(csid || (/^\d+$/.test(String((cred as any).sistema_id || "")) ? (cred as any).sistema_id : "3"));
+          const safeEmpId = empresaId || "";
+          return `https://app.gclick.com.br/csListar.do?obj=csevento&csid=${safeCsid}&eveId=${eveId}&empId=${safeEmpId}`;
+        };
         const paths = [
           `/v2/tarefas/preTarefas/${pend.gclick_task_id}`,
           `/tarefas/preTarefas/${pend.gclick_task_id}`,
@@ -261,6 +281,7 @@ Deno.serve(async (req) => {
           `/preTarefas/${pend.gclick_task_id}`,
         ];
         let realId: string | null = null;
+        let realCsid: string | null = null;
         let lastDump: any = null;
         for (const p of paths) {
           const r = await fetch(`${BASE_URL}${p}`, {
@@ -278,7 +299,11 @@ Deno.serve(async (req) => {
             d?.tarefaGeradaId ?? d?.idTarefaGerada ?? d?.codigoTarefa ?? d?.codigo ??
             (Array.isArray(d?.tarefas) ? (d.tarefas[0]?.eveId ?? d.tarefas[0]?.id ?? d.tarefas[0]?.codigo) : null) ??
             (Array.isArray(d?.tarefasGeradas) ? (d.tarefasGeradas[0]?.eveId ?? d.tarefasGeradas[0]?.id ?? d.tarefasGeradas[0]?.codigo) : null);
-          if (candidate) { realId = String(candidate); break; }
+          if (candidate) {
+            realId = String(candidate);
+            realCsid = String(d?.csid ?? d?.tarefa?.csid ?? d?.evento?.csid ?? "") || null;
+            break;
+          }
         }
         console.log(`[gclick-resolve] preTarefa=${pend.gclick_task_id} realId=${realId} keys=${lastDump ? Object.keys(lastDump).join(",") : "none"}`);
 

@@ -244,7 +244,17 @@ Deno.serve(async (req) => {
     if (clientErr || !client) throw new Error(`Cliente não encontrado: ${clientErr?.message || ""}`);
 
     const cfg = getUnidadeConfig(client.unidade);
-    if (!cfg) throw new Error(`Configuração GClick não encontrada para unidade: ${client.unidade}`);
+    if (!cfg) {
+      const msg = `Integração GClick não configurada para a unidade "${client.unidade}". Defina os secrets GCLICK_${client.unidade === "2m_saude" ? "SAUDE" : "CONTAB"}_URL, _CLIENT_ID e _CLIENT_SECRET para sincronizar automaticamente.`;
+      await supabase.from("pendencies").update({
+        gclick_sync_error: msg.slice(0, 1000),
+        gclick_synced_at: new Date().toISOString(),
+        gclick_status: "nao_configurado",
+      }).eq("id", pend.id);
+      return new Response(JSON.stringify({ ok: false, code: "not_configured", error: msg }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { data: profile } = await supabase
       .from("profiles").select("display_name").eq("user_id", pend.responsavel_id).maybeSingle();
@@ -267,9 +277,15 @@ Deno.serve(async (req) => {
 
     const clienteIdResolved = client.gclick_cliente_id || cfg.clienteIdDefault;
     if (!cfg.departamentoId) {
-      throw new Error(
-        `Defina o secret GCLICK_${client.unidade === "2m_saude" ? "SAUDE" : "CONTAB"}_DEPARTAMENTO_ID com o ID do departamento padrão no GClick.`,
-      );
+      const msg = `Integração GClick incompleta: defina o secret GCLICK_${client.unidade === "2m_saude" ? "SAUDE" : "CONTAB"}_DEPARTAMENTO_ID com o ID do departamento padrão.`;
+      await supabase.from("pendencies").update({
+        gclick_sync_error: msg.slice(0, 1000),
+        gclick_synced_at: new Date().toISOString(),
+        gclick_status: "nao_configurado",
+      }).eq("id", pend.id);
+      return new Response(JSON.stringify({ ok: false, code: "not_configured", error: msg }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const taskPayload: Record<string, unknown> = {

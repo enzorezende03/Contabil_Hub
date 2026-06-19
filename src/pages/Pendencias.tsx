@@ -196,14 +196,14 @@ export default function PendenciasPage() {
 
         {/* KPIs compactos */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <KpiBlock icon={Inbox} label="Abertas" value={kpis.abertas} color="text-foreground" />
-          <KpiBlock icon={AlertCircle} label="Críticas" value={kpis.criticas} color={kpis.criticas > 0 ? "text-destructive" : "text-foreground"} />
-          <KpiBlock icon={Clock} label="Sem contato > 7d" value={kpis.semContato7d} color={kpis.semContato7d > 0 ? "text-orange-500" : "text-foreground"} />
-          <KpiBlock icon={CheckCircle2} label="Resolvidas no mês" value={kpis.resolvidasMes} color="text-emerald-500" />
+          <KpiBlock icon={Inbox} label="Abertas" value={kpis.abertas} color="text-foreground" active={kpiFilter === "abertas"} onClick={() => applyKpiFilter("abertas")} />
+          <KpiBlock icon={AlertCircle} label="Críticas" value={kpis.criticas} color={kpis.criticas > 0 ? "text-destructive" : "text-foreground"} active={kpiFilter === "criticas"} onClick={() => applyKpiFilter("criticas")} />
+          <KpiBlock icon={Clock} label="Sem contato > 7d" value={kpis.semContato7d} color={kpis.semContato7d > 0 ? "text-orange-500" : "text-foreground"} active={kpiFilter === "semContato7d"} onClick={() => applyKpiFilter("semContato7d")} />
+          <KpiBlock icon={CheckCircle2} label="Resolvidas no mês" value={kpis.resolvidasMes} color="text-emerald-500" active={kpiFilter === "resolvidasMes"} onClick={() => applyKpiFilter("resolvidasMes")} />
         </div>
 
         {/* Tabs */}
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
+        <Tabs value={tab} onValueChange={(v) => { setTab(v as any); setKpiFilter(null); }}>
           <TabsList>
             <TabsTrigger value="externas">Externas <span className="ml-1.5 text-[10px] opacity-70">({tabCounts.externas})</span></TabsTrigger>
             <TabsTrigger value="internas">Internas <span className="ml-1.5 text-[10px] opacity-70">({tabCounts.internas})</span></TabsTrigger>

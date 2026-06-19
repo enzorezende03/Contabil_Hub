@@ -181,6 +181,19 @@ export default function PlanejamentoPage() {
     })();
   }, [planningsWithDerivedStatus, dbPlannings, refetch]);
 
+  const { data: pendenciesByPlanning } = useActivePendenciesByPlanning();
+
+  const getPendenciesFor = (d: Demand): CellPendencyInfo[] => {
+    if (!pendenciesByPlanning) return [];
+    const out: CellPendencyInfo[] = [];
+    const seen = new Set<string>();
+    d.competencias.forEach((comp) => {
+      const arr = pendenciesByPlanning.get(`${d.client}|${comp}`) || [];
+      arr.forEach((p) => { if (!seen.has(p.id)) { seen.add(p.id); out.push(p); } });
+    });
+    return out;
+  };
+
   const filtered = useMemo(() => {
     return planningsWithDerivedStatus
       .filter((d) => {
@@ -194,10 +207,16 @@ export default function PlanejamentoPage() {
         } else if (filterStatus !== "all" && d.status !== filterStatus) return false;
         if (filterDateFrom && d.internalDeadline < filterDateFrom) return false;
         if (filterDateTo && d.internalDeadline > filterDateTo) return false;
+        if (filterWithPendency !== "all") {
+          const pend = getPendenciesFor(d);
+          if (filterWithPendency === "with" && pend.length === 0) return false;
+          if (filterWithPendency === "overdue" && !pend.some((p) => p.vencida)) return false;
+          if (filterWithPendency === "without" && pend.length > 0) return false;
+        }
         return true;
       })
       .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
-  }, [search, filterType, filterAssignee, filterStatus, filterDateFrom, filterDateTo, planningsWithDerivedStatus, canSeeAll, user]);
+  }, [search, filterType, filterAssignee, filterStatus, filterDateFrom, filterDateTo, filterWithPendency, planningsWithDerivedStatus, canSeeAll, user, pendenciesByPlanning]);
 
   const getMember = (id: string) => teamMembers.find((m) => m.id === id);
 

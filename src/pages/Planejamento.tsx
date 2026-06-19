@@ -18,7 +18,7 @@ import {
   type Demand,
 } from "@/lib/types";
 import { formatMinutes, getDeadlineUrgency } from "@/lib/demand-utils";
-import { Search, LayoutGrid, List, Clock, Plus, CalendarRange } from "lucide-react";
+import { Search, LayoutGrid, List, Clock, Plus, CalendarRange, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreatePlanningDialog } from "@/components/CreatePlanningDialog";
 import { EditPlanningDialog } from "@/components/EditPlanningDialog";
@@ -30,9 +30,12 @@ import { toast } from "sonner";
 
 type ViewMode = "list" | "kanban" | "timeline";
 
-const KANBAN_COLUMNS: DemandStatus[] = [
+type KanbanColumnKey = DemandStatus | "paused_pendency";
+
+const KANBAN_COLUMNS: KanbanColumnKey[] = [
   "not_started",
   "in_progress",
+  "paused_pendency",
   "completed",
 ];
 
@@ -345,21 +348,37 @@ export default function PlanejamentoPage() {
 
         {view === "kanban" && (
           <div className="flex gap-3 overflow-x-auto pb-4">
-            {KANBAN_COLUMNS.map((status) => {
-              const col = filtered.filter((d) => d.status === status);
+            {KANBAN_COLUMNS.map((colKey) => {
+              const col = filtered.filter((d) => {
+                const hasOpenPend = getPendenciesFor(d).length > 0;
+                if (colKey === "paused_pendency") {
+                  return hasOpenPend && d.status !== "completed";
+                }
+                if (hasOpenPend && d.status !== "completed") return false;
+                return d.status === colKey;
+              });
+              const isPaused = colKey === "paused_pendency";
               return (
-                <div key={status} className="flex-shrink-0 w-72">
+                <div key={colKey} className={`flex-shrink-0 w-72 ${isPaused ? "rounded-lg bg-amber-500/5 border border-amber-500/30 p-2" : ""}`}>
                   <div className="flex items-center gap-2 mb-2 px-1">
-                    <StatusBadge status={status} />
+                    {isPaused ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        Pausada (pendência)
+                      </span>
+                    ) : (
+                      <StatusBadge status={colKey as DemandStatus} />
+                    )}
                     <span className="text-xs text-muted-foreground font-medium">{col.length}</span>
                   </div>
                   <div className="space-y-2">
                     {col.map((d) => {
                       const u = d.status === "completed" ? "normal" : getDeadlineUrgency(d.internalDeadline);
-                      const cardTone =
-                        u === "overdue" ? "bg-status-late/10 border-status-late/40 hover:border-status-late" :
-                        u === "today" || u === "soon" ? "bg-status-waiting/10 border-status-waiting/40 hover:border-status-waiting" :
-                        "bg-card hover:border-primary/30";
+                      const cardTone = isPaused
+                        ? "bg-card border-amber-500/40 hover:border-amber-500"
+                        : u === "overdue" ? "bg-status-late/10 border-status-late/40 hover:border-status-late" :
+                          u === "today" || u === "soon" ? "bg-status-waiting/10 border-status-waiting/40 hover:border-status-waiting" :
+                          "bg-card hover:border-primary/30";
                       return (
                       <div key={d.id} onClick={() => setEditPlanning(d)} className={`rounded-lg border p-3 transition-colors cursor-pointer ${cardTone}`}>
                         <div className="flex items-start justify-between mb-1.5">
@@ -379,6 +398,11 @@ export default function PlanejamentoPage() {
                             </span>
                           ))}
                           <PlanningPendencyBadge pendencies={getPendenciesFor(d)} compact />
+                          {isPaused && (
+                            <span className="text-[9px] uppercase tracking-wide font-semibold text-muted-foreground">
+                              · status real: {STATUS_LABELS[d.status]}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-muted-foreground">
@@ -401,7 +425,7 @@ export default function PlanejamentoPage() {
                     })}
                     {col.length === 0 && (
                       <div className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
-                        Nenhum planejamento
+                        {isPaused ? "Nenhuma demanda pausada" : "Nenhum planejamento"}
                       </div>
                     )}
                   </div>

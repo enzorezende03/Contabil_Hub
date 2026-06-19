@@ -135,8 +135,9 @@ async function searchClienteByCnpj(token: string, cnpj: string): Promise<string 
 async function createPreTarefa(
   token: string,
   payload: Record<string, unknown>,
+  path = "/tarefas/preTarefas",
 ): Promise<{ ok: boolean; id?: string; msg: string; raw: any }> {
-  const resp = await fetch(`${BASE_URL}/tarefas/preTarefas`, {
+  const resp = await fetch(`${BASE_URL}${path}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -160,6 +161,11 @@ async function createPreTarefa(
     return { ok: true, id: String(r.id ?? ""), msg: r.msg || "Pré-tarefa criada", raw: data };
   }
   return { ok: false, msg: r.msg || "Erro desconhecido ao criar pré-tarefa", raw: data };
+}
+
+function departamentoFromConfig(value: string): string {
+  const match = value.trim().match(/^\d+/);
+  return match?.[0] || value.trim();
 }
 
 Deno.serve(async (req) => {

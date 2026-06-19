@@ -47,6 +47,7 @@ export default function PendenciasPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [createCtx, setCreateCtx] = useState<{ clientId: string; clientName?: string } | null>(null);
   const [cobrarPendency, setCobrarPendency] = useState<Pendency | null>(null);
+  const [externoPendency, setExternoPendency] = useState<Pendency | null>(null);
   const [resolvePendency, setResolvePendency] = useState<Pendency | null>(null);
   const [pausePendency, setPausePendency] = useState<Pendency | null>(null);
   const [deletePendency, setDeletePendency] = useState<Pendency | null>(null);

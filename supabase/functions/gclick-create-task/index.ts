@@ -322,26 +322,22 @@ Deno.serve(async (req) => {
     ].filter(Boolean).join("\n");
 
     const payload: Record<string, unknown> = {
-      inscricao: cnpj,
-      usuario: cred.usuario?.trim() || "gclickbot",
-      sistema: cred.sistema_id,
-      pretarefas: [
-        {
-          tag,
-          assunto,
-          andamento,
-          arquivos: [] as unknown[],
-        },
-      ],
+      inscricoes: [cnpj],
+      clienteId: gclickClienteId,
+      departamentoId: departamentoFromConfig(tag),
+      assunto,
+      andamento,
+      arquivos: [] as unknown[],
+      convidadosIds: [] as unknown[],
     };
 
-    const result = await createPreTarefa(token, payload);
+    const result = await createPreTarefa(token, payload, "/v2/tarefas/preTarefas");
     if (!result.ok) {
       // se token expirado, tenta renovar uma vez
       if (/401|unauthorized|token/i.test(result.msg)) {
         try {
           const fresh = await fetchAndCacheToken(supabase, cred);
-          const retry = await createPreTarefa(fresh, payload);
+          const retry = await createPreTarefa(fresh, payload, "/v2/tarefas/preTarefas");
           if (retry.ok) {
             await supabase.from("pendencies").update({
               gclick_task_id: retry.id, gclick_status: "criada",

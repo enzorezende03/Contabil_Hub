@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { RegistrarCobrancaDialog } from "@/components/RegistrarCobrancaDialog";
 import { CreatePendencyDialog } from "@/components/CreatePendencyDialog";
 import { ImportPendenciesDialog } from "@/components/ImportPendenciesDialog";
-import { AlertCircle, Clock, CheckCircle2, Inbox, Plus, Pause, Play, Building2, History, ExternalLink, RefreshCw, Link2, Copy, KeyRound, FileSpreadsheet } from "lucide-react";
+import { AlertCircle, Clock, CheckCircle2, Inbox, Plus, Pause, Play, Building2, History, ExternalLink, RefreshCw, Link2, Copy, KeyRound, FileSpreadsheet, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ClientRow { id: string; razao_social: string; cnpj: string; unidade: string | null; }
@@ -41,6 +41,7 @@ export default function PendenciasPage() {
   const [cobrarPendency, setCobrarPendency] = useState<Pendency | null>(null);
   const [resolvePendency, setResolvePendency] = useState<Pendency | null>(null);
   const [pausePendency, setPausePendency] = useState<Pendency | null>(null);
+  const [deletePendency, setDeletePendency] = useState<Pendency | null>(null);
   const [detailsPendency, setDetailsPendency] = useState<Pendency | null>(null);
 
   const { data: clients = [] } = useQuery({
@@ -213,6 +214,7 @@ export default function PendenciasPage() {
                     onResolver={() => setResolvePendency(p)}
                     onPausar={() => setPausePendency(p)}
                     onDetalhes={() => setDetailsPendency(p)}
+                    onExcluir={() => setDeletePendency(p)}
                   />
                 ))}
               </div>
@@ -245,6 +247,9 @@ export default function PendenciasPage() {
       )}
       {pausePendency && (
         <PauseDialog pendency={pausePendency} onClose={() => setPausePendency(null)} />
+      )}
+      {deletePendency && (
+        <DeleteDialog pendency={deletePendency} onClose={() => setDeletePendency(null)} clientName={clientMap.get(deletePendency.client_id)?.razao_social} />
       )}
       {detailsPendency && (
         <DetailsDialog pendency={detailsPendency} onClose={() => setDetailsPendency(null)} clientName={clientMap.get(detailsPendency.client_id)?.razao_social} responsavelName={profileMap.get(detailsPendency.responsavel_id) || "—"} />
@@ -355,10 +360,10 @@ function GclickBadge({ pendency: p }: { pendency: Pendency }) {
   );
 }
 
-function PendencyCard({ pendency: p, clientName, responsavelName, clientUnidade, onCobrar, onResolver, onPausar, onDetalhes }: {
+function PendencyCard({ pendency: p, clientName, responsavelName, clientUnidade, onCobrar, onResolver, onPausar, onDetalhes, onExcluir }: {
 
   pendency: Pendency; clientName: string; responsavelName: string; clientUnidade: string | null;
-  onCobrar: () => void; onResolver: () => void; onPausar: () => void; onDetalhes: () => void;
+  onCobrar: () => void; onResolver: () => void; onPausar: () => void; onDetalhes: () => void; onExcluir: () => void;
 }) {
   const aberta = diasAberta(p.created_at);
   const ultimoCont = diasUltimoContato(p.ultimo_contato_em);
@@ -440,6 +445,11 @@ function PendencyCard({ pendency: p, clientName, responsavelName, clientUnidade,
         <Button size="sm" variant="ghost" className="ml-auto" onClick={onDetalhes}>
           <History className="w-3.5 h-3.5 mr-1" /> {p.tipo === "externa" ? "Ver respostas / histórico" : "Histórico"}
         </Button>
+        {!finalizada && (
+          <Button size="sm" variant="ghost" onClick={onExcluir} className="text-red-600 hover:text-red-700 hover:bg-red-500/10">
+            <Trash2 className="w-3.5 h-3.5 mr-1" /> Excluir
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -743,6 +753,60 @@ function ResolveDialog({ pendency, clientName, onClose }: { pendency: Pendency; 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={save} disabled={saving}>{saving ? "Salvando..." : "Marcar como resolvida"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeleteDialog({ pendency, clientName, onClose }: { pendency: Pendency; clientName?: string; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  async function save() {
+    const motivo = reason.trim();
+    if (!motivo) { toast.error("Informe a justificativa da exclusão"); return; }
+    setSaving(true);
+    const stamp = new Date().toLocaleString("pt-BR");
+    const prev = pendency.resolution_notes ? `${pendency.resolution_notes}\n\n` : "";
+    const { error } = await supabase.from("pendencies").update({
+      status: "cancelada",
+      resolved_at: new Date().toISOString(),
+      resolution_notes: `${prev}[EXCLUÍDA em ${stamp}] ${motivo}`,
+      followup_paused: true,
+    }).eq("id", pendency.id);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pendência excluída com justificativa registrada");
+    qc.invalidateQueries({ queryKey: ["pendencies"] });
+    onClose();
+  }
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-red-600">Excluir pendência</DialogTitle>
+          <DialogDescription>
+            {clientName} — {pendency.documento_solicitado || pendency.descricao.slice(0, 60)}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2 py-2">
+          <div className="text-xs text-muted-foreground bg-amber-500/10 border border-amber-500/30 rounded p-2">
+            A pendência será marcada como <strong>cancelada</strong> e o motivo ficará registrado no histórico para auditoria.
+          </div>
+          <Label>Justificativa <span className="text-red-500">*</span></Label>
+          <Textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={3}
+            placeholder="Ex.: Pendência criada em duplicidade / cliente não é mais da carteira / etc."
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={save} disabled={saving} className="bg-red-600 hover:bg-red-700 text-white">
+            {saving ? "Excluindo..." : "Confirmar exclusão"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

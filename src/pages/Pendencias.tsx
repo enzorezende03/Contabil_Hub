@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { RegistrarCobrancaDialog } from "@/components/RegistrarCobrancaDialog";
+import { RegistrarContatoExternoDialog } from "@/components/pendency/RegistrarContatoExternoDialog";
 import { CreatePendencyDialog } from "@/components/CreatePendencyDialog";
 import { ImportPendenciesDialog } from "@/components/ImportPendenciesDialog";
 import { PendencyCardCompact } from "@/components/pendency/PendencyCardCompact";

@@ -272,6 +272,7 @@ export default function PendenciasPage() {
                     onDetalhes={() => setDetailsPendency(p)}
                     onExcluir={() => setDeletePendency(p)}
                     onReassigned={() => qc.invalidateQueries({ queryKey: ["pendencies"] })}
+                    onRegistrarExterno={() => setExternoPendency(p)}
                   />
                 ))}
               </div>

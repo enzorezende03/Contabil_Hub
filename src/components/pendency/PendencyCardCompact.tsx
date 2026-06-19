@@ -280,13 +280,13 @@ export function PendencyCardCompact({
             <button
               type="button"
               onClick={onRegistrarExterno}
-              className="mt-2 w-full text-left flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 px-2 py-1.5 text-[11px] text-warning-foreground hover:bg-warning/20 transition-colors"
+              className="mt-2 w-full text-left flex items-center gap-2 rounded-md border border-warning/40 border-l-2 border-l-warning bg-warning/20 px-2.5 py-2 text-[11px] text-warning hover:bg-warning/30 transition-colors"
             >
-              <span className="text-warning">⚠</span>
-              <span className="flex-1">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span className="flex-1 font-medium">
                 A descrição menciona contato com o cliente, mas nenhuma cobrança foi registrada.
               </span>
-              <span className="font-medium underline-offset-2 hover:underline">
+              <span className="font-semibold underline-offset-2 hover:underline shrink-0">
                 Registrar contato externo
               </span>
             </button>

@@ -351,8 +351,9 @@ Deno.serve(async (req) => {
       profile?.display_name ? `Solicitado por: ${profile.display_name}` : null,
     ].filter(Boolean).join("\n");
 
-    // Buscar anexos da pendência e codificar em base64 (data URI)
-    // GClick espera `arquivos` como array de strings no formato "data:<mime>;base64,<conteudo>".
+    // Buscar anexos da pendência e enviar como URLs temporárias.
+    // A documentação oficial do GClick mostra `arquivos` como array de links HTTP públicos
+    // (ex: S3), então não enviamos base64/data URI para evitar erro interno no GClick.
     const arquivos: string[] = [];
     const arquivosMeta: Array<{ nome: string; tamanho: number }> = [];
     const { data: attachRows } = await supabase
@@ -364,24 +365,21 @@ Deno.serve(async (req) => {
       const MAX_BYTES = 6 * 1024 * 1024;
       for (const att of attachRows) {
         try {
-          const { data: file, error: dlErr } = await supabase.storage
-            .from("pendency-attachments").download(att.storage_path);
-          if (dlErr || !file) {
-            console.log(`[gclick-create] anexo skip (download): ${att.file_name} ${dlErr?.message || ""}`);
-            continue;
-          }
-          const buf = new Uint8Array(await file.arrayBuffer());
-          if (totalBytes + buf.byteLength > MAX_BYTES) {
+          const size = att.file_size ?? 0;
+          if (totalBytes + size > MAX_BYTES) {
             console.log(`[gclick-create] anexo skip (limite 6MB): ${att.file_name}`);
             continue;
           }
-          totalBytes += buf.byteLength;
-          let bin = "";
-          for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
-          const b64 = btoa(bin);
-          const mime = att.mime_type || "application/octet-stream";
-          arquivos.push(`data:${mime};base64,${b64}`);
-          arquivosMeta.push({ nome: att.file_name, tamanho: att.file_size ?? buf.byteLength });
+          const { data: signed, error: signErr } = await supabase.storage
+            .from("pendency-attachments")
+            .createSignedUrl(att.storage_path, 60 * 60 * 24 * 7, { download: att.file_name });
+          if (signErr || !signed?.signedUrl) {
+            console.log(`[gclick-create] anexo skip (signed url): ${att.file_name} ${signErr?.message || ""}`);
+            continue;
+          }
+          totalBytes += size;
+          arquivos.push(signed.signedUrl);
+          arquivosMeta.push({ nome: att.file_name, tamanho: size });
         } catch (e) {
           console.log(`[gclick-create] anexo erro: ${att.file_name} ${e instanceof Error ? e.message : e}`);
         }

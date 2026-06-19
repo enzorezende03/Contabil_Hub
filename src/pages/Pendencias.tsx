@@ -19,7 +19,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { RegistrarCobrancaDialog } from "@/components/RegistrarCobrancaDialog";
 import { CreatePendencyDialog } from "@/components/CreatePendencyDialog";
-import { AlertCircle, Clock, CheckCircle2, Inbox, Plus, Pause, Play, Building2, History, ExternalLink, RefreshCw, Link2, Copy, KeyRound } from "lucide-react";
+import { ImportPendenciesDialog } from "@/components/ImportPendenciesDialog";
+import { AlertCircle, Clock, CheckCircle2, Inbox, Plus, Pause, Play, Building2, History, ExternalLink, RefreshCw, Link2, Copy, KeyRound, FileSpreadsheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ClientRow { id: string; razao_social: string; cnpj: string; }
@@ -35,6 +36,7 @@ export default function PendenciasPage() {
   const [filterSetor, setFilterSetor] = useState<string>("all");
   const [filterCobrarHoje, setFilterCobrarHoje] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [createCtx, setCreateCtx] = useState<{ clientId: string; clientName?: string } | null>(null);
   const [cobrarPendency, setCobrarPendency] = useState<Pendency | null>(null);
   const [resolvePendency, setResolvePendency] = useState<Pendency | null>(null);
@@ -124,9 +126,14 @@ export default function PendenciasPage() {
             <h1 className="text-2xl font-semibold">Pendências</h1>
             <p className="text-sm text-muted-foreground">Painel de cobrança de pendências internas e externas.</p>
           </div>
-          <Button onClick={() => { setCreateCtx({ clientId: clients[0]?.id ?? "", clientName: clients[0]?.razao_social }); setCreateOpen(true); }} disabled={!clients.length}>
-            <Plus className="w-4 h-4 mr-1" /> Nova pendência
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setImportOpen(true)} disabled={!clients.length}>
+              <FileSpreadsheet className="w-4 h-4 mr-1" /> Importar planilha
+            </Button>
+            <Button onClick={() => { setCreateCtx({ clientId: clients[0]?.id ?? "", clientName: clients[0]?.razao_social }); setCreateOpen(true); }} disabled={!clients.length}>
+              <Plus className="w-4 h-4 mr-1" /> Nova pendência
+            </Button>
+          </div>
         </header>
 
         {/* KPIs */}
@@ -219,8 +226,11 @@ export default function PendenciasPage() {
           open={createOpen}
           onOpenChange={setCreateOpen}
           clients={clients}
+          onSwitchToImport={() => { setCreateOpen(false); setImportOpen(true); }}
         />
       )}
+      <ImportPendenciesDialog open={importOpen} onOpenChange={setImportOpen} />
+
       {cobrarPendency && (
         <RegistrarCobrancaDialog
           open={!!cobrarPendency}
@@ -570,7 +580,7 @@ function PortalAccessButton({ pendencyId }: { pendencyId: string }) {
 }
 
 /** Wrapper to allow choosing a client when creating from /pendencias header */
-function CreatePendencyDialogWrapper({ open, onOpenChange, clients }: { open: boolean; onOpenChange: (o: boolean) => void; clients: ClientRow[] }) {
+function CreatePendencyDialogWrapper({ open, onOpenChange, clients, onSwitchToImport }: { open: boolean; onOpenChange: (o: boolean) => void; clients: ClientRow[]; onSwitchToImport?: () => void }) {
   const [step, setStep] = useState<"pick" | "form">("pick");
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
   const [search, setSearch] = useState("");
@@ -625,9 +635,16 @@ function CreatePendencyDialogWrapper({ open, onOpenChange, clients }: { open: bo
             </div>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => setStep("form")} disabled={!clientId}>Continuar</Button>
+        <DialogFooter className="flex sm:justify-between gap-2">
+          {onSwitchToImport ? (
+            <Button variant="ghost" onClick={onSwitchToImport} className="gap-1">
+              <FileSpreadsheet className="w-4 h-4" /> Importar planilha
+            </Button>
+          ) : <span />}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button onClick={() => setStep("form")} disabled={!clientId}>Continuar</Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

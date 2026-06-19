@@ -545,6 +545,7 @@ export type Database = {
           gclick_task_id: string | null
           gclick_task_url: string | null
           id: string
+          import_batch_id: string | null
           last_client_submit_at: string | null
           next_followup_at: string | null
           prazo_resposta: string | null
@@ -582,6 +583,7 @@ export type Database = {
           gclick_task_id?: string | null
           gclick_task_url?: string | null
           id?: string
+          import_batch_id?: string | null
           last_client_submit_at?: string | null
           next_followup_at?: string | null
           prazo_resposta?: string | null
@@ -619,6 +621,7 @@ export type Database = {
           gclick_task_id?: string | null
           gclick_task_url?: string | null
           id?: string
+          import_batch_id?: string | null
           last_client_submit_at?: string | null
           next_followup_at?: string | null
           prazo_resposta?: string | null
@@ -639,6 +642,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pendencies_import_batch_id_fkey"
+            columns: ["import_batch_id"]
+            isOneToOne: false
+            referencedRelation: "pendency_import_batches"
             referencedColumns: ["id"]
           },
         ]
@@ -725,6 +735,56 @@ export type Database = {
             columns: ["pendency_id"]
             isOneToOne: false
             referencedRelation: "pendencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pendency_import_batches: {
+        Row: {
+          arquivo_nome: string | null
+          arquivo_path: string | null
+          client_id: string
+          competencia: string
+          created_at: string
+          created_by: string
+          id: string
+          template_type: string
+          total_criadas: number
+          total_linhas: number
+          updated_at: string
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          arquivo_path?: string | null
+          client_id: string
+          competencia: string
+          created_at?: string
+          created_by: string
+          id?: string
+          template_type: string
+          total_criadas?: number
+          total_linhas?: number
+          updated_at?: string
+        }
+        Update: {
+          arquivo_nome?: string | null
+          arquivo_path?: string | null
+          client_id?: string
+          competencia?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          template_type?: string
+          total_criadas?: number
+          total_linhas?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pendency_import_batches_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]

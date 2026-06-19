@@ -10,7 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { SETOR_LABELS, PRIORIDADE_LABELS, type PendencyTipo, type PendencyPrioridade, type PendencySetor, competenciaFromMonthYear } from "@/lib/pendency-types";
-import { Paperclip, X } from "lucide-react";
+import { Paperclip, X, FileSpreadsheet } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const SETORES_INTERNOS: PendencySetor[] = ["fiscal", "departamento_pessoal", "societario"];
 

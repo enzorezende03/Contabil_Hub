@@ -580,7 +580,7 @@ function PortalAccessButton({ pendencyId }: { pendencyId: string }) {
 }
 
 /** Wrapper to allow choosing a client when creating from /pendencias header */
-function CreatePendencyDialogWrapper({ open, onOpenChange, clients }: { open: boolean; onOpenChange: (o: boolean) => void; clients: ClientRow[] }) {
+function CreatePendencyDialogWrapper({ open, onOpenChange, clients, onSwitchToImport }: { open: boolean; onOpenChange: (o: boolean) => void; clients: ClientRow[]; onSwitchToImport?: () => void }) {
   const [step, setStep] = useState<"pick" | "form">("pick");
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
   const [search, setSearch] = useState("");

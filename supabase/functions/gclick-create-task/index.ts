@@ -252,35 +252,62 @@ Deno.serve(async (req) => {
       if (!cred) return json({ ok: true, url: pend.gclick_task_url });
       try {
         const token = await getToken(supabase, cred as Credential);
-        // Tenta buscar a pré-tarefa para descobrir o id da tarefa real gerada
         const paths = [
           `/v2/tarefas/preTarefas/${pend.gclick_task_id}`,
           `/tarefas/preTarefas/${pend.gclick_task_id}`,
+          `/v2/preTarefas/${pend.gclick_task_id}`,
+          `/preTarefas/${pend.gclick_task_id}`,
         ];
         let realId: string | null = null;
+        let lastDump: any = null;
         for (const p of paths) {
           const r = await fetch(`${BASE_URL}${p}`, {
             headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
           });
-          if (!r.ok) continue;
           const txt = await r.text();
+          console.log(`[gclick-resolve] GET ${p} → ${r.status} body=${txt.slice(0, 800)}`);
+          if (!r.ok) continue;
           let d: any; try { d = JSON.parse(txt); } catch { d = null; }
           if (!d) continue;
-          // Possíveis campos onde o GClick guarda o id da tarefa aceita
+          lastDump = d;
           const candidate =
             d?.tarefaId ?? d?.idTarefa ?? d?.tarefa?.id ?? d?.tarefa_id ??
-            (Array.isArray(d?.tarefas) ? d.tarefas[0]?.id : null) ??
-            d?.tarefaGeradaId ?? d?.idTarefaGerada;
+            d?.tarefaGeradaId ?? d?.idTarefaGerada ?? d?.codigoTarefa ?? d?.codigo ??
+            (Array.isArray(d?.tarefas) ? (d.tarefas[0]?.id ?? d.tarefas[0]?.codigo) : null) ??
+            (Array.isArray(d?.tarefasGeradas) ? (d.tarefasGeradas[0]?.id ?? d.tarefasGeradas[0]?.codigo) : null);
           if (candidate) { realId = String(candidate); break; }
         }
+        console.log(`[gclick-resolve] preTarefa=${pend.gclick_task_id} realId=${realId} keys=${lastDump ? Object.keys(lastDump).join(",") : "none"}`);
+
+        if (!realId) {
+          const sParams = [
+            `/tarefas?preTarefaId=${pend.gclick_task_id}`,
+            `/v2/tarefas?preTarefaId=${pend.gclick_task_id}`,
+            `/tarefas/search?preTarefaId=${pend.gclick_task_id}`,
+          ];
+          for (const sp of sParams) {
+            try {
+              const r = await fetch(`${BASE_URL}${sp}`, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } });
+              const txt = await r.text();
+              console.log(`[gclick-resolve-search] GET ${sp} → ${r.status} body=${txt.slice(0, 400)}`);
+              if (!r.ok) continue;
+              let d: any; try { d = JSON.parse(txt); } catch { d = null; }
+              const list = Array.isArray(d) ? d : (d?.content ?? d?.tarefas ?? d?.data ?? []);
+              if (Array.isArray(list) && list.length) {
+                realId = String(list[0]?.id ?? list[0]?.codigo ?? "");
+                if (realId) break;
+              }
+            } catch (e) { console.log("[gclick-resolve-search] err", e); }
+          }
+        }
+
         if (realId) {
           const url = `https://app.gclick.com.br/#/tarefas/${realId}`;
           await supabase.from("pendencies").update({ gclick_task_url: url }).eq("id", pend.id);
           return json({ ok: true, url, real_task_id: realId });
         }
-        // Sem id real — ainda em pré-tarefa
         const fallback = `https://app.gclick.com.br/#/tarefas/pretarefas/${pend.gclick_task_id}`;
-        return json({ ok: true, url: fallback, pending: true });
+        return json({ ok: true, url: fallback, pending: true, dump_keys: lastDump ? Object.keys(lastDump) : [] });
       } catch (e) {
         return json({ ok: true, url: pend.gclick_task_url, error: e instanceof Error ? e.message : String(e) });
       }

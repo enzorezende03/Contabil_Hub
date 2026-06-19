@@ -41,6 +41,7 @@ import {
   criticalityStripeClass,
   criticalityStatusPill,
 } from "@/lib/pendency-criticality";
+import { hasExternalContactHint } from "./RegistrarContatoExternoDialog";
 
 // --- helpers ---------------------------------------------------------------
 

@@ -273,10 +273,11 @@ Deno.serve(async (req) => {
           if (!d) continue;
           lastDump = d;
           const candidate =
-            d?.tarefaId ?? d?.idTarefa ?? d?.tarefa?.id ?? d?.tarefa_id ??
+            d?.eveId ?? d?.eventoId ?? d?.evento_id ?? d?.evento?.id ??
+            d?.tarefaId ?? d?.idTarefa ?? d?.tarefa?.id ?? d?.tarefa?.eveId ?? d?.tarefa_id ??
             d?.tarefaGeradaId ?? d?.idTarefaGerada ?? d?.codigoTarefa ?? d?.codigo ??
-            (Array.isArray(d?.tarefas) ? (d.tarefas[0]?.id ?? d.tarefas[0]?.codigo) : null) ??
-            (Array.isArray(d?.tarefasGeradas) ? (d.tarefasGeradas[0]?.id ?? d.tarefasGeradas[0]?.codigo) : null);
+            (Array.isArray(d?.tarefas) ? (d.tarefas[0]?.eveId ?? d.tarefas[0]?.id ?? d.tarefas[0]?.codigo) : null) ??
+            (Array.isArray(d?.tarefasGeradas) ? (d.tarefasGeradas[0]?.eveId ?? d.tarefasGeradas[0]?.id ?? d.tarefasGeradas[0]?.codigo) : null);
           if (candidate) { realId = String(candidate); break; }
         }
         console.log(`[gclick-resolve] preTarefa=${pend.gclick_task_id} realId=${realId} keys=${lastDump ? Object.keys(lastDump).join(",") : "none"}`);
@@ -296,7 +297,7 @@ Deno.serve(async (req) => {
               let d: any; try { d = JSON.parse(txt); } catch { d = null; }
               const list = Array.isArray(d) ? d : (d?.content ?? d?.tarefas ?? d?.data ?? []);
               if (Array.isArray(list) && list.length) {
-                realId = String(list[0]?.id ?? list[0]?.codigo ?? "");
+                realId = String(list[0]?.eveId ?? list[0]?.id ?? list[0]?.codigo ?? "");
                 if (realId) break;
               }
             } catch (e) { console.log("[gclick-resolve-search] err", e); }
@@ -304,7 +305,11 @@ Deno.serve(async (req) => {
         }
 
         if (realId) {
-          const url = `https://app.gclick.com.br/#/tarefas/${realId}`;
+          // O GClick usa URL clássica: csListar.do?obj=csevento&csid=<sistema>&eveId=<evento>&empId=<empresa>
+          // Se realId vier no formato "3.37400" (sistema.evento), separamos.
+          let eveId = realId;
+          if (/^\d+\.\d+$/.test(realId)) eveId = realId.split(".")[1];
+          const url = buildLegacyUrl(eveId);
           await supabase.from("pendencies").update({ gclick_task_url: url }).eq("id", pend.id);
           return json({ ok: true, url, real_task_id: realId });
         }

@@ -222,8 +222,8 @@ export default function PendenciasPage() {
       </div>
 
       {/* Dialogs */}
-      {createOpen && createCtx && (
-        <CreatePendencyDialogWrapper
+      {createOpen && (
+        <CreatePendencyDialog
           open={createOpen}
           onOpenChange={setCreateOpen}
           clients={clients}

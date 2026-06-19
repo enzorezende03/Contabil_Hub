@@ -34,7 +34,10 @@ export default function GClickIntegrationSettings() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [listingId, setListingId] = useState<string | null>(null);
+  const [departamentos, setDepartamentos] = useState<Record<string, { id: string; nome: string }[]>>({});
   const [recentErrors, setRecentErrors] = useState<any[]>([]);
+
 
   async function load() {
     setLoading(true);

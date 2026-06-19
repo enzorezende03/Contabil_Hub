@@ -13,7 +13,9 @@ const BASE_URL = "https://api.gclick.com.br";
 interface ReqBody {
   pendency_id?: string;
   test_unidade?: string; // quando setado, apenas testa /oauth/token e retorna
+  list_departamentos?: string; // unidade — retorna lista de departamentos do GClick
 }
+
 
 interface Credential {
   id: string;

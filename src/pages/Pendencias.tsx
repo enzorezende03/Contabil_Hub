@@ -624,28 +624,34 @@ function CreatePendencyDialogWrapper({ open, onOpenChange, clients, onSwitchToIm
               value={search}
               onChange={(e) => { setSearch(e.target.value); if (clientId) setClientId(""); }}
             />
-            <div className="max-h-56 overflow-y-auto rounded-md border bg-background">
-              {filteredClients.length === 0 ? (
-                <div className="px-3 py-6 text-center text-xs text-muted-foreground">
-                  {clients.length === 0 ? "Nenhum cliente cadastrado" : "Nenhum cliente encontrado"}
-                </div>
-              ) : (
-                filteredClients.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => { setClientId(c.id); setSearch(c.razao_social); }}
-                    className={cn(
-                      "w-full text-left px-3 py-2 text-sm hover:bg-muted border-b last:border-b-0 transition-colors",
-                      clientId === c.id && "bg-primary/10 text-primary font-medium"
-                    )}
-                  >
-                    <div className="truncate">{c.razao_social}</div>
-                    {c.cnpj && <div className="text-[10px] text-muted-foreground font-mono">{c.cnpj}</div>}
-                  </button>
-                ))
-              )}
-            </div>
+            {search.trim() ? (
+              <div className="max-h-56 overflow-y-auto rounded-md border bg-background">
+                {filteredClients.length === 0 ? (
+                  <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                    {clients.length === 0 ? "Nenhum cliente cadastrado" : "Nenhum cliente encontrado"}
+                  </div>
+                ) : (
+                  filteredClients.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => { setClientId(c.id); setSearch(c.razao_social); }}
+                      className={cn(
+                        "w-full text-left px-3 py-2 text-sm hover:bg-muted border-b last:border-b-0 transition-colors",
+                        clientId === c.id && "bg-primary/10 text-primary font-medium"
+                      )}
+                    >
+                      <div className="truncate">{c.razao_social}</div>
+                      {c.cnpj && <div className="text-[10px] text-muted-foreground font-mono">{c.cnpj}</div>}
+                    </button>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="px-3 py-3 text-center text-xs text-muted-foreground rounded-md border border-dashed">
+                Digite para pesquisar o cliente
+              </div>
+            )}
             {selected && (
               <div className="text-[11px] text-muted-foreground">
                 Selecionado: <span className="font-medium text-foreground">{selected.razao_social}</span>

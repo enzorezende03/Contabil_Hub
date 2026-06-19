@@ -231,14 +231,6 @@ Deno.serve(async (req) => {
       return json({ ok: false, code: "not_configured", error: msg });
     }
     const setor = pend.setor_responsavel || "outros";
-    const tag = cred.tag_por_setor?.[setor];
-    if (!tag) {
-      const msg = `Tag GClick não configurada para o setor "${setor}" na unidade "${client.unidade}". Configure em Configurações → Integrações.`;
-      await supabase.from("pendencies").update({
-        gclick_sync_error: msg, gclick_synced_at: new Date().toISOString(), gclick_status: "nao_configurado",
-      }).eq("id", pend.id);
-      return json({ ok: false, code: "tag_missing", error: msg });
-    }
 
     // Token
     let token: string;
@@ -303,14 +295,10 @@ Deno.serve(async (req) => {
     const payload: Record<string, unknown> = {
       inscricao: cnpj,
       sistema: cred.sistema_id,
-      tag,
       assunto,
       andamento,
       arquivos: [] as unknown[],
     };
-    if (cred.usuario && cred.usuario.trim()) {
-      payload.usuario = cred.usuario.trim();
-    }
 
     const result = await createPreTarefa(token, payload);
     if (!result.ok) {

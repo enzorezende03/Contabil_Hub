@@ -148,6 +148,9 @@ async function createPreTarefa(
   const text = await resp.text();
   let data: any;
   try { data = JSON.parse(text); } catch { data = { raw: text }; }
+  if (!resp.ok || data?.status === "erro" || (Array.isArray(data?.respostas) && data.respostas.some((r: any) => r?.status !== "sucesso"))) {
+    console.log(`[gclick-create] status=${resp.status} response=${text.slice(0, 1000)}`);
+  }
   if (!resp.ok) {
     return { ok: false, msg: `GClick HTTP ${resp.status}: ${text.slice(0, 300)}`, raw: data };
   }
@@ -314,6 +317,7 @@ Deno.serve(async (req) => {
 
     const payload: Record<string, unknown> = {
       inscricao: cnpj,
+      usuario: cred.usuario?.trim() || "gclickbot",
       sistema: cred.sistema_id,
       pretarefas: [
         {

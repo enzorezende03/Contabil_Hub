@@ -23,7 +23,7 @@ import { ImportPendenciesDialog } from "@/components/ImportPendenciesDialog";
 import { AlertCircle, Clock, CheckCircle2, Inbox, Plus, Pause, Play, Building2, History, ExternalLink, RefreshCw, Link2, Copy, KeyRound, FileSpreadsheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface ClientRow { id: string; razao_social: string; cnpj: string; }
+interface ClientRow { id: string; razao_social: string; cnpj: string; unidade: string | null; }
 
 export default function PendenciasPage() {
   const { user } = useAuth();
@@ -46,7 +46,7 @@ export default function PendenciasPage() {
   const { data: clients = [] } = useQuery({
     queryKey: ["clients-min"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("clients").select("id, razao_social, cnpj").order("razao_social");
+      const { data, error } = await supabase.from("clients").select("id, razao_social, cnpj, unidade").order("razao_social");
       if (error) throw error;
       return (data || []) as ClientRow[];
     },
@@ -208,6 +208,7 @@ export default function PendenciasPage() {
                     pendency={p}
                     clientName={clientMap.get(p.client_id)?.razao_social || "—"}
                     responsavelName={profileMap.get(p.responsavel_id) || "—"}
+                    clientUnidade={clientMap.get(p.client_id)?.unidade || null}
                     onCobrar={() => setCobrarPendency(p)}
                     onResolver={() => setResolvePendency(p)}
                     onPausar={() => setPausePendency(p)}
@@ -277,10 +278,12 @@ function GclickBadge({ pendency: p }: { pendency: Pendency }) {
     setSending(false);
     if (data?.code === "not_configured") {
       toast.warning("Integração GClick não configurada. Configure os secrets em Configurações → Integrações para sincronizar automaticamente.", { duration: 8000 });
+    } else if (data?.code === "skipped") {
+      toast.info(data.message || "Esta unidade não utiliza GClick.");
     } else if (error || !data?.ok) {
       toast.error(`Falha ao sincronizar com GClick: ${data?.error || error?.message || "erro desconhecido"}`);
     } else {
-      toast.success(`Sincronizada no GClick (${data.instancia})`);
+      toast.success(data.instancia ? `Sincronizada no GClick (${data.instancia})` : "Sincronizada no GClick");
     }
     qc.invalidateQueries({ queryKey: ["pendencies"] });
   }
@@ -299,13 +302,13 @@ function GclickBadge({ pendency: p }: { pendency: Pendency }) {
       </a>
     );
   }
-  if (p.gclick_status === "nao_configurado") {
+  if (p.gclick_status === "nao_configurado" || p.gclick_status === "nao_aplicavel") {
     return (
       <span
         className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-amber-500/15 text-amber-700 border-amber-500/30 inline-flex items-center gap-1"
-        title={p.gclick_sync_error || "Integração GClick não configurada"}
+        title={p.gclick_status === "nao_aplicavel" ? "Unidade não utiliza GClick" : p.gclick_sync_error || "Integração GClick não configurada"}
       >
-        GClick não configurado
+        {p.gclick_status === "nao_aplicavel" ? "GClick não aplicável" : "GClick não configurado"}
       </span>
     );
   }
@@ -335,9 +338,9 @@ function GclickBadge({ pendency: p }: { pendency: Pendency }) {
   );
 }
 
-function PendencyCard({ pendency: p, clientName, responsavelName, onCobrar, onResolver, onPausar, onDetalhes }: {
+function PendencyCard({ pendency: p, clientName, responsavelName, clientUnidade, onCobrar, onResolver, onPausar, onDetalhes }: {
 
-  pendency: Pendency; clientName: string; responsavelName: string;
+  pendency: Pendency; clientName: string; responsavelName: string; clientUnidade: string | null;
   onCobrar: () => void; onResolver: () => void; onPausar: () => void; onDetalhes: () => void;
 }) {
   const aberta = diasAberta(p.created_at);
@@ -379,7 +382,7 @@ function PendencyCard({ pendency: p, clientName, responsavelName, onCobrar, onRe
             {followupBadge && (
               <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border", followupBadge.className)}>{followupBadge.label}</span>
             )}
-            {p.tipo === "interna" && <GclickBadge pendency={p} />}
+            {p.tipo === "interna" && clientUnidade !== "2m_saude" && <GclickBadge pendency={p} />}
           </div>
           <div className="text-sm">
             {p.tipo === "externa" ? (

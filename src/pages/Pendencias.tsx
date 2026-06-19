@@ -146,6 +146,27 @@ export default function PendenciasPage() {
     };
   }, [pendencies]);
 
+  function applyKpiFilter(key: NonNullable<typeof kpiFilter>) {
+    if (kpiFilter === key) {
+      setKpiFilter(null);
+      return;
+    }
+    setKpiFilter(key);
+    if (key === "resolvidasMes") {
+      setTab("resolvidas");
+    } else if (tab === "resolvidas") {
+      setTab("externas");
+    }
+    if (key === "abertas") {
+      setSearch("");
+      setFilterStatus("all");
+      setFilterPrioridade("all");
+      setFilterResponsavel("mine");
+      setFilterSetor("all");
+      setFilterCobrarHoje(false);
+    }
+  }
+
   return (
     <AppLayout>
       <div className="p-4 md:p-6 space-y-4 md:space-y-5 max-w-[1400px] mx-auto">

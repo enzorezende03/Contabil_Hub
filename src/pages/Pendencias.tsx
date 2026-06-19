@@ -759,6 +759,60 @@ function ResolveDialog({ pendency, clientName, onClose }: { pendency: Pendency; 
   );
 }
 
+function DeleteDialog({ pendency, clientName, onClose }: { pendency: Pendency; clientName?: string; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  async function save() {
+    const motivo = reason.trim();
+    if (!motivo) { toast.error("Informe a justificativa da exclusão"); return; }
+    setSaving(true);
+    const stamp = new Date().toLocaleString("pt-BR");
+    const prev = pendency.resolution_notes ? `${pendency.resolution_notes}\n\n` : "";
+    const { error } = await supabase.from("pendencies").update({
+      status: "cancelada",
+      resolved_at: new Date().toISOString(),
+      resolution_notes: `${prev}[EXCLUÍDA em ${stamp}] ${motivo}`,
+      followup_paused: true,
+    }).eq("id", pendency.id);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Pendência excluída com justificativa registrada");
+    qc.invalidateQueries({ queryKey: ["pendencies"] });
+    onClose();
+  }
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-red-600">Excluir pendência</DialogTitle>
+          <DialogDescription>
+            {clientName} — {pendency.documento_solicitado || pendency.descricao.slice(0, 60)}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2 py-2">
+          <div className="text-xs text-muted-foreground bg-amber-500/10 border border-amber-500/30 rounded p-2">
+            A pendência será marcada como <strong>cancelada</strong> e o motivo ficará registrado no histórico para auditoria.
+          </div>
+          <Label>Justificativa <span className="text-red-500">*</span></Label>
+          <Textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            rows={3}
+            placeholder="Ex.: Pendência criada em duplicidade / cliente não é mais da carteira / etc."
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={save} disabled={saving} className="bg-red-600 hover:bg-red-700 text-white">
+            {saving ? "Excluindo..." : "Confirmar exclusão"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function PauseDialog({ pendency, onClose }: { pendency: Pendency; onClose: () => void }) {
   const qc = useQueryClient();
   const [mode, setMode] = useState<"date" | "indef">("date");

@@ -128,9 +128,6 @@ export default function PendenciasPage() {
             <p className="text-sm text-muted-foreground">Painel de cobrança de pendências internas e externas.</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setImportOpen(true)} disabled={!clients.length}>
-              <FileSpreadsheet className="w-4 h-4 mr-1" /> Importar planilha
-            </Button>
             <Button onClick={() => setCreateOpen(true)} disabled={!clients.length}>
               <Plus className="w-4 h-4 mr-1" /> Nova pendência
             </Button>

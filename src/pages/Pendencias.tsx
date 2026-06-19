@@ -289,9 +289,10 @@ function GclickBadge({ pendency: p }: { pendency: Pendency }) {
   }
 
   if (p.gclick_task_id) {
+    const url = p.gclick_task_url || `https://app.gclick.com.br/#/tarefas/${p.gclick_task_id}`;
     return (
       <a
-        href={p.gclick_task_url || "#"}
+        href={url}
         target="_blank"
         rel="noreferrer"
         onClick={(e) => e.stopPropagation()}

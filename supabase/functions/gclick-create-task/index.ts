@@ -279,12 +279,14 @@ Deno.serve(async (req) => {
       profile?.display_name ? `Solicitado por: ${profile.display_name}` : null,
     ].filter(Boolean).join("\n");
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       inscricao: cnpj,
-      usuario: cred.usuario,
       sistema: cred.sistema_id,
       preTarefas: [{ tag, assunto, andamento, arquivos: [] as unknown[] }],
     };
+    if (cred.usuario && cred.usuario.trim()) {
+      payload.usuario = cred.usuario.trim();
+    }
 
     const result = await createPreTarefa(token, payload);
     if (!result.ok) {

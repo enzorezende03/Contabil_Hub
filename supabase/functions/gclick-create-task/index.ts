@@ -303,7 +303,10 @@ Deno.serve(async (req) => {
     const payload: Record<string, unknown> = {
       inscricao: cnpj,
       sistema: cred.sistema_id,
-      preTarefas: [{ tag, assunto, andamento, arquivos: [] as unknown[] }],
+      tag,
+      assunto,
+      andamento,
+      arquivos: [] as unknown[],
     };
     if (cred.usuario && cred.usuario.trim()) {
       payload.usuario = cred.usuario.trim();

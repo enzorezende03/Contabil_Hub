@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   MoreHorizontal,
   Pause,
@@ -163,8 +163,28 @@ export function PendencyCardCompact({
   const primaryActionLabel =
     p.status === "aguardando_resposta" || p.total_contatos > 0 ? "Cobrar novamente" : "Cobrar agora";
 
+  // Long-press → toggle selection (mobile)
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressed = useRef(false);
+  function startLongPress() {
+    if (!selectable || !onToggleSelected) return;
+    longPressed.current = false;
+    pressTimer.current = setTimeout(() => {
+      longPressed.current = true;
+      onToggleSelected();
+    }, 450);
+  }
+  function cancelLongPress() {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+  }
+
   return (
     <div
+      onTouchStart={startLongPress}
+      onTouchEnd={cancelLongPress}
+      onTouchMove={cancelLongPress}
+      onTouchCancel={cancelLongPress}
       className={cn(
         "group rounded-lg border bg-card transition-colors hover:border-primary/40",
         "px-3 py-2.5",
@@ -172,15 +192,15 @@ export function PendencyCardCompact({
         selected && "ring-1 ring-primary/40 border-primary/40 bg-primary/[0.03]",
       )}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
         {selectable && (
           <label
             className={cn(
               "shrink-0 flex items-center justify-center w-4 h-4 mt-0.5 rounded border cursor-pointer transition",
               selected
                 ? "bg-primary border-primary text-primary-foreground"
-                : "bg-card border-input opacity-0 group-hover:opacity-100",
-              selectionActive && "opacity-100",
+                : "bg-card border-input md:opacity-0 md:group-hover:opacity-100",
+              selectionActive && "opacity-100 md:opacity-100",
             )}
             onClick={(e) => e.stopPropagation()}
           >
@@ -274,14 +294,14 @@ export function PendencyCardCompact({
 
         {/* Right: actions */}
         {!finalizada && (
-          <div className="flex items-center gap-1 shrink-0">
-            <Button size="sm" className="h-7 px-2.5 text-xs" onClick={onCobrar}>
+          <div className="flex items-center gap-1 shrink-0 w-full sm:w-auto justify-end">
+            <Button size="sm" className="h-7 px-2.5 text-xs flex-1 sm:flex-none" onClick={onCobrar}>
               {primaryActionLabel}
             </Button>
             <Button
               size="sm"
               variant="outline"
-              className="h-7 px-2.5 text-xs"
+              className="h-7 px-2.5 text-xs flex-1 sm:flex-none"
               onClick={onResolver}
             >
               Resolver

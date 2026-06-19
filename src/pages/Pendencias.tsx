@@ -334,6 +334,14 @@ export default function PendenciasPage() {
           clientName={clientMap.get(cobrarPendency.client_id)?.razao_social}
         />
       )}
+      {externoPendency && (
+        <RegistrarContatoExternoDialog
+          open={!!externoPendency}
+          onOpenChange={(o) => !o && setExternoPendency(null)}
+          pendency={externoPendency}
+          clientName={clientMap.get(externoPendency.client_id)?.razao_social}
+        />
+      )}
       {resolvePendency && (
         <ResolveDialog pendency={resolvePendency} onClose={() => setResolvePendency(null)} clientName={clientMap.get(resolvePendency.client_id)?.razao_social} />
       )}

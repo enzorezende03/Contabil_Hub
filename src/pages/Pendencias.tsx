@@ -635,9 +635,16 @@ function CreatePendencyDialogWrapper({ open, onOpenChange, clients, onSwitchToIm
             </div>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => setStep("form")} disabled={!clientId}>Continuar</Button>
+        <DialogFooter className="flex sm:justify-between gap-2">
+          {onSwitchToImport ? (
+            <Button variant="ghost" onClick={onSwitchToImport} className="gap-1">
+              <FileSpreadsheet className="w-4 h-4" /> Importar planilha
+            </Button>
+          ) : <span />}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button onClick={() => setStep("form")} disabled={!clientId}>Continuar</Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

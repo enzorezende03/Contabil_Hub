@@ -23,7 +23,7 @@ import { ImportPendenciesDialog } from "@/components/ImportPendenciesDialog";
 import { AlertCircle, Clock, CheckCircle2, Inbox, Plus, Pause, Play, Building2, History, ExternalLink, RefreshCw, Link2, Copy, KeyRound, FileSpreadsheet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface ClientRow { id: string; razao_social: string; cnpj: string; }
+interface ClientRow { id: string; razao_social: string; cnpj: string; unidade: string | null; }
 
 export default function PendenciasPage() {
   const { user } = useAuth();
@@ -46,7 +46,7 @@ export default function PendenciasPage() {
   const { data: clients = [] } = useQuery({
     queryKey: ["clients-min"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("clients").select("id, razao_social, cnpj").order("razao_social");
+      const { data, error } = await supabase.from("clients").select("id, razao_social, cnpj, unidade").order("razao_social");
       if (error) throw error;
       return (data || []) as ClientRow[];
     },
@@ -208,6 +208,7 @@ export default function PendenciasPage() {
                     pendency={p}
                     clientName={clientMap.get(p.client_id)?.razao_social || "—"}
                     responsavelName={profileMap.get(p.responsavel_id) || "—"}
+                    clientUnidade={clientMap.get(p.client_id)?.unidade || null}
                     onCobrar={() => setCobrarPendency(p)}
                     onResolver={() => setResolvePendency(p)}
                     onPausar={() => setPausePendency(p)}

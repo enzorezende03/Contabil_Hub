@@ -45,6 +45,7 @@ export default function PendenciasPage() {
   const [filterResponsavel, setFilterResponsavel] = useState<string>("mine");
   const [filterSetor, setFilterSetor] = useState<string>("all");
   const [filterCobrarHoje, setFilterCobrarHoje] = useState(false);
+  const [kpiFilter, setKpiFilter] = useState<"abertas" | "criticas" | "semContato7d" | "resolvidasMes" | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [createCtx, setCreateCtx] = useState<{ clientId: string; clientName?: string } | null>(null);

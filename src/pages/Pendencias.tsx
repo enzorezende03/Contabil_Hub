@@ -45,6 +45,7 @@ export default function PendenciasPage() {
   const [filterResponsavel, setFilterResponsavel] = useState<string>("mine");
   const [filterSetor, setFilterSetor] = useState<string>("all");
   const [filterCobrarHoje, setFilterCobrarHoje] = useState(false);
+  const [kpiFilter, setKpiFilter] = useState<"abertas" | "criticas" | "semContato7d" | "resolvidasMes" | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [createCtx, setCreateCtx] = useState<{ clientId: string; clientName?: string } | null>(null);
@@ -106,6 +107,18 @@ export default function PendenciasPage() {
     if (tab === "internas" && filterSetor !== "all") list = list.filter((p) => p.setor_responsavel === filterSetor);
     if (filterCobrarHoje) list = list.filter((p) => !p.followup_paused && p.next_followup_at && new Date(p.next_followup_at) <= new Date());
 
+    if (kpiFilter === "criticas") list = list.filter((p) => pendencyCriticality(p) === "critica");
+    if (kpiFilter === "semContato7d") {
+      list = list.filter((p) => {
+        if (!p.ultimo_contato_em) return diasAberta(p.created_at) > 7;
+        return diasUltimoContato(p.ultimo_contato_em)! > 7;
+      });
+    }
+    if (kpiFilter === "resolvidasMes") {
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      list = list.filter((p) => p.status === "resolvida" && p.resolved_at && new Date(p.resolved_at) >= monthStart);
+    }
+
     // Default sort: criticidade desc (críticas no topo) → mais antigas primeiro
     return [...list].sort((a, b) => {
       const ra = criticalityRank(pendencyCriticality(a));
@@ -117,7 +130,7 @@ export default function PendenciasPage() {
       if (aLast !== bLast) return aLast - bLast;
       return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     });
-  }, [pendencies, tab, search, filterStatus, filterPrioridade, filterResponsavel, filterSetor, filterCobrarHoje, user?.id, clientMap]);
+  }, [pendencies, tab, search, filterStatus, filterPrioridade, filterResponsavel, filterSetor, filterCobrarHoje, kpiFilter, user?.id, clientMap]);
 
   // KPIs (sempre sobre todas as pendências, não filtradas)
   const kpis = useMemo(() => {
@@ -145,6 +158,27 @@ export default function PendenciasPage() {
     };
   }, [pendencies]);
 
+  function applyKpiFilter(key: NonNullable<typeof kpiFilter>) {
+    if (kpiFilter === key) {
+      setKpiFilter(null);
+      return;
+    }
+    setKpiFilter(key);
+    if (key === "resolvidasMes") {
+      setTab("resolvidas");
+    } else if (tab === "resolvidas") {
+      setTab("externas");
+    }
+    if (key === "abertas") {
+      setSearch("");
+      setFilterStatus("all");
+      setFilterPrioridade("all");
+      setFilterResponsavel("mine");
+      setFilterSetor("all");
+      setFilterCobrarHoje(false);
+    }
+  }
+
   return (
     <AppLayout>
       <div className="p-4 md:p-6 space-y-4 md:space-y-5 max-w-[1400px] mx-auto">
@@ -162,14 +196,14 @@ export default function PendenciasPage() {
 
         {/* KPIs compactos */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <KpiBlock icon={Inbox} label="Abertas" value={kpis.abertas} color="text-foreground" />
-          <KpiBlock icon={AlertCircle} label="Críticas" value={kpis.criticas} color={kpis.criticas > 0 ? "text-destructive" : "text-foreground"} />
-          <KpiBlock icon={Clock} label="Sem contato > 7d" value={kpis.semContato7d} color={kpis.semContato7d > 0 ? "text-orange-500" : "text-foreground"} />
-          <KpiBlock icon={CheckCircle2} label="Resolvidas no mês" value={kpis.resolvidasMes} color="text-emerald-500" />
+          <KpiBlock icon={Inbox} label="Abertas" value={kpis.abertas} color="text-foreground" active={kpiFilter === "abertas"} onClick={() => applyKpiFilter("abertas")} />
+          <KpiBlock icon={AlertCircle} label="Críticas" value={kpis.criticas} color={kpis.criticas > 0 ? "text-destructive" : "text-foreground"} active={kpiFilter === "criticas"} onClick={() => applyKpiFilter("criticas")} />
+          <KpiBlock icon={Clock} label="Sem contato > 7d" value={kpis.semContato7d} color={kpis.semContato7d > 0 ? "text-orange-500" : "text-foreground"} active={kpiFilter === "semContato7d"} onClick={() => applyKpiFilter("semContato7d")} />
+          <KpiBlock icon={CheckCircle2} label="Resolvidas no mês" value={kpis.resolvidasMes} color="text-emerald-500" active={kpiFilter === "resolvidasMes"} onClick={() => applyKpiFilter("resolvidasMes")} />
         </div>
 
         {/* Tabs */}
-        <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
+        <Tabs value={tab} onValueChange={(v) => { setTab(v as any); setKpiFilter(null); }}>
           <TabsList>
             <TabsTrigger value="externas">Externas <span className="ml-1.5 text-[10px] opacity-70">({tabCounts.externas})</span></TabsTrigger>
             <TabsTrigger value="internas">Internas <span className="ml-1.5 text-[10px] opacity-70">({tabCounts.internas})</span></TabsTrigger>
@@ -360,9 +394,30 @@ export default function PendenciasPage() {
   );
 }
 
-function KpiBlock({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
+function KpiBlock({
+  icon: Icon,
+  label,
+  value,
+  color,
+  active,
+  onClick,
+}: {
+  icon: any;
+  label: string;
+  value: number;
+  color: string;
+  active?: boolean;
+  onClick?: () => void;
+}) {
   return (
-    <div className="rounded-lg border bg-card px-3 py-2 flex items-center gap-2.5 min-h-[60px]">
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "w-full text-left rounded-lg border bg-card px-3 py-2 flex items-center gap-2.5 min-h-[60px] transition-colors hover:bg-muted/30",
+        active && "ring-1 ring-primary border-primary/50 bg-primary/[0.03]",
+      )}
+    >
       <div className={cn("p-1.5 rounded-md bg-muted/50 shrink-0", color)}>
         <Icon className="w-3.5 h-3.5" />
       </div>
@@ -370,7 +425,7 @@ function KpiBlock({ icon: Icon, label, value, color }: { icon: any; label: strin
         <div className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">{label}</div>
         <div className={cn("text-xl font-bold leading-tight", color)}>{value}</div>
       </div>
-    </div>
+    </button>
   );
 }
 

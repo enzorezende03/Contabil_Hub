@@ -165,9 +165,30 @@ export function PendencyCardCompact({
         "group rounded-lg border bg-card transition-colors hover:border-primary/40",
         "px-3 py-2.5",
         criticalityStripeClass(criticality),
+        selected && "ring-1 ring-primary/40 border-primary/40 bg-primary/[0.03]",
       )}
     >
       <div className="flex items-start gap-3">
+        {selectable && (
+          <label
+            className={cn(
+              "shrink-0 flex items-center justify-center w-4 h-4 mt-0.5 rounded border cursor-pointer transition",
+              selected
+                ? "bg-primary border-primary text-primary-foreground"
+                : "bg-card border-input opacity-0 group-hover:opacity-100",
+              selectionActive && "opacity-100",
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={onToggleSelected}
+              className="sr-only"
+            />
+            {selected && <Check className="w-3 h-3" />}
+          </label>
+        )}
         {/* Left: content */}
         <div className="flex-1 min-w-0">
           {/* Row 1: client + competência + priority + status pill */}

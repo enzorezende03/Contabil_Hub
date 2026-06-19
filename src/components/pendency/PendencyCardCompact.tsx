@@ -294,14 +294,14 @@ export function PendencyCardCompact({
 
         {/* Right: actions */}
         {!finalizada && (
-          <div className="flex items-center gap-1 shrink-0">
-            <Button size="sm" className="h-7 px-2.5 text-xs" onClick={onCobrar}>
+          <div className="flex items-center gap-1 shrink-0 w-full sm:w-auto justify-end">
+            <Button size="sm" className="h-7 px-2.5 text-xs flex-1 sm:flex-none" onClick={onCobrar}>
               {primaryActionLabel}
             </Button>
             <Button
               size="sm"
               variant="outline"
-              className="h-7 px-2.5 text-xs"
+              className="h-7 px-2.5 text-xs flex-1 sm:flex-none"
               onClick={onResolver}
             >
               Resolver

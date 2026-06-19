@@ -98,6 +98,10 @@ export interface PendencyCardCompactProps {
   onExcluir: () => void;
   onLinkPortal?: () => void;
   onReassigned?: () => void;
+  selectable?: boolean;
+  selected?: boolean;
+  selectionActive?: boolean;
+  onToggleSelected?: () => void;
 }
 
 // --- component -------------------------------------------------------------

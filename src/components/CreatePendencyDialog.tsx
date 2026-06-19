@@ -67,6 +67,28 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId: clientIdPro
   // Resultado da geração de link (mostrado após criar)
   const [generatedLink, setGeneratedLink] = useState<{ url: string; code: string } | null>(null);
 
+  // Estado interno para quando o cliente / competência não vêm como props
+  const now = new Date();
+  const [pickedClientId, setPickedClientId] = useState<string>("");
+  const [clientSearch, setClientSearch] = useState("");
+  const [pickedMonth, setPickedMonth] = useState<string>(String(now.getMonth() + 1).padStart(2, "0"));
+  const [pickedYear, setPickedYear] = useState<string>(String(now.getFullYear()));
+
+  const clientId = clientIdProp || pickedClientId;
+  const selectedClient = clients?.find((c) => c.id === pickedClientId);
+  const clientName = clientNameProp || selectedClient?.razao_social;
+  const month = monthProp || pickedMonth;
+  const year = yearProp || pickedYear;
+
+  const filteredClients = (() => {
+    if (!clients) return [];
+    const q = clientSearch.trim().toLowerCase();
+    if (!q) return clients.slice(0, 50);
+    return clients.filter((c) =>
+      c.razao_social.toLowerCase().includes(q) || (c.cnpj || "").toLowerCase().includes(q)
+    ).slice(0, 50);
+  })();
+
   useEffect(() => {
     if (!open) return;
     setResponsavelId(user?.id ?? "");
@@ -77,7 +99,7 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId: clientIdPro
 
   // Carrega contatos do cliente quando o dialog abre
   useEffect(() => {
-    if (!open || !clientId) return;
+    if (!open || !clientId) { setContacts([]); setContatoId(""); return; }
     supabase
       .from("client_contacts")
       .select("id, nome, email, is_default")
@@ -94,6 +116,8 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId: clientIdPro
   }, [open, clientId]);
 
   const finalCompetencia = competencia || (month && year ? competenciaFromMonthYear(month, year) : "");
+
+
 
   async function handleSave() {
     if (!user || !finalCompetencia) { toast.error("Faltam dados de contexto"); return; }

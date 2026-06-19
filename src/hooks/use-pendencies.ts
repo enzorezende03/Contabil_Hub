@@ -45,6 +45,7 @@ export function usePendencies(filters: PendencyFilters = {}) {
       .on("postgres_changes", { event: "*", schema: "public", table: "pendencies" }, () => {
         qc.invalidateQueries({ queryKey: ["pendencies"] });
         qc.invalidateQueries({ queryKey: ["pendencies-by-cell"] });
+        qc.invalidateQueries({ queryKey: ["pendencies-by-planning"] });
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "pendency_communications" }, () => {
         qc.invalidateQueries({ queryKey: ["pendencies"] });

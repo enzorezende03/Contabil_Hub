@@ -248,6 +248,9 @@ export default function PendenciasPage() {
       {pausePendency && (
         <PauseDialog pendency={pausePendency} onClose={() => setPausePendency(null)} />
       )}
+      {deletePendency && (
+        <DeleteDialog pendency={deletePendency} onClose={() => setDeletePendency(null)} clientName={clientMap.get(deletePendency.client_id)?.razao_social} />
+      )}
       {detailsPendency && (
         <DetailsDialog pendency={detailsPendency} onClose={() => setDetailsPendency(null)} clientName={clientMap.get(detailsPendency.client_id)?.razao_social} responsavelName={profileMap.get(detailsPendency.responsavel_id) || "—"} />
       )}

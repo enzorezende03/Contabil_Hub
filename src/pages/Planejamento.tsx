@@ -373,12 +373,31 @@ export default function PlanejamentoPage() {
                   </div>
                   <div className="space-y-2">
                     {col.map((d) => {
-                      const u = d.status === "completed" ? "normal" : getDeadlineUrgency(d.internalDeadline);
+                      const isCompleted = d.status === "completed";
+                      const u = isCompleted ? "normal" : getDeadlineUrgency(d.internalDeadline);
                       const cardTone = isPaused
                         ? "bg-card border-amber-500/40 hover:border-amber-500"
+                        : isCompleted ? "bg-muted/40 border-muted/50 hover:border-muted"
                         : u === "overdue" ? "bg-status-late/10 border-status-late/40 hover:border-status-late" :
                           u === "today" || u === "soon" ? "bg-status-waiting/10 border-status-waiting/40 hover:border-status-waiting" :
                           "bg-card hover:border-primary/30";
+                      if (isCompleted) {
+                        return (
+                          <div key={d.id} onClick={() => setEditPlanning(d)} className={`rounded-lg border px-2 py-1.5 transition-colors cursor-pointer ${cardTone}`}>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-muted-foreground">
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                              </span>
+                              <p className="text-xs font-medium leading-tight text-muted-foreground truncate">{d.client}</p>
+                              <span className={`text-[9px] font-medium px-1 py-0 rounded ${
+                                d.priority === "urgente" ? "bg-destructive/10 text-destructive" :
+                                d.priority === "alta" ? "bg-status-waiting/10 text-status-waiting" :
+                                "bg-muted text-muted-foreground"
+                              }`}>{PRIORITY_LABELS[d.priority]}</span>
+                            </div>
+                          </div>
+                        );
+                      }
                       return (
                       <div key={d.id} onClick={() => setEditPlanning(d)} className={`rounded-lg border p-3 transition-colors cursor-pointer ${cardTone}`}>
                         <div className="flex items-start justify-between mb-1.5">

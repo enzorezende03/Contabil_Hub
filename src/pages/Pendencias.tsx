@@ -130,7 +130,7 @@ export default function PendenciasPage() {
             <Button variant="outline" onClick={() => setImportOpen(true)} disabled={!clients.length}>
               <FileSpreadsheet className="w-4 h-4 mr-1" /> Importar planilha
             </Button>
-            <Button onClick={() => { setCreateCtx({ clientId: clients[0]?.id ?? "", clientName: clients[0]?.razao_social }); setCreateOpen(true); }} disabled={!clients.length}>
+            <Button onClick={() => setCreateOpen(true)} disabled={!clients.length}>
               <Plus className="w-4 h-4 mr-1" /> Nova pendência
             </Button>
           </div>
@@ -222,8 +222,8 @@ export default function PendenciasPage() {
       </div>
 
       {/* Dialogs */}
-      {createOpen && createCtx && (
-        <CreatePendencyDialogWrapper
+      {createOpen && (
+        <CreatePendencyDialog
           open={createOpen}
           onOpenChange={setCreateOpen}
           clients={clients}

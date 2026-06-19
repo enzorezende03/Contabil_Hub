@@ -10,18 +10,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { SETOR_LABELS, PRIORIDADE_LABELS, type PendencyTipo, type PendencyPrioridade, type PendencySetor, competenciaFromMonthYear } from "@/lib/pendency-types";
-import { Paperclip, X } from "lucide-react";
+import { Paperclip, X, FileSpreadsheet } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const SETORES_INTERNOS: PendencySetor[] = ["fiscal", "departamento_pessoal", "societario"];
 
 interface Profile { user_id: string; display_name: string | null; }
 interface ClientContact { id: string; nome: string; email: string; is_default: boolean; }
 
+interface ClientOption { id: string; razao_social: string; cnpj?: string | null }
+
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  /** Preselected context */
-  clientId: string;
+  /** Preselected context (omit to render client picker inside dialog) */
+  clientId?: string;
   clientName?: string;
   /** Either pass competencia (YYYY-MM-DD) directly or month+year */
   competencia?: string;
@@ -30,9 +33,13 @@ interface Props {
   demandType?: string | null;
   /** "todo" significa toda a competência (demand_type null) */
   scopeChoice?: "tipo" | "todo";
+  /** Lista de clientes — usada quando clientId não é fornecido */
+  clients?: ClientOption[];
+  /** Botão extra "Importar planilha" no rodapé */
+  onSwitchToImport?: () => void;
 }
 
-export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName, competencia, month, year, demandType, scopeChoice }: Props) {
+export function CreatePendencyDialog({ open, onOpenChange, clientId: clientIdProp, clientName: clientNameProp, competencia, month: monthProp, year: yearProp, demandType, scopeChoice, clients, onSwitchToImport }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [tipo, setTipo] = useState<PendencyTipo>("externa");
@@ -60,6 +67,28 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
   // Resultado da geração de link (mostrado após criar)
   const [generatedLink, setGeneratedLink] = useState<{ url: string; code: string } | null>(null);
 
+  // Estado interno para quando o cliente / competência não vêm como props
+  const now = new Date();
+  const [pickedClientId, setPickedClientId] = useState<string>("");
+  const [clientSearch, setClientSearch] = useState("");
+  const [pickedMonth, setPickedMonth] = useState<string>(String(now.getMonth() + 1).padStart(2, "0"));
+  const [pickedYear, setPickedYear] = useState<string>(String(now.getFullYear()));
+
+  const clientId = clientIdProp || pickedClientId;
+  const selectedClient = clients?.find((c) => c.id === pickedClientId);
+  const clientName = clientNameProp || selectedClient?.razao_social;
+  const month = monthProp || pickedMonth;
+  const year = yearProp || pickedYear;
+
+  const filteredClients = (() => {
+    if (!clients) return [];
+    const q = clientSearch.trim().toLowerCase();
+    if (!q) return clients.slice(0, 50);
+    return clients.filter((c) =>
+      c.razao_social.toLowerCase().includes(q) || (c.cnpj || "").toLowerCase().includes(q)
+    ).slice(0, 50);
+  })();
+
   useEffect(() => {
     if (!open) return;
     setResponsavelId(user?.id ?? "");
@@ -70,7 +99,7 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
 
   // Carrega contatos do cliente quando o dialog abre
   useEffect(() => {
-    if (!open || !clientId) return;
+    if (!open || !clientId) { setContacts([]); setContatoId(""); return; }
     supabase
       .from("client_contacts")
       .select("id, nome, email, is_default")
@@ -88,8 +117,12 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
 
   const finalCompetencia = competencia || (month && year ? competenciaFromMonthYear(month, year) : "");
 
+
+
   async function handleSave() {
-    if (!user || !finalCompetencia) { toast.error("Faltam dados de contexto"); return; }
+    if (!user) { toast.error("Faltam dados de contexto"); return; }
+    if (!clientId) { toast.error("Selecione o cliente"); return; }
+    if (!finalCompetencia) { toast.error("Informe a competência"); return; }
     if (!descricao.trim()) { toast.error("Descreva a pendência"); return; }
     
 
@@ -297,6 +330,71 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          {/* Picker de cliente e competência (quando não vem como prop) */}
+          {!clientIdProp && clients && (
+            <div className="space-y-3 rounded-md border bg-muted/20 p-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Cliente *</Label>
+                <Input
+                  autoFocus
+                  placeholder="Buscar por razão social ou CNPJ"
+                  value={clientSearch}
+                  onChange={(e) => { setClientSearch(e.target.value); if (pickedClientId) setPickedClientId(""); }}
+                />
+                {clientSearch.trim() ? (
+                  <div className="max-h-48 overflow-y-auto rounded-md border bg-background">
+                    {filteredClients.length === 0 ? (
+                      <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                        {clients.length === 0 ? "Nenhum cliente cadastrado" : "Nenhum cliente encontrado"}
+                      </div>
+                    ) : (
+                      filteredClients.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => { setPickedClientId(c.id); setClientSearch(c.razao_social); }}
+                          className={cn(
+                            "w-full text-left px-3 py-2 text-sm hover:bg-muted border-b last:border-b-0 transition-colors",
+                            pickedClientId === c.id && "bg-primary/10 text-primary font-medium"
+                          )}
+                        >
+                          <div className="truncate">{c.razao_social}</div>
+                          {c.cnpj && <div className="text-[10px] text-muted-foreground font-mono">{c.cnpj}</div>}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                ) : (
+                  <div className="px-3 py-3 text-center text-xs text-muted-foreground rounded-md border border-dashed">
+                    Digite para pesquisar o cliente
+                  </div>
+                )}
+                {selectedClient && (
+                  <div className="text-[11px] text-muted-foreground">
+                    Selecionado: <span className="font-medium text-foreground">{selectedClient.razao_social}</span>
+                  </div>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Mês</Label>
+                  <Select value={pickedMonth} onValueChange={setPickedMonth}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Ano</Label>
+                  <Input value={pickedYear} onChange={(e) => setPickedYear(e.target.value)} />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Toggle tipo */}
           <div className="grid grid-cols-2 gap-2">
             <button type="button" onClick={() => setTipo("externa")} className={`p-3 rounded-md border text-sm font-medium transition-colors ${tipo === "externa" ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted"}`}>
@@ -306,6 +404,7 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
               Interna (outro setor)
             </button>
           </div>
+
 
           {tipo === "interna" ? (
             <div className="space-y-1.5">
@@ -510,9 +609,16 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Criar pendência"}</Button>
+        <DialogFooter className="flex sm:justify-between gap-2">
+          {onSwitchToImport ? (
+            <Button variant="ghost" onClick={onSwitchToImport} className="gap-1" disabled={saving}>
+              <FileSpreadsheet className="w-4 h-4" /> Importar planilha
+            </Button>
+          ) : <span />}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Criar pendência"}</Button>
+          </div>
         </DialogFooter>
         </>
         )}

@@ -14,6 +14,7 @@ interface ReqBody {
   pendency_id?: string;
   test_unidade?: string; // quando setado, apenas testa /oauth/token e retorna
   list_departamentos?: string; // unidade — retorna lista de departamentos do GClick
+  resolve_task_url?: string; // pendency_id — busca a tarefa real (aceita) gerada a partir da pré-tarefa
 }
 
 

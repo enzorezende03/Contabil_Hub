@@ -120,7 +120,9 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId: clientIdPro
 
 
   async function handleSave() {
-    if (!user || !finalCompetencia) { toast.error("Faltam dados de contexto"); return; }
+    if (!user) { toast.error("Faltam dados de contexto"); return; }
+    if (!clientId) { toast.error("Selecione o cliente"); return; }
+    if (!finalCompetencia) { toast.error("Informe a competência"); return; }
     if (!descricao.trim()) { toast.error("Descreva a pendência"); return; }
     
 

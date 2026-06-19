@@ -148,9 +148,9 @@ export default function PendenciasPage() {
           </div>
         </header>
 
-        {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KpiBlock icon={Inbox} label="Pendências abertas" value={kpis.abertas} color="text-foreground" />
+        {/* KPIs compactos */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <KpiBlock icon={Inbox} label="Abertas" value={kpis.abertas} color="text-foreground" />
           <KpiBlock icon={AlertCircle} label="Críticas" value={kpis.criticas} color={kpis.criticas > 0 ? "text-destructive" : "text-foreground"} />
           <KpiBlock icon={Clock} label="Sem contato > 7d" value={kpis.semContato7d} color={kpis.semContato7d > 0 ? "text-orange-500" : "text-foreground"} />
           <KpiBlock icon={CheckCircle2} label="Resolvidas no mês" value={kpis.resolvidasMes} color="text-emerald-500" />
@@ -159,9 +159,9 @@ export default function PendenciasPage() {
         {/* Tabs */}
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
           <TabsList>
-            <TabsTrigger value="externas">Externas (cliente)</TabsTrigger>
-            <TabsTrigger value="internas">Internas (setor)</TabsTrigger>
-            <TabsTrigger value="resolvidas">Resolvidas (30d)</TabsTrigger>
+            <TabsTrigger value="externas">Externas <span className="ml-1.5 text-[10px] opacity-70">({tabCounts.externas})</span></TabsTrigger>
+            <TabsTrigger value="internas">Internas <span className="ml-1.5 text-[10px] opacity-70">({tabCounts.internas})</span></TabsTrigger>
+            <TabsTrigger value="resolvidas">Resolvidas 30d <span className="ml-1.5 text-[10px] opacity-70">({tabCounts.resolvidas})</span></TabsTrigger>
           </TabsList>
 
           {/* Filtros */}

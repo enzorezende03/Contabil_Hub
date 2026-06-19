@@ -20,6 +20,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { RegistrarCobrancaDialog } from "@/components/RegistrarCobrancaDialog";
 import { RegistrarContatoExternoDialog } from "@/components/pendency/RegistrarContatoExternoDialog";
+import { RelatedPlanningSection } from "@/components/pendency/RelatedPlanningSection";
 import { CreatePendencyDialog } from "@/components/CreatePendencyDialog";
 import { ImportPendenciesDialog } from "@/components/ImportPendenciesDialog";
 import { PendencyCardCompact } from "@/components/pendency/PendencyCardCompact";
@@ -1078,6 +1079,10 @@ function DetailsDialog({ pendency, clientName, responsavelName, onClose }: { pen
             <div><strong>Cadência:</strong> {pendency.followup_cadence_days} dia(s) · próximo lembrete: {pendency.next_followup_at ? new Date(pendency.next_followup_at).toLocaleString("pt-BR") : "—"}</div>
             {pendency.resolution_notes && <div><strong>Resolução:</strong> {pendency.resolution_notes}</div>}
           </div>
+
+          <RelatedPlanningSection clientName={clientName} competencia={pendency.competencia} />
+
+
 
           {pendency.tipo === "externa" && (
             <div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plug, CheckCircle2, XCircle, Loader2, Save, RefreshCw } from "lucide-react";
+import { Plug, CheckCircle2, XCircle, Loader2, Save, RefreshCw, ListTree } from "lucide-react";
 
 type Setor = "fiscal" | "departamento_pessoal" | "societario" | "tributario" | "outros";
 const SETORES: { key: Setor; label: string }[] = [
@@ -34,7 +34,10 @@ export default function GClickIntegrationSettings() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [listingId, setListingId] = useState<string | null>(null);
+  const [departamentos, setDepartamentos] = useState<Record<string, { id: string; nome: string }[]>>({});
   const [recentErrors, setRecentErrors] = useState<any[]>([]);
+
 
   async function load() {
     setLoading(true);
@@ -82,7 +85,20 @@ export default function GClickIntegrationSettings() {
     else toast.error(data?.error || "Falha na conexão");
   }
 
+  async function listarDepartamentos(cred: Credential) {
+    setListingId(cred.id);
+    const { data, error } = await supabase.functions.invoke("gclick-create-task", {
+      body: { list_departamentos: cred.unidade },
+    });
+    setListingId(null);
+    if (error) { toast.error("Falha: " + error.message); return; }
+    if (!data?.ok) { toast.error(data?.error || "Falha ao listar"); return; }
+    setDepartamentos((prev) => ({ ...prev, [cred.id]: data.departamentos || [] }));
+    toast.success(`${data.departamentos?.length || 0} departamentos carregados`);
+  }
+
   async function reenviar(pendencyId: string) {
+
     toast.loading("Reenviando...", { id: `re-${pendencyId}` });
     const { data, error } = await supabase.functions.invoke("gclick-create-task", { body: { pendency_id: pendencyId } });
     if (error) { toast.error(error.message, { id: `re-${pendencyId}` }); return; }
@@ -141,7 +157,32 @@ export default function GClickIntegrationSettings() {
             </div>
 
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Tag por setor</div>
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-xs text-muted-foreground">Departamento por setor (ID do GClick)</div>
+                <button
+                  type="button"
+                  onClick={() => listarDepartamentos(cred)}
+                  disabled={listingId === cred.id}
+                  className="text-[11px] flex items-center gap-1 text-primary hover:underline disabled:opacity-50"
+                >
+                  {listingId === cred.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <ListTree className="w-3 h-3" />}
+                  Listar departamentos do GClick
+                </button>
+              </div>
+              {departamentos[cred.id] && (
+                <div className="mb-2 p-2 rounded border border-border bg-muted/30 max-h-32 overflow-auto text-[11px] font-mono">
+                  {departamentos[cred.id].length === 0 ? (
+                    <span className="text-muted-foreground">Nenhum departamento retornado.</span>
+                  ) : (
+                    departamentos[cred.id].map((d) => (
+                      <div key={d.id} className="flex gap-2">
+                        <span className="text-muted-foreground w-10 text-right">{d.id}</span>
+                        <span>{d.nome}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
               <div className="space-y-1">
                 {SETORES.map((s) => (
                   <div key={s.key} className="flex items-center gap-2">
@@ -149,11 +190,14 @@ export default function GClickIntegrationSettings() {
                     <input
                       value={cred.tag_por_setor?.[s.key] || ""}
                       onChange={(e) => patch(cred.id, { tag_por_setor: { ...cred.tag_por_setor, [s.key]: e.target.value } })}
-                      placeholder="tag GClick"
+                      placeholder="ID numérico (ex: 5)"
                       className="flex-1 text-sm px-2 py-1 rounded border border-border bg-background font-mono"
                     />
                   </div>
                 ))}
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-1">
+                Use o ID numérico exato retornado pela lista acima. O nome ("1. Fiscal") é apenas rótulo visual no GClick — o ID interno pode ser diferente.
               </div>
             </div>
 
@@ -165,6 +209,7 @@ export default function GClickIntegrationSettings() {
                 {testingId === cred.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />} Testar conexão
               </button>
             </div>
+
           </div>
         ))}
       </div>

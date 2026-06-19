@@ -13,7 +13,9 @@ const BASE_URL = "https://api.gclick.com.br";
 interface ReqBody {
   pendency_id?: string;
   test_unidade?: string; // quando setado, apenas testa /oauth/token e retorna
+  list_departamentos?: string; // unidade — retorna lista de departamentos do GClick
 }
+
 
 interface Credential {
   id: string;
@@ -164,9 +166,12 @@ async function createPreTarefa(
 }
 
 function departamentoFromConfig(value: string): string {
-  const match = value.trim().match(/^\d+/);
-  return match?.[0] || value.trim();
+  // Aceita "5", "5. Fiscal" ou "Fiscal" — extrai o número se houver, senão devolve o texto.
+  const trimmed = value.trim();
+  const match = trimmed.match(/^\d+/);
+  return match?.[0] || trimmed;
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -207,6 +212,31 @@ Deno.serve(async (req) => {
         return json({ ok: false, error: e instanceof Error ? e.message : String(e) });
       }
     }
+
+    // === Modo "listar departamentos" ===
+    if (body.list_departamentos) {
+      const { data: cred } = await supabase
+        .from("gclick_credentials").select("*").eq("unidade", body.list_departamentos).maybeSingle();
+      if (!cred) return json({ ok: false, error: `Unidade '${body.list_departamentos}' não configurada.` });
+      try {
+        const token = await getToken(supabase, cred as Credential);
+        const resp = await fetch(`${BASE_URL}/departamentos`, {
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        });
+        const text = await resp.text();
+        if (!resp.ok) return json({ ok: false, error: `GClick HTTP ${resp.status}: ${text.slice(0, 300)}` });
+        let data: any; try { data = JSON.parse(text); } catch { data = []; }
+        const list = Array.isArray(data) ? data : (data?.content ?? data?.departamentos ?? data?.data ?? []);
+        const departamentos = (list || []).map((d: any) => ({
+          id: String(d.id ?? d.codigo ?? d.departamentoId ?? ""),
+          nome: String(d.nome ?? d.descricao ?? d.name ?? ""),
+        })).filter((d: any) => d.id);
+        return json({ ok: true, departamentos });
+      } catch (e) {
+        return json({ ok: false, error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+
 
     if (!body.pendency_id) return json({ error: "pendency_id obrigatório" }, 400);
 

@@ -5,6 +5,7 @@ import type { CellPendencyInfo } from "@/hooks/use-pendencies";
 import {
   avatarColor,
   deadlineClass,
+  deadlineLabel,
   deadlineTone,
   fmtPeriod,
   initials,
@@ -101,7 +102,7 @@ export function PlanningCard({ demand, pendencies, memberName, onClick }: Props)
       )}
 
       <div className="flex items-center justify-between pt-0.5">
-        <span className={`text-[10px] ${deadlineClass(tone)}`}>vence {deadlineFmt}</span>
+        <span className={`text-[10px] ${deadlineClass(tone)}`}>{deadlineLabel(demand.internalDeadline)} {deadlineFmt}</span>
         {memberName && (
           <TooltipProvider delayDuration={150}>
             <Tooltip>

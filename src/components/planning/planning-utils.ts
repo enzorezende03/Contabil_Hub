@@ -64,15 +64,28 @@ export function deadlineTone(deadline: string): DeadlineTone {
   const d = new Date(deadline);
   d.setHours(0, 0, 0, 0);
   const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
-  if (diff <= 1) return "danger";
-  if (diff <= 7) return "soon";
+  if (diff < 0) return "danger";
+  if (diff <= 1) return "soon";
+  if (diff <= 7) return "ok";
   return "ok";
+}
+
+export function deadlineLabel(deadline: string): string {
+  if (!deadline) return "";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(deadline);
+  d.setHours(0, 0, 0, 0);
+  const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
+  if (diff < 0) return "Venceu";
+  if (diff === 0) return "Vence hoje";
+  return "vence";
 }
 
 export function deadlineClass(tone: DeadlineTone): string {
   if (tone === "danger") return "text-destructive font-medium";
-  if (tone === "soon") return "text-muted-foreground";
-  return "text-success";
+  if (tone === "soon") return "text-warning font-medium";
+  return "text-muted-foreground";
 }
 
 export type PendencyAlertKind = "vencida" | "externa" | "interna" | null;

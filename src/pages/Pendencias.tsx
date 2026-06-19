@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { RegistrarCobrancaDialog } from "@/components/RegistrarCobrancaDialog";
 import { RegistrarContatoExternoDialog } from "@/components/pendency/RegistrarContatoExternoDialog";
 import { RelatedPlanningSection } from "@/components/pendency/RelatedPlanningSection";
+import { PendencyTimeline } from "@/components/pendency/PendencyTimeline";
 import { CreatePendencyDialog } from "@/components/CreatePendencyDialog";
 import { ImportPendenciesDialog } from "@/components/ImportPendenciesDialog";
 import { PendencyCardCompact } from "@/components/pendency/PendencyCardCompact";

@@ -436,7 +436,7 @@ export default function PlanejamentoPage() {
                       </div>
                     </td>
                     <td className="px-3 py-2.5 text-xs">{d.competencias.join(", ")}</td>
-                    <td className="px-3 py-2.5"><StatusBadge status={d.status} /></td>
+                    <td className="px-3 py-2.5"><div className="flex items-center gap-1.5"><StatusBadge status={d.status} /><PlanningPendencyBadge pendencies={getPendenciesFor(d)} /></div></td>
                     <td className={`px-3 py-2.5 text-xs ${urgencyClass(d.internalDeadline)}`}>
                       {new Date(d.internalDeadline).toLocaleDateString("pt-BR")}
                     </td>

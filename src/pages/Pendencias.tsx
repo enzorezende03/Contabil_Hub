@@ -9,6 +9,7 @@ import {
   diasAberta, diasUltimoContato, isPendencyVencida,
   type Pendency, type PendencyPrioridade, type PendencyStatus, type PendencySetor,
 } from "@/lib/pendency-types";
+import { pendencyCriticality, criticalityRank } from "@/lib/pendency-criticality";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -93,14 +94,16 @@ export default function PendenciasPage() {
     if (tab === "internas" && filterSetor !== "all") list = list.filter((p) => p.setor_responsavel === filterSetor);
     if (filterCobrarHoje) list = list.filter((p) => !p.followup_paused && p.next_followup_at && new Date(p.next_followup_at) <= new Date());
 
-    // Default sort: vencidas primeiro, depois sem contato há mais tempo
+    // Default sort: criticidade desc (críticas no topo) → mais antigas primeiro
     return [...list].sort((a, b) => {
-      const aVenc = isPendencyVencida(a) ? 1 : 0;
-      const bVenc = isPendencyVencida(b) ? 1 : 0;
-      if (aVenc !== bVenc) return bVenc - aVenc;
+      const ra = criticalityRank(pendencyCriticality(a));
+      const rb = criticalityRank(pendencyCriticality(b));
+      if (ra !== rb) return ra - rb;
+      // Tie-break: nunca contatada > sem contato há mais tempo > mais antiga
       const aLast = a.ultimo_contato_em ? new Date(a.ultimo_contato_em).getTime() : 0;
       const bLast = b.ultimo_contato_em ? new Date(b.ultimo_contato_em).getTime() : 0;
-      return aLast - bLast; // mais antigo primeiro
+      if (aLast !== bLast) return aLast - bLast;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     });
   }, [pendencies, tab, search, filterStatus, filterPrioridade, filterResponsavel, filterSetor, filterCobrarHoje, user?.id, clientMap]);
 

@@ -284,6 +284,12 @@ export default function PlanejamentoPage() {
             <option value="completed">{STATUS_LABELS.completed}</option>
             <option value="overdue">Em atraso</option>
           </select>
+          <select value={filterWithPendency} onChange={(e) => setFilterWithPendency(e.target.value)} className="h-8 px-2 text-sm border rounded-md bg-card" title="Filtrar por pendências relacionadas">
+            <option value="all">Todas (com/sem pendência)</option>
+            <option value="with">Com pendências abertas</option>
+            <option value="overdue">Com pendências vencidas</option>
+            <option value="without">Sem pendências</option>
+          </select>
           <div className="flex items-center gap-1">
             <label className="text-xs text-muted-foreground">Prazo:</label>
             <input

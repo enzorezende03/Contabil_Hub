@@ -372,12 +372,13 @@ export default function PlanejamentoPage() {
                             {PRIORITY_LABELS[d.priority]}
                           </span>
                         </div>
-                        <div className="flex flex-wrap gap-1 mb-1.5">
+                        <div className="flex flex-wrap items-center gap-1 mb-1.5">
                           {d.types.map((t) => (
                             <span key={t} className="text-[9px] bg-muted px-1.5 py-0.5 rounded font-medium">
                               {DEMAND_TYPE_LABELS[t]}
                             </span>
                           ))}
+                          <PlanningPendencyBadge pendencies={getPendenciesFor(d)} compact />
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-muted-foreground">

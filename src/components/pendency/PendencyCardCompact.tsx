@@ -39,6 +39,11 @@ import {
   type PendencyStatus,
   type PendencySetor,
 } from "@/lib/pendency-types";
+import {
+  pendencyCriticality,
+  criticalityStripeClass,
+  criticalityStatusPill,
+} from "@/lib/pendency-criticality";
 
 // --- helpers ---------------------------------------------------------------
 

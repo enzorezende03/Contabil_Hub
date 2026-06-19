@@ -410,6 +410,7 @@ Deno.serve(async (req) => {
           if (retry.ok) {
             await supabase.from("pendencies").update({
               gclick_task_id: retry.id, gclick_status: "criada",
+              gclick_task_url: `https://app.gclick.com.br/#/tarefas/pretarefas/${retry.id}`,
               gclick_synced_at: new Date().toISOString(), gclick_sync_error: null,
             }).eq("id", pend.id);
             return json({ ok: true, task_id: retry.id, instancia: cred.unidade });
@@ -429,6 +430,7 @@ Deno.serve(async (req) => {
 
     await supabase.from("pendencies").update({
       gclick_task_id: result.id, gclick_status: "criada",
+      gclick_task_url: `https://app.gclick.com.br/#/tarefas/pretarefas/${result.id}`,
       gclick_synced_at: new Date().toISOString(), gclick_sync_error: null,
     }).eq("id", pend.id);
     return json({ ok: true, task_id: result.id, instancia: cred.unidade });

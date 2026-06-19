@@ -210,6 +210,31 @@ Deno.serve(async (req) => {
       }
     }
 
+    // === Modo "listar departamentos" ===
+    if (body.list_departamentos) {
+      const { data: cred } = await supabase
+        .from("gclick_credentials").select("*").eq("unidade", body.list_departamentos).maybeSingle();
+      if (!cred) return json({ ok: false, error: `Unidade '${body.list_departamentos}' não configurada.` });
+      try {
+        const token = await getToken(supabase, cred as Credential);
+        const resp = await fetch(`${BASE_URL}/departamentos`, {
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+        });
+        const text = await resp.text();
+        if (!resp.ok) return json({ ok: false, error: `GClick HTTP ${resp.status}: ${text.slice(0, 300)}` });
+        let data: any; try { data = JSON.parse(text); } catch { data = []; }
+        const list = Array.isArray(data) ? data : (data?.content ?? data?.departamentos ?? data?.data ?? []);
+        const departamentos = (list || []).map((d: any) => ({
+          id: String(d.id ?? d.codigo ?? d.departamentoId ?? ""),
+          nome: String(d.nome ?? d.descricao ?? d.name ?? ""),
+        })).filter((d: any) => d.id);
+        return json({ ok: true, departamentos });
+      } catch (e) {
+        return json({ ok: false, error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+
+
     if (!body.pendency_id) return json({ error: "pendency_id obrigatório" }, 400);
 
     const { data: pend, error: pendErr } = await supabase

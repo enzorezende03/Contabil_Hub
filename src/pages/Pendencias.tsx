@@ -123,6 +123,16 @@ export default function PendenciasPage() {
     };
   }, [pendencies]);
 
+  // Contadores por aba (sobre todas, sem aplicar filtros laterais)
+  const tabCounts = useMemo(() => {
+    const cutoff = Date.now() - 30 * 86_400_000;
+    return {
+      externas: pendencies.filter((p) => p.tipo === "externa" && p.status !== "resolvida" && p.status !== "cancelada").length,
+      internas: pendencies.filter((p) => p.tipo === "interna" && p.status !== "resolvida" && p.status !== "cancelada").length,
+      resolvidas: pendencies.filter((p) => (p.status === "resolvida" || p.status === "cancelada") && new Date(p.updated_at).getTime() >= cutoff).length,
+    };
+  }, [pendencies]);
+
   return (
     <AppLayout>
       <div className="p-6 space-y-5 max-w-[1400px] mx-auto">

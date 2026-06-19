@@ -322,7 +322,13 @@ Deno.serve(async (req) => {
               let d: any; try { d = JSON.parse(txt); } catch { d = null; }
               const list = Array.isArray(d) ? d : (d?.content ?? d?.tarefas ?? d?.data ?? []);
               if (Array.isArray(list) && list.length) {
-                realId = String(list[0]?.eveId ?? list[0]?.id ?? list[0]?.codigo ?? "");
+                const expectedClienteId = String(cli?.gclick_cliente_id ?? "");
+                const accepted = list.filter((item: any) => item?.pretarefa === false);
+                const sameClient = accepted.find((item: any) => String(item?.clienteId ?? item?.cliente?.id ?? "") === expectedClienteId);
+                const subjectMatch = accepted.find((item: any) => String(item?.assunto ?? "").includes(String(pend.gclick_task_id)));
+                const chosen = sameClient || subjectMatch || accepted[0] || list[0];
+                realId = String(chosen?.eveId ?? chosen?.id ?? chosen?.codigo ?? "");
+                realCsid = String(chosen?.csid ?? chosen?.sistemaId ?? chosen?.sistema_id ?? "") || null;
                 if (realId) break;
               }
             } catch (e) { console.log("[gclick-resolve-search] err", e); }
@@ -333,10 +339,14 @@ Deno.serve(async (req) => {
           // O GClick usa URL clássica: csListar.do?obj=csevento&csid=<sistema>&eveId=<evento>&empId=<empresa>
           // Se realId vier no formato "3.37400" (sistema.evento), separamos.
           let eveId = realId;
-          if (/^\d+\.\d+$/.test(realId)) eveId = realId.split(".")[1];
-          const url = buildLegacyUrl(eveId);
+          if (/^\d+\.\d+$/.test(realId)) {
+            const [csidPart, eveIdPart] = realId.split(".");
+            realCsid = realCsid || csidPart;
+            eveId = eveIdPart;
+          }
+          const url = buildLegacyUrl(eveId, realCsid);
           await supabase.from("pendencies").update({ gclick_task_url: url }).eq("id", pend.id);
-          return json({ ok: true, url, real_task_id: realId });
+          return json({ ok: true, url, real_task_id: realId, csid: realCsid, empId: empresaId });
         }
         const fallback = `https://app.gclick.com.br/#/tarefas/pretarefas/${pend.gclick_task_id}`;
         return json({ ok: true, url: fallback, pending: true, dump_keys: lastDump ? Object.keys(lastDump) : [] });

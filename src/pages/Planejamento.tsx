@@ -30,9 +30,12 @@ import { toast } from "sonner";
 
 type ViewMode = "list" | "kanban" | "timeline";
 
-const KANBAN_COLUMNS: DemandStatus[] = [
+type KanbanColumnKey = DemandStatus | "paused_pendency";
+
+const KANBAN_COLUMNS: KanbanColumnKey[] = [
   "not_started",
   "in_progress",
+  "paused_pendency",
   "completed",
 ];
 

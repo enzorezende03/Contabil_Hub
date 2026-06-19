@@ -360,10 +360,10 @@ function GclickBadge({ pendency: p }: { pendency: Pendency }) {
   );
 }
 
-function PendencyCard({ pendency: p, clientName, responsavelName, clientUnidade, onCobrar, onResolver, onPausar, onDetalhes }: {
+function PendencyCard({ pendency: p, clientName, responsavelName, clientUnidade, onCobrar, onResolver, onPausar, onDetalhes, onExcluir }: {
 
   pendency: Pendency; clientName: string; responsavelName: string; clientUnidade: string | null;
-  onCobrar: () => void; onResolver: () => void; onPausar: () => void; onDetalhes: () => void;
+  onCobrar: () => void; onResolver: () => void; onPausar: () => void; onDetalhes: () => void; onExcluir: () => void;
 }) {
   const aberta = diasAberta(p.created_at);
   const ultimoCont = diasUltimoContato(p.ultimo_contato_em);

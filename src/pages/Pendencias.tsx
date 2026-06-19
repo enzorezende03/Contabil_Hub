@@ -126,9 +126,14 @@ export default function PendenciasPage() {
             <h1 className="text-2xl font-semibold">Pendências</h1>
             <p className="text-sm text-muted-foreground">Painel de cobrança de pendências internas e externas.</p>
           </div>
-          <Button onClick={() => { setCreateCtx({ clientId: clients[0]?.id ?? "", clientName: clients[0]?.razao_social }); setCreateOpen(true); }} disabled={!clients.length}>
-            <Plus className="w-4 h-4 mr-1" /> Nova pendência
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setImportOpen(true)} disabled={!clients.length}>
+              <FileSpreadsheet className="w-4 h-4 mr-1" /> Importar planilha
+            </Button>
+            <Button onClick={() => { setCreateCtx({ clientId: clients[0]?.id ?? "", clientName: clients[0]?.razao_social }); setCreateOpen(true); }} disabled={!clients.length}>
+              <Plus className="w-4 h-4 mr-1" /> Nova pendência
+            </Button>
+          </div>
         </header>
 
         {/* KPIs */}

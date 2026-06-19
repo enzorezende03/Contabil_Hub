@@ -18,7 +18,7 @@ import {
   type Demand,
 } from "@/lib/types";
 import { formatMinutes, getDeadlineUrgency } from "@/lib/demand-utils";
-import { Search, LayoutGrid, List, Clock, Plus, CalendarRange } from "lucide-react";
+import { Search, LayoutGrid, List, Clock, Plus, CalendarRange, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CreatePlanningDialog } from "@/components/CreatePlanningDialog";
 import { EditPlanningDialog } from "@/components/EditPlanningDialog";

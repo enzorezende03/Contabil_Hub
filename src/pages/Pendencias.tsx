@@ -31,7 +31,9 @@ import { cn } from "@/lib/utils";
 interface ClientRow { id: string; razao_social: string; cnpj: string; unidade: string | null; }
 
 export default function PendenciasPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const role = profile?.role || "";
+  const canBulkManage = role === "coordenacao" || role === "analista";
   const qc = useQueryClient();
   const [tab, setTab] = useState<"externas" | "internas" | "resolvidas">("externas");
   const [search, setSearch] = useState("");
@@ -48,6 +50,9 @@ export default function PendenciasPage() {
   const [pausePendency, setPausePendency] = useState<Pendency | null>(null);
   const [deletePendency, setDeletePendency] = useState<Pendency | null>(null);
   const [detailsPendency, setDetailsPendency] = useState<Pendency | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkCobrarOpen, setBulkCobrarOpen] = useState(false);
+  const [bulkReassignOpen, setBulkReassignOpen] = useState(false);
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients-min"],

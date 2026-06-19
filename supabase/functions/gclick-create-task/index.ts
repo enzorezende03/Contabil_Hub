@@ -1,8 +1,5 @@
-// Edge function: cria pré-tarefa no GClick para uma pendência interna.
-// Roteia para a instância correta (2M Contabilidade ou 2M Saúde) com base em client.unidade.
-// Auth: POST {base}/signin com JSON { clientId, clientSecret } -> { access_token }
-// Criação: POST {base}/tarefas/preTarefas (Bearer token)
-
+// GClick integration: OAuth 2.0 client_credentials + POST /tarefas/preTarefas
+// Doc: https://documenter.getpostman.com/view/12417251/UV5TFeha
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -11,156 +8,114 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const BASE_URL = "https://api.gclick.com.br";
+
 interface ReqBody {
-  pendency_id: string;
+  pendency_id?: string;
+  test_unidade?: string; // quando setado, apenas testa /oauth/token e retorna
 }
 
-interface UnidadeConfig {
-  base: string; // ex: https://api.gclick.com.br/v2
-  clientId: string;
-  clientSecret: string;
-  label: string;
-  departamentoId?: string;
-  responsavelId?: string;
-  processoId?: string;
-  fluxoId?: string;
-  clienteIdDefault?: string;
+interface Credential {
+  id: string;
+  unidade: string;
+  enabled: boolean;
+  usuario: string;
+  sistema_id: string;
+  tag_por_setor: Record<string, string>;
+  assunto_template: string;
+  client_id_secret_name: string;
+  client_secret_secret_name: string;
 }
 
-/** Normaliza a URL base do GClick:
- *  - remove barra final
- *  - remove sufixos comuns (/tarefas/preTarefas, /signin, /tarefas) caso o secret tenha sido salvo com o endpoint inteiro
- *  - garante que termina com /v2 (a doc é v2)
- */
-function normalizeBase(rawUrl: string): string {
-  let u = rawUrl.trim().replace(/\/+$/, "");
-  u = u.replace(/\/(signin|tarefas\/preTarefas|tarefas)$/i, "");
-  if (!/\/v\d+$/i.test(u)) {
-    // se não terminou em /v2, tenta acrescentar
-    if (!u.match(/\/v2$/i)) u = `${u}/v2`;
-  }
-  return u;
+function onlyDigits(s: string | null | undefined): string {
+  return (s || "").replace(/\D+/g, "");
 }
 
-function getUnidadeConfig(unidade: string): UnidadeConfig | null {
-  if (unidade === "2m_contabilidade") {
-    const url = Deno.env.get("GCLICK_CONTAB_URL");
-    const clientId = Deno.env.get("GCLICK_CONTAB_CLIENT_ID");
-    const clientSecret = Deno.env.get("GCLICK_CONTAB_CLIENT_SECRET");
-    if (!url || !clientId || !clientSecret) return null;
-    return {
-      base: normalizeBase(url),
-      clientId,
-      clientSecret,
-      label: "2M Contabilidade",
-      departamentoId: Deno.env.get("GCLICK_CONTAB_DEPARTAMENTO_ID") || undefined,
-      responsavelId: Deno.env.get("GCLICK_CONTAB_RESPONSAVEL_ID") || undefined,
-      processoId: Deno.env.get("GCLICK_CONTAB_PROCESSO_ID") || undefined,
-      fluxoId: Deno.env.get("GCLICK_CONTAB_FLUXO_ID") || undefined,
-      clienteIdDefault: Deno.env.get("GCLICK_CONTAB_CLIENTE_ID_DEFAULT") || undefined,
-    };
-  }
-  if (unidade === "2m_saude") {
-    const url = Deno.env.get("GCLICK_SAUDE_URL");
-    const clientId = Deno.env.get("GCLICK_SAUDE_CLIENT_ID");
-    const clientSecret = Deno.env.get("GCLICK_SAUDE_CLIENT_SECRET");
-    if (!url || !clientId || !clientSecret) return null;
-    return {
-      base: normalizeBase(url),
-      clientId,
-      clientSecret,
-      label: "2M Saúde",
-      departamentoId: Deno.env.get("GCLICK_SAUDE_DEPARTAMENTO_ID") || undefined,
-      responsavelId: Deno.env.get("GCLICK_SAUDE_RESPONSAVEL_ID") || undefined,
-      processoId: Deno.env.get("GCLICK_SAUDE_PROCESSO_ID") || undefined,
-      fluxoId: Deno.env.get("GCLICK_SAUDE_FLUXO_ID") || undefined,
-      clienteIdDefault: Deno.env.get("GCLICK_SAUDE_CLIENTE_ID_DEFAULT") || undefined,
-    };
-  }
-  return null;
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }
 
-async function getAccessToken(cfg: UnidadeConfig): Promise<string> {
-  const tokenUrl = `${cfg.base}/signin`;
+async function getCachedToken(supabase: any, unidade: string): Promise<string | null> {
+  const { data } = await supabase
+    .from("integration_tokens")
+    .select("access_token, expires_at")
+    .eq("service", "gclick")
+    .eq("unidade", unidade)
+    .maybeSingle();
+  if (!data) return null;
+  const expires = new Date(data.expires_at).getTime();
+  if (expires - Date.now() < 5 * 60 * 1000) return null;
+  return data.access_token as string;
+}
 
-  // GClick aceita variações de nomes de campos. Tentamos em sequência
-  // e retornamos no primeiro 2xx com token válido.
-  const attempts: Array<{ label: string; init: RequestInit }> = [
-    {
-      label: "json camelCase",
-      init: {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ clientId: cfg.clientId, clientSecret: cfg.clientSecret }),
-      },
-    },
-    {
-      label: "json snake_case",
-      init: {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ client_id: cfg.clientId, client_secret: cfg.clientSecret }),
-      },
-    },
-    {
-      label: "headers x-client-id/x-client-secret",
-      init: {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "x-client-id": cfg.clientId,
-          "x-client-secret": cfg.clientSecret,
-        },
-        body: "{}",
-      },
-    },
-    {
-      label: "basic auth",
-      init: {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Basic ${btoa(`${cfg.clientId}:${cfg.clientSecret}`)}`,
-        },
-        body: "{}",
-      },
-    },
-  ];
-
-  const errors: string[] = [];
-  for (const a of attempts) {
-    try {
-      const resp = await fetch(tokenUrl, a.init);
-      const text = await resp.text();
-      console.log(`[gclick signin] tentativa "${a.label}" -> ${resp.status} ${text.slice(0, 200)}`);
-      if (resp.ok) {
-        let json: any;
-        try { json = JSON.parse(text); } catch { errors.push(`${a.label}: resposta não-JSON`); continue; }
-        const token = json.access_token || json.accessToken || json.token;
-        if (token) return token as string;
-        errors.push(`${a.label}: 200 sem token (${text.slice(0, 120)})`);
-      } else {
-        errors.push(`${a.label}: ${resp.status} ${text.slice(0, 150) || "(vazio)"}`);
-      }
-    } catch (e) {
-      errors.push(`${a.label}: ${e instanceof Error ? e.message : String(e)}`);
-    }
+async function fetchAndCacheToken(
+  supabase: any,
+  cred: Credential,
+): Promise<string> {
+  const clientId = Deno.env.get(cred.client_id_secret_name);
+  const clientSecret = Deno.env.get(cred.client_secret_secret_name);
+  if (!clientId || !clientSecret) {
+    throw new Error(
+      `Credenciais GClick ausentes: defina os secrets ${cred.client_id_secret_name} e ${cred.client_secret_secret_name} no painel do backend.`,
+    );
   }
+  const body = new URLSearchParams();
+  body.append("client_id", clientId);
+  body.append("client_secret", clientSecret);
+  body.append("grant_type", "client_credentials");
 
-  throw new Error(
-    `Falha ao obter token GClick em ${tokenUrl}. Tentativas: ${errors.join(" | ").slice(0, 600)}`,
+  const resp = await fetch(`${BASE_URL}/oauth/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: body.toString(),
+  });
+  const text = await resp.text();
+  if (!resp.ok) {
+    throw new Error(
+      `Credenciais GClick inválidas para unidade ${cred.unidade} (HTTP ${resp.status}): ${text.slice(0, 300)}`,
+    );
+  }
+  let data: any;
+  try { data = JSON.parse(text); } catch { throw new Error(`Resposta OAuth não-JSON: ${text.slice(0, 200)}`); }
+  if (!data.access_token) throw new Error(`Resposta OAuth sem access_token: ${text.slice(0, 200)}`);
+
+  const expiresAt = new Date(Date.now() + ((data.expires_in ?? 3600) - 60) * 1000).toISOString();
+  await supabase.from("integration_tokens").upsert(
+    { service: "gclick", unidade: cred.unidade, access_token: data.access_token, expires_at: expiresAt },
+    { onConflict: "service,unidade" },
   );
+  return data.access_token as string;
+}
+
+async function getToken(supabase: any, cred: Credential): Promise<string> {
+  const cached = await getCachedToken(supabase, cred.unidade);
+  if (cached) return cached;
+  return await fetchAndCacheToken(supabase, cred);
+}
+
+async function searchClienteByCnpj(token: string, cnpj: string): Promise<string | null> {
+  const resp = await fetch(`${BASE_URL}/clientes/search?texto=${encodeURIComponent(cnpj)}`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
+  if (!resp.ok) {
+    const t = await resp.text();
+    throw new Error(`Falha ao buscar cliente no GClick (HTTP ${resp.status}): ${t.slice(0, 200)}`);
+  }
+  const data = await resp.json().catch(() => null);
+  const list = Array.isArray(data) ? data : (data?.content ?? data?.clientes ?? data?.data ?? []);
+  if (!Array.isArray(list) || list.length === 0) return null;
+  const first = list[0];
+  return String(first.id ?? first.codigo ?? first.clienteId ?? "") || null;
 }
 
 async function createPreTarefa(
-  cfg: UnidadeConfig,
   token: string,
   payload: Record<string, unknown>,
-): Promise<{ id: string; url: string | null; raw: any }> {
-  const endpoint = `${cfg.base}/tarefas/preTarefas`;
-  const resp = await fetch(endpoint, {
+): Promise<{ ok: boolean; id?: string; msg: string; raw: any }> {
+  const resp = await fetch(`${BASE_URL}/tarefas/preTarefas`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -169,25 +124,18 @@ async function createPreTarefa(
     },
     body: JSON.stringify(payload),
   });
-
   const text = await resp.text();
   let data: any;
   try { data = JSON.parse(text); } catch { data = { raw: text }; }
-
   if (!resp.ok) {
-    throw new Error(`GClick recusou criar pré-tarefa (${resp.status}) em ${endpoint}: ${text.slice(0, 400)}`);
+    return { ok: false, msg: `GClick HTTP ${resp.status}: ${text.slice(0, 300)}`, raw: data };
   }
-
-  const taskId = String(data.id ?? data.tarefaId ?? data.codigo ?? data.uuid ?? "");
-  if (!taskId) throw new Error(`Resposta sem ID de tarefa: ${text.slice(0, 200)}`);
-
-  const taskUrl = data.url ?? data.link ?? null;
-  return { id: taskId, url: taskUrl, raw: data };
-}
-
-/** Apenas dígitos do CNPJ/CPF */
-function onlyDigits(s: string | null | undefined): string {
-  return (s || "").replace(/\D+/g, "");
+  const r = Array.isArray(data?.respostas) ? data.respostas[0] : null;
+  if (!r) return { ok: false, msg: `Resposta inesperada do GClick: ${text.slice(0, 200)}`, raw: data };
+  if (r.status === "sucesso") {
+    return { ok: true, id: String(r.id ?? ""), msg: r.msg || "Pré-tarefa criada", raw: data };
+  }
+  return { ok: false, msg: r.msg || "Erro desconhecido ao criar pré-tarefa", raw: data };
 }
 
 Deno.serve(async (req) => {
@@ -198,40 +146,39 @@ Deno.serve(async (req) => {
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
   const supabase = createClient(supabaseUrl, serviceKey);
 
+  // Auth
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
   const userClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
   });
   const { data: userData, error: authErr } = await userClient.auth.getUser();
-  if (authErr || !userData?.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-  // Restrict to admin or users with gerenciar_pendencias permission
+  if (authErr || !userData?.user) return json({ error: "Unauthorized" }, 401);
+
   const [{ data: isAdmin }, { data: hasPerm }] = await Promise.all([
     supabase.rpc("has_role", { _user_id: userData.user.id, _role: "admin" }),
     supabase.rpc("has_action_permission", { _user_id: userData.user.id, _action: "gerenciar_pendencias" }),
   ]);
-  if (!isAdmin && !hasPerm) {
-    return new Response(JSON.stringify({ error: "Forbidden" }), {
-      status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  if (!isAdmin && !hasPerm) return json({ error: "Forbidden" }, 403);
 
+  let body: ReqBody;
+  try { body = (await req.json()) as ReqBody; } catch { return json({ error: "Body inválido" }, 400); }
 
   try {
-    const body = (await req.json()) as ReqBody;
-    if (!body?.pendency_id) {
-      return new Response(JSON.stringify({ error: "pendency_id obrigatório" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // === Modo "testar conexão" ===
+    if (body.test_unidade) {
+      const { data: cred } = await supabase
+        .from("gclick_credentials").select("*").eq("unidade", body.test_unidade).maybeSingle();
+      if (!cred) return json({ ok: false, error: `Unidade '${body.test_unidade}' não configurada.` });
+      try {
+        await fetchAndCacheToken(supabase, cred as Credential);
+        return json({ ok: true, message: "Token obtido com sucesso." });
+      } catch (e) {
+        return json({ ok: false, error: e instanceof Error ? e.message : String(e) });
+      }
     }
+
+    if (!body.pendency_id) return json({ error: "pendency_id obrigatório" }, 400);
 
     const { data: pend, error: pendErr } = await supabase
       .from("pendencies").select("*").eq("id", body.pendency_id).maybeSingle();
@@ -243,95 +190,137 @@ Deno.serve(async (req) => {
       .eq("id", pend.client_id).maybeSingle();
     if (clientErr || !client) throw new Error(`Cliente não encontrado: ${clientErr?.message || ""}`);
 
-    const cfg = getUnidadeConfig(client.unidade);
-    if (!cfg) {
-      const msg = `Integração GClick não configurada para a unidade "${client.unidade}". Defina os secrets GCLICK_${client.unidade === "2m_saude" ? "SAUDE" : "CONTAB"}_URL, _CLIENT_ID e _CLIENT_SECRET para sincronizar automaticamente.`;
+    const { data: credRow } = await supabase
+      .from("gclick_credentials").select("*").eq("unidade", client.unidade).maybeSingle();
+    if (!credRow || !credRow.enabled) {
+      const msg = `Integração GClick não configurada/desabilitada para a unidade "${client.unidade}". Acesse Configurações → Integrações → GClick.`;
       await supabase.from("pendencies").update({
         gclick_sync_error: msg.slice(0, 1000),
         gclick_synced_at: new Date().toISOString(),
         gclick_status: "nao_configurado",
       }).eq("id", pend.id);
-      return new Response(JSON.stringify({ ok: false, code: "not_configured", error: msg }), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ ok: false, code: "not_configured", error: msg });
     }
+    const cred = credRow as Credential;
+    if (!cred.usuario || !cred.sistema_id) {
+      const msg = `Configuração incompleta para "${client.unidade}": preencha usuário e ID do sistema em Configurações → Integrações.`;
+      await supabase.from("pendencies").update({
+        gclick_sync_error: msg, gclick_synced_at: new Date().toISOString(), gclick_status: "nao_configurado",
+      }).eq("id", pend.id);
+      return json({ ok: false, code: "not_configured", error: msg });
+    }
+    const setor = pend.setor_responsavel || "outros";
+    const tag = cred.tag_por_setor?.[setor];
+    if (!tag) {
+      const msg = `Tag GClick não configurada para o setor "${setor}" na unidade "${client.unidade}". Configure em Configurações → Integrações.`;
+      await supabase.from("pendencies").update({
+        gclick_sync_error: msg, gclick_synced_at: new Date().toISOString(), gclick_status: "nao_configurado",
+      }).eq("id", pend.id);
+      return json({ ok: false, code: "tag_missing", error: msg });
+    }
+
+    // Token
+    let token: string;
+    try {
+      token = await getToken(supabase, cred);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      await supabase.from("pendencies").update({
+        gclick_sync_error: msg.slice(0, 1000),
+        gclick_synced_at: new Date().toISOString(),
+        gclick_status: "erro_auth",
+      }).eq("id", pend.id);
+      return json({ ok: false, code: "auth_failed", error: msg });
+    }
+
+    // Resolver cliente
+    const cnpj = onlyDigits(client.cnpj);
+    let gclickClienteId = client.gclick_cliente_id as string | null;
+    if (!gclickClienteId) {
+      try {
+        gclickClienteId = await searchClienteByCnpj(token, cnpj);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        await supabase.from("pendencies").update({
+          gclick_sync_error: msg.slice(0, 1000),
+          gclick_synced_at: new Date().toISOString(),
+          gclick_status: "erro",
+        }).eq("id", pend.id);
+        return json({ ok: false, error: msg });
+      }
+      if (!gclickClienteId) {
+        const msg = `Cliente "${client.razao_social}" (CNPJ ${cnpj}) não está cadastrado no GClick da unidade ${cred.unidade}. Cadastre-o lá antes de sincronizar.`;
+        await supabase.from("pendencies").update({
+          gclick_sync_error: msg, gclick_synced_at: new Date().toISOString(), gclick_status: "cliente_nao_encontrado",
+        }).eq("id", pend.id);
+        return json({ ok: false, code: "cliente_nao_encontrado", error: msg });
+      }
+      await supabase.from("clients").update({ gclick_cliente_id: gclickClienteId }).eq("id", client.id);
+    }
+
+    const compLabel = pend.competencia
+      ? new Date(pend.competencia).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+      : "";
+    const assunto = (cred.assunto_template || "Pendência contábil — {{cliente}} — {{competencia}}")
+      .replace(/\{\{\s*cliente\s*\}\}/g, client.razao_social)
+      .replace(/\{\{\s*competencia\s*\}\}/g, compLabel);
 
     const { data: profile } = await supabase
       .from("profiles").select("display_name").eq("user_id", pend.responsavel_id).maybeSingle();
 
-    const compLabel = new Date(pend.competencia).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-    const assunto = `[${client.razao_social}] ${pend.setor_responsavel?.toUpperCase() || "PENDÊNCIA"} — ${compLabel}`;
     const andamento = [
-      `Pendência interna gerada pelo Contábil Hub.`,
+      pend.descricao || "(sem descrição)",
+      "",
       `Cliente: ${client.razao_social} (CNPJ ${client.cnpj})`,
       `Competência: ${compLabel}`,
-      pend.demand_type ? `Tipo: ${pend.demand_type}` : null,
-      `Setor responsável: ${pend.setor_responsavel}`,
+      `Setor: ${setor}`,
       `Prioridade: ${pend.prioridade}`,
       pend.prazo_resposta ? `Prazo: ${new Date(pend.prazo_resposta).toLocaleDateString("pt-BR")}` : null,
-      "",
-      pend.descricao,
-      "",
       profile?.display_name ? `Solicitado por: ${profile.display_name}` : null,
     ].filter(Boolean).join("\n");
 
-    const clienteIdResolved = client.gclick_cliente_id || cfg.clienteIdDefault;
-    if (!cfg.departamentoId) {
-      const msg = `Integração GClick incompleta: defina o secret GCLICK_${client.unidade === "2m_saude" ? "SAUDE" : "CONTAB"}_DEPARTAMENTO_ID com o ID do departamento padrão.`;
-      await supabase.from("pendencies").update({
-        gclick_sync_error: msg.slice(0, 1000),
-        gclick_synced_at: new Date().toISOString(),
-        gclick_status: "nao_configurado",
-      }).eq("id", pend.id);
-      return new Response(JSON.stringify({ ok: false, code: "not_configured", error: msg }), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const taskPayload: Record<string, unknown> = {
-      departamentoId: cfg.departamentoId,
-      assunto,
-      andamento,
-      inscricoes: client.cnpj ? [onlyDigits(client.cnpj)] : [],
-      ...(clienteIdResolved ? { clienteId: clienteIdResolved } : {}),
-      ...(cfg.responsavelId ? { responsavelId: cfg.responsavelId } : {}),
-      ...(cfg.processoId ? { processoId: cfg.processoId } : {}),
-      ...(cfg.fluxoId ? { fluxoId: cfg.fluxoId } : {}),
+    const payload = {
+      inscricao: cnpj,
+      usuario: cred.usuario,
+      sistema: cred.sistema_id,
+      preTarefas: [{ tag, assunto, andamento, arquivos: [] as unknown[] }],
     };
 
-    let result;
-    try {
-      const token = await getAccessToken(cfg);
-      result = await createPreTarefa(cfg, token, taskPayload);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
+    const result = await createPreTarefa(token, payload);
+    if (!result.ok) {
+      // se token expirado, tenta renovar uma vez
+      if (/401|unauthorized|token/i.test(result.msg)) {
+        try {
+          const fresh = await fetchAndCacheToken(supabase, cred);
+          const retry = await createPreTarefa(fresh, payload);
+          if (retry.ok) {
+            await supabase.from("pendencies").update({
+              gclick_task_id: retry.id, gclick_status: "criada",
+              gclick_synced_at: new Date().toISOString(), gclick_sync_error: null,
+            }).eq("id", pend.id);
+            return json({ ok: true, task_id: retry.id, instancia: cred.unidade });
+          }
+          result.msg = retry.msg;
+        } catch (e) {
+          result.msg = e instanceof Error ? e.message : String(e);
+        }
+      }
       await supabase.from("pendencies").update({
-        gclick_sync_error: msg.slice(0, 1000),
+        gclick_sync_error: result.msg.slice(0, 1000),
         gclick_synced_at: new Date().toISOString(),
         gclick_status: "erro",
       }).eq("id", pend.id);
-      console.error("[gclick-create-task] erro:", msg);
-      return new Response(JSON.stringify({ ok: false, error: msg, instancia: cfg.label }), {
-        status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ ok: false, error: result.msg, instancia: cred.unidade });
     }
 
     await supabase.from("pendencies").update({
-      gclick_task_id: result.id,
-      gclick_task_url: result.url,
-      gclick_status: "criada",
-      gclick_synced_at: new Date().toISOString(),
-      gclick_sync_error: null,
+      gclick_task_id: result.id, gclick_status: "criada",
+      gclick_synced_at: new Date().toISOString(), gclick_sync_error: null,
     }).eq("id", pend.id);
-
-    return new Response(JSON.stringify({ ok: true, task_id: result.id, task_url: result.url, instancia: cfg.label }), {
-      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ ok: true, task_id: result.id, instancia: cred.unidade });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Erro desconhecido";
     console.error("[gclick-create-task] fatal:", msg);
-    return new Response(JSON.stringify({ ok: false, error: msg }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json({ ok: false, error: msg }, 500);
   }
 });

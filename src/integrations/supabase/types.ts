@@ -410,6 +410,48 @@ export type Database = {
         }
         Relationships: []
       }
+      gclick_credentials: {
+        Row: {
+          assunto_template: string
+          client_id_secret_name: string
+          client_secret_secret_name: string
+          created_at: string
+          enabled: boolean
+          id: string
+          sistema_id: string
+          tag_por_setor: Json
+          unidade: string
+          updated_at: string
+          usuario: string
+        }
+        Insert: {
+          assunto_template?: string
+          client_id_secret_name: string
+          client_secret_secret_name: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          sistema_id?: string
+          tag_por_setor?: Json
+          unidade: string
+          updated_at?: string
+          usuario?: string
+        }
+        Update: {
+          assunto_template?: string
+          client_id_secret_name?: string
+          client_secret_secret_name?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          sistema_id?: string
+          tag_por_setor?: Json
+          unidade?: string
+          updated_at?: string
+          usuario?: string
+        }
+        Relationships: []
+      }
       gestao_metas: {
         Row: {
           created_at: string
@@ -475,6 +517,36 @@ export type Database = {
           descricao?: string
           escopo?: string
           id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      integration_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string
+          id: string
+          service: string
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          service: string
+          unidade: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          service?: string
+          unidade?: string
           updated_at?: string
         }
         Relationships: []

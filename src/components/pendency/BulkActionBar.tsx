@@ -22,7 +22,7 @@ export function BulkActionBar({
 }: Props) {
   if (count === 0) return null;
   return (
-    <div className="sticky top-2 z-30 flex items-center gap-3 rounded-lg border bg-primary text-primary-foreground px-3 py-2 shadow-md">
+    <div className="sticky top-2 z-30 flex flex-wrap items-center gap-2 rounded-lg border bg-primary text-primary-foreground px-3 py-2 shadow-md">
       <button
         onClick={onClear}
         className="p-1 rounded hover:bg-primary-foreground/10"
@@ -31,9 +31,9 @@ export function BulkActionBar({
         <X className="w-4 h-4" />
       </button>
       <span className="text-sm font-medium">
-        {count} pendência{count > 1 ? "s" : ""} selecionada{count > 1 ? "s" : ""}
+        {count} selecionada{count > 1 ? "s" : ""}
       </span>
-      <div className="ml-auto flex items-center gap-1.5">
+      <div className="ml-auto flex flex-wrap items-center gap-1.5">
         <Button
           size="sm"
           variant="secondary"

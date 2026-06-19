@@ -29,16 +29,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   PRIORIDADE_LABELS,
-  STATUS_LABELS,
   SETOR_LABELS,
   diasAberta,
   diasUltimoContato,
-  isPendencyVencida,
   type Pendency,
   type PendencyPrioridade,
-  type PendencyStatus,
   type PendencySetor,
 } from "@/lib/pendency-types";
+import {
+  pendencyCriticality,
+  criticalityStripeClass,
+  criticalityStatusPill,
+} from "@/lib/pendency-criticality";
 
 // --- helpers ---------------------------------------------------------------
 
@@ -115,42 +117,20 @@ export function PendencyCardCompact({
 }: PendencyCardCompactProps) {
   const aberta = diasAberta(p.created_at);
   const ultimoCont = diasUltimoContato(p.ultimo_contato_em);
-  const vencida = isPendencyVencida(p);
   const finalizada = p.status === "resolvida" || p.status === "cancelada";
 
   const showPriority = p.prioridade !== "media";
 
-  // Contextual status pill (right side). PR2 will refine with full criticality.
-  let statusPill: { label: string; tone: "danger" | "warning" | "info" | "muted" } | null = null;
-  if (!finalizada) {
-    if (vencida) {
-      statusPill = { label: "vencida", tone: "danger" };
-    } else if (p.followup_paused) {
-      statusPill = {
-        label: p.followup_paused_until
-          ? `pausada até ${new Date(p.followup_paused_until).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`
-          : "pausada",
-        tone: "muted",
-      };
-    } else if (p.next_followup_at) {
-      const diff = Math.floor((new Date(p.next_followup_at).getTime() - Date.now()) / 86_400_000);
-      if (diff <= 0) statusPill = { label: "cobrar hoje", tone: "warning" };
-      else if (p.status === "aguardando_resposta")
-        statusPill = { label: `aguardando · ${ultimoCont ?? 0}d`, tone: "info" };
-      else statusPill = { label: `cobrar em ${diff}d`, tone: "muted" };
-    } else if (p.status === "aguardando_resposta") {
-      statusPill = { label: `aguardando · ${ultimoCont ?? 0}d`, tone: "info" };
-    }
-  } else {
-    statusPill = { label: STATUS_LABELS[p.status as PendencyStatus].toLowerCase(), tone: "muted" };
-  }
+  // Derived criticality drives left-border stripe + right-side pill + sort upstream.
+  const criticality = pendencyCriticality(p);
+  const statusPill = criticalityStatusPill(p, criticality);
 
-  const statusToneClass: Record<NonNullable<typeof statusPill>["tone"], string> = {
+  const statusToneClass = {
     danger: "bg-destructive/15 text-destructive",
     warning: "bg-warning/20 text-warning-foreground",
     info: "bg-info/15 text-info",
     muted: "bg-muted text-muted-foreground",
-  } as any;
+  } as const;
 
   // Cobranças line
   let cobrancasLabel: string;
@@ -169,14 +149,14 @@ export function PendencyCardCompact({
   const descCombined = [docLabel, p.descricao].filter(Boolean).join(" — ");
 
   const primaryActionLabel =
-    p.status === "aguardando_resposta" ? "Cobrar novamente" : "Cobrar agora";
+    p.status === "aguardando_resposta" || p.total_contatos > 0 ? "Cobrar novamente" : "Cobrar agora";
 
-  // Card chrome — actions stay always visible for active cards (criticidade visual chega no PR2).
   return (
     <div
       className={cn(
         "group rounded-lg border bg-card transition-colors hover:border-primary/40",
         "px-3 py-2.5",
+        criticalityStripeClass(criticality),
       )}
     >
       <div className="flex items-start gap-3">

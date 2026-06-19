@@ -513,6 +513,9 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* GClick Integration */}
+        {isAdmin && <GClickIntegrationSettings />}
+
         {/* Productivity */}
         <ProductivitySettings />
       </div>

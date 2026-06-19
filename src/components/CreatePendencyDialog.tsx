@@ -18,11 +18,13 @@ const SETORES_INTERNOS: PendencySetor[] = ["fiscal", "departamento_pessoal", "so
 interface Profile { user_id: string; display_name: string | null; }
 interface ClientContact { id: string; nome: string; email: string; is_default: boolean; }
 
+interface ClientOption { id: string; razao_social: string; cnpj?: string | null }
+
 interface Props {
   open: boolean;
   onOpenChange: (o: boolean) => void;
-  /** Preselected context */
-  clientId: string;
+  /** Preselected context (omit to render client picker inside dialog) */
+  clientId?: string;
   clientName?: string;
   /** Either pass competencia (YYYY-MM-DD) directly or month+year */
   competencia?: string;
@@ -31,9 +33,13 @@ interface Props {
   demandType?: string | null;
   /** "todo" significa toda a competência (demand_type null) */
   scopeChoice?: "tipo" | "todo";
+  /** Lista de clientes — usada quando clientId não é fornecido */
+  clients?: ClientOption[];
+  /** Botão extra "Importar planilha" no rodapé */
+  onSwitchToImport?: () => void;
 }
 
-export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName, competencia, month, year, demandType, scopeChoice }: Props) {
+export function CreatePendencyDialog({ open, onOpenChange, clientId: clientIdProp, clientName: clientNameProp, competencia, month: monthProp, year: yearProp, demandType, scopeChoice, clients, onSwitchToImport }: Props) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [tipo, setTipo] = useState<PendencyTipo>("externa");

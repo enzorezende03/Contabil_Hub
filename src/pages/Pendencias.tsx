@@ -1162,25 +1162,7 @@ function DetailsDialog({ pendency, clientName, responsavelName, onClose }: { pen
             </div>
           )}
 
-          <div>
-            <h3 className="text-sm font-semibold mb-2">Histórico de cobranças ({comms.length})</h3>
-            {comms.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Nenhuma cobrança registrada ainda.</p>
-            ) : (
-              <ul className="space-y-2">
-                {comms.map((c) => (
-                  <li key={c.id} className="border rounded-md p-2 text-xs">
-                    <div className="flex items-center justify-between mb-0.5">
-                      <span className="font-semibold">{CANAL_LABELS[c.canal]}</span>
-                      <span className="text-muted-foreground">{new Date(c.realizado_em).toLocaleString("pt-BR")}</span>
-                    </div>
-                    <div>{c.descricao}</div>
-                    {c.resposta_recebida && <div className="mt-1 text-emerald-600">↩ Resposta: {c.resposta_descricao || "(sem detalhes)"}</div>}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+          <PendencyTimeline pendency={pendency} comms={comms as any} />
         </div>
       </DialogContent>
     </Dialog>

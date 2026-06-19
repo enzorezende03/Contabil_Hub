@@ -107,6 +107,18 @@ export default function PendenciasPage() {
     if (tab === "internas" && filterSetor !== "all") list = list.filter((p) => p.setor_responsavel === filterSetor);
     if (filterCobrarHoje) list = list.filter((p) => !p.followup_paused && p.next_followup_at && new Date(p.next_followup_at) <= new Date());
 
+    if (kpiFilter === "criticas") list = list.filter((p) => pendencyCriticality(p) === "critica");
+    if (kpiFilter === "semContato7d") {
+      list = list.filter((p) => {
+        if (!p.ultimo_contato_em) return diasAberta(p.created_at) > 7;
+        return diasUltimoContato(p.ultimo_contato_em)! > 7;
+      });
+    }
+    if (kpiFilter === "resolvidasMes") {
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      list = list.filter((p) => p.status === "resolvida" && p.resolved_at && new Date(p.resolved_at) >= monthStart);
+    }
+
     // Default sort: criticidade desc (críticas no topo) → mais antigas primeiro
     return [...list].sort((a, b) => {
       const ra = criticalityRank(pendencyCriticality(a));
@@ -118,7 +130,7 @@ export default function PendenciasPage() {
       if (aLast !== bLast) return aLast - bLast;
       return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     });
-  }, [pendencies, tab, search, filterStatus, filterPrioridade, filterResponsavel, filterSetor, filterCobrarHoje, user?.id, clientMap]);
+  }, [pendencies, tab, search, filterStatus, filterPrioridade, filterResponsavel, filterSetor, filterCobrarHoje, kpiFilter, user?.id, clientMap]);
 
   // KPIs (sempre sobre todas as pendências, não filtradas)
   const kpis = useMemo(() => {

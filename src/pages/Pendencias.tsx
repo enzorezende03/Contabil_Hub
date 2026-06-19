@@ -215,7 +215,28 @@ export default function PendenciasPage() {
             <span className="ml-auto text-xs text-muted-foreground">{filtered.length} pendência(s)</span>
           </div>
 
-          <TabsContent value={tab} className="mt-4">
+          <TabsContent value={tab} className="mt-4 space-y-2">
+            {canBulkManage && selectedIds.size > 0 && (
+              <BulkActionBar
+                count={selectedIds.size}
+                onClear={() => setSelectedIds(new Set())}
+                onCobrar={() => setBulkCobrarOpen(true)}
+                onReatribuir={() => setBulkReassignOpen(true)}
+                onPausar={async () => {
+                  const ids = Array.from(selectedIds);
+                  const { error } = await supabase
+                    .from("pendencies")
+                    .update({ followup_paused: true })
+                    .in("id", ids);
+                  if (error) toast.error("Erro ao pausar: " + error.message);
+                  else {
+                    toast.success(`${ids.length} pendência(s) pausada(s)`);
+                    setSelectedIds(new Set());
+                    qc.invalidateQueries({ queryKey: ["pendencies"] });
+                  }
+                }}
+              />
+            )}
             {isLoading ? (
               <div className="text-center py-12 text-muted-foreground">Carregando...</div>
             ) : filtered.length === 0 ? (
@@ -232,6 +253,17 @@ export default function PendenciasPage() {
                       user_id: pr.user_id,
                       display_name: pr.display_name || "—",
                     }))}
+                    selectable={canBulkManage}
+                    selected={selectedIds.has(p.id)}
+                    selectionActive={selectedIds.size > 0}
+                    onToggleSelected={() => {
+                      setSelectedIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(p.id)) next.delete(p.id);
+                        else next.add(p.id);
+                        return next;
+                      });
+                    }}
                     onCobrar={() => setCobrarPendency(p)}
                     onResolver={() => setResolvePendency(p)}
                     onPausar={() => setPausePendency(p)}

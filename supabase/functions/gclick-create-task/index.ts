@@ -62,20 +62,41 @@ async function fetchAndCacheToken(
       `Credenciais GClick ausentes: defina os secrets ${cred.client_id_secret_name} e ${cred.client_secret_secret_name} no painel do backend.`,
     );
   }
-  const body = new URLSearchParams();
-  body.append("client_id", clientId);
-  body.append("client_secret", clientSecret);
-  body.append("grant_type", "client_credentials");
+  const basic = btoa(`${clientId}:${clientSecret}`);
 
-  const resp = await fetch(`${BASE_URL}/oauth/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-  });
-  const text = await resp.text();
-  if (!resp.ok) {
+  // Tenta 3 formatos comuns: Basic header puro, Basic+body, body puro
+  const attempts: Array<{ label: string; headers: Record<string, string>; body: string }> = [
+    {
+      label: "basic-header",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: `Basic ${basic}` },
+      body: "grant_type=client_credentials",
+    },
+    {
+      label: "basic+body",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", Authorization: `Basic ${basic}` },
+      body: `grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}`,
+    },
+    {
+      label: "body-only",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `grant_type=client_credentials&client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}`,
+    },
+  ];
+
+  let resp: Response | null = null;
+  let text = "";
+  const errors: string[] = [];
+  for (const a of attempts) {
+    resp = await fetch(`${BASE_URL}/oauth/token`, { method: "POST", headers: a.headers, body: a.body });
+    text = await resp.text();
+    console.log(`[gclick-oauth] attempt=${a.label} status=${resp.status}`);
+    if (resp.ok) break;
+    errors.push(`${a.label}: HTTP ${resp.status} ${text.slice(0, 200)}`);
+    resp = null;
+  }
+  if (!resp) {
     throw new Error(
-      `Credenciais GClick inválidas para unidade ${cred.unidade} (HTTP ${resp.status}): ${text.slice(0, 300)}`,
+      `Credenciais GClick inválidas para unidade ${cred.unidade}. Tentativas: ${errors.join(" | ")}`,
     );
   }
   let data: any;

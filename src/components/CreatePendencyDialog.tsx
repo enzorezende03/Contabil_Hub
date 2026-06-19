@@ -609,9 +609,16 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId: clientIdPro
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Criar pendência"}</Button>
+        <DialogFooter className="flex sm:justify-between gap-2">
+          {onSwitchToImport ? (
+            <Button variant="ghost" onClick={onSwitchToImport} className="gap-1" disabled={saving}>
+              <FileSpreadsheet className="w-4 h-4" /> Importar planilha
+            </Button>
+          ) : <span />}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? "Salvando..." : "Criar pendência"}</Button>
+          </div>
         </DialogFooter>
         </>
         )}

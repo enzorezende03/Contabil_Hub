@@ -199,8 +199,8 @@ export function PendencyCardCompact({
               "shrink-0 flex items-center justify-center w-4 h-4 mt-0.5 rounded border cursor-pointer transition",
               selected
                 ? "bg-primary border-primary text-primary-foreground"
-                : "bg-card border-input opacity-0 group-hover:opacity-100",
-              selectionActive && "opacity-100",
+                : "bg-card border-input md:opacity-0 md:group-hover:opacity-100",
+              selectionActive && "opacity-100 md:opacity-100",
             )}
             onClick={(e) => e.stopPropagation()}
           >

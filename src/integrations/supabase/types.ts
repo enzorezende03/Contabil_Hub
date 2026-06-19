@@ -767,6 +767,47 @@ export type Database = {
         }
         Relationships: []
       }
+      pendency_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          pendency_id: string
+          storage_path: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          pendency_id: string
+          storage_path: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          pendency_id?: string
+          storage_path?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pendency_attachments_pendency_id_fkey"
+            columns: ["pendency_id"]
+            isOneToOne: false
+            referencedRelation: "pendencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pendency_communications: {
         Row: {
           canal: string

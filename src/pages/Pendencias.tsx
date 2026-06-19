@@ -582,18 +582,24 @@ function PortalAccessButton({ pendencyId }: { pendencyId: string }) {
 /** Wrapper to allow choosing a client when creating from /pendencias header */
 function CreatePendencyDialogWrapper({ open, onOpenChange, clients, onSwitchToImport }: { open: boolean; onOpenChange: (o: boolean) => void; clients: ClientRow[]; onSwitchToImport?: () => void }) {
   const [step, setStep] = useState<"pick" | "form">("pick");
-  const [clientId, setClientId] = useState(clients[0]?.id ?? "");
+  const [clientId, setClientId] = useState<string>("");
   const [search, setSearch] = useState("");
   const [month, setMonth] = useState(String(new Date().getMonth() + 1).padStart(2, "0"));
   const [year, setYear] = useState(String(new Date().getFullYear()));
-  const filteredClients = clients.filter((c) => c.razao_social.toLowerCase().includes(search.toLowerCase()));
+  const filteredClients = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return clients.slice(0, 50);
+    return clients.filter((c) =>
+      c.razao_social.toLowerCase().includes(q) || (c.cnpj || "").toLowerCase().includes(q)
+    ).slice(0, 50);
+  }, [clients, search]);
   const selected = clients.find((c) => c.id === clientId);
 
   if (step === "form" && selected) {
     return (
       <CreatePendencyDialog
         open={open}
-        onOpenChange={(o) => { onOpenChange(o); if (!o) setStep("pick"); }}
+        onOpenChange={(o) => { onOpenChange(o); if (!o) { setStep("pick"); setClientId(""); setSearch(""); } }}
         clientId={selected.id}
         clientName={selected.razao_social}
         month={month}
@@ -603,20 +609,49 @@ function CreatePendencyDialogWrapper({ open, onOpenChange, clients, onSwitchToIm
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setStep("pick"); setClientId(""); setSearch(""); } }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Nova pendência</DialogTitle>
           <DialogDescription>Selecione o cliente e a competência</DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-2">
-          <Input placeholder="Buscar cliente" value={search} onChange={(e) => setSearch(e.target.value)} />
-          <Select value={clientId} onValueChange={setClientId}>
-            <SelectTrigger><SelectValue placeholder="Cliente" /></SelectTrigger>
-            <SelectContent className="max-h-72">
-              {filteredClients.map((c) => <SelectItem key={c.id} value={c.id}>{c.razao_social}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Cliente</Label>
+            <Input
+              autoFocus
+              placeholder="Buscar por razão social ou CNPJ"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); if (clientId) setClientId(""); }}
+            />
+            <div className="max-h-56 overflow-y-auto rounded-md border bg-background">
+              {filteredClients.length === 0 ? (
+                <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                  {clients.length === 0 ? "Nenhum cliente cadastrado" : "Nenhum cliente encontrado"}
+                </div>
+              ) : (
+                filteredClients.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => { setClientId(c.id); setSearch(c.razao_social); }}
+                    className={cn(
+                      "w-full text-left px-3 py-2 text-sm hover:bg-muted border-b last:border-b-0 transition-colors",
+                      clientId === c.id && "bg-primary/10 text-primary font-medium"
+                    )}
+                  >
+                    <div className="truncate">{c.razao_social}</div>
+                    {c.cnpj && <div className="text-[10px] text-muted-foreground font-mono">{c.cnpj}</div>}
+                  </button>
+                ))
+              )}
+            </div>
+            {selected && (
+              <div className="text-[11px] text-muted-foreground">
+                Selecionado: <span className="font-medium text-foreground">{selected.razao_social}</span>
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-xs">Mês</Label>

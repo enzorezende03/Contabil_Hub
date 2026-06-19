@@ -123,6 +123,16 @@ export default function PendenciasPage() {
     };
   }, [pendencies]);
 
+  // Contadores por aba (sobre todas, sem aplicar filtros laterais)
+  const tabCounts = useMemo(() => {
+    const cutoff = Date.now() - 30 * 86_400_000;
+    return {
+      externas: pendencies.filter((p) => p.tipo === "externa" && p.status !== "resolvida" && p.status !== "cancelada").length,
+      internas: pendencies.filter((p) => p.tipo === "interna" && p.status !== "resolvida" && p.status !== "cancelada").length,
+      resolvidas: pendencies.filter((p) => (p.status === "resolvida" || p.status === "cancelada") && new Date(p.updated_at).getTime() >= cutoff).length,
+    };
+  }, [pendencies]);
+
   return (
     <AppLayout>
       <div className="p-6 space-y-5 max-w-[1400px] mx-auto">
@@ -138,9 +148,9 @@ export default function PendenciasPage() {
           </div>
         </header>
 
-        {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <KpiBlock icon={Inbox} label="Pendências abertas" value={kpis.abertas} color="text-foreground" />
+        {/* KPIs compactos */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <KpiBlock icon={Inbox} label="Abertas" value={kpis.abertas} color="text-foreground" />
           <KpiBlock icon={AlertCircle} label="Críticas" value={kpis.criticas} color={kpis.criticas > 0 ? "text-destructive" : "text-foreground"} />
           <KpiBlock icon={Clock} label="Sem contato > 7d" value={kpis.semContato7d} color={kpis.semContato7d > 0 ? "text-orange-500" : "text-foreground"} />
           <KpiBlock icon={CheckCircle2} label="Resolvidas no mês" value={kpis.resolvidasMes} color="text-emerald-500" />
@@ -149,9 +159,9 @@ export default function PendenciasPage() {
         {/* Tabs */}
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
           <TabsList>
-            <TabsTrigger value="externas">Externas (cliente)</TabsTrigger>
-            <TabsTrigger value="internas">Internas (setor)</TabsTrigger>
-            <TabsTrigger value="resolvidas">Resolvidas (30d)</TabsTrigger>
+            <TabsTrigger value="externas">Externas <span className="ml-1.5 text-[10px] opacity-70">({tabCounts.externas})</span></TabsTrigger>
+            <TabsTrigger value="internas">Internas <span className="ml-1.5 text-[10px] opacity-70">({tabCounts.internas})</span></TabsTrigger>
+            <TabsTrigger value="resolvidas">Resolvidas 30d <span className="ml-1.5 text-[10px] opacity-70">({tabCounts.resolvidas})</span></TabsTrigger>
           </TabsList>
 
           {/* Filtros */}
@@ -265,13 +275,13 @@ export default function PendenciasPage() {
 
 function KpiBlock({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
   return (
-    <div className="rounded-lg border bg-card p-4 flex items-start gap-3">
-      <div className={cn("p-2 rounded-md bg-muted/50", color)}>
-        <Icon className="w-4 h-4" />
+    <div className="rounded-lg border bg-card px-3 py-2 flex items-center gap-2.5 min-h-[60px]">
+      <div className={cn("p-1.5 rounded-md bg-muted/50 shrink-0", color)}>
+        <Icon className="w-3.5 h-3.5" />
       </div>
-      <div>
-        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
-        <div className={cn("text-2xl font-bold leading-tight mt-0.5", color)}>{value}</div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">{label}</div>
+        <div className={cn("text-xl font-bold leading-tight", color)}>{value}</div>
       </div>
     </div>
   );

@@ -351,13 +351,54 @@ Deno.serve(async (req) => {
       profile?.display_name ? `Solicitado por: ${profile.display_name}` : null,
     ].filter(Boolean).join("\n");
 
+    // Buscar anexos da pendência e codificar em base64
+    const arquivos: Array<Record<string, unknown>> = [];
+    const { data: attachRows } = await supabase
+      .from("pendency_attachments")
+      .select("storage_path, file_name, mime_type, file_size")
+      .eq("pendency_id", pend.id);
+    if (attachRows && attachRows.length) {
+      // Limite total de ~8MB em base64 (≈6MB binário) — proteção para não estourar payload do GClick.
+      let totalBytes = 0;
+      const MAX_BYTES = 6 * 1024 * 1024;
+      for (const att of attachRows) {
+        try {
+          const { data: file, error: dlErr } = await supabase.storage
+            .from("pendency-attachments").download(att.storage_path);
+          if (dlErr || !file) {
+            console.log(`[gclick-create] anexo skip (download): ${att.file_name} ${dlErr?.message || ""}`);
+            continue;
+          }
+          const buf = new Uint8Array(await file.arrayBuffer());
+          if (totalBytes + buf.byteLength > MAX_BYTES) {
+            console.log(`[gclick-create] anexo skip (limite 6MB): ${att.file_name}`);
+            continue;
+          }
+          totalBytes += buf.byteLength;
+          // base64
+          let bin = "";
+          for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
+          const b64 = btoa(bin);
+          arquivos.push({
+            nome: att.file_name,
+            arquivo: b64,
+            base64: b64,
+            mimeType: att.mime_type || "application/octet-stream",
+            tamanho: att.file_size ?? buf.byteLength,
+          });
+        } catch (e) {
+          console.log(`[gclick-create] anexo erro: ${att.file_name} ${e instanceof Error ? e.message : e}`);
+        }
+      }
+    }
+
     const payload: Record<string, unknown> = {
       inscricoes: [cnpj],
       clienteId: gclickClienteId,
       departamentoId: departamentoFromConfig(tag),
       assunto,
       andamento,
-      arquivos: [] as unknown[],
+      arquivos,
       convidadosIds: [] as unknown[],
     };
 

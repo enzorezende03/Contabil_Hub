@@ -214,6 +214,7 @@ export default function PendenciasPage() {
                     onResolver={() => setResolvePendency(p)}
                     onPausar={() => setPausePendency(p)}
                     onDetalhes={() => setDetailsPendency(p)}
+                    onExcluir={() => setDeletePendency(p)}
                   />
                 ))}
               </div>

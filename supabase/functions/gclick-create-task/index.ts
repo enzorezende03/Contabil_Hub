@@ -381,10 +381,7 @@ Deno.serve(async (req) => {
           const b64 = btoa(bin);
           arquivos.push({
             nome: att.file_name,
-            arquivo: b64,
-            base64: b64,
-            mimeType: att.mime_type || "application/octet-stream",
-            tamanho: att.file_size ?? buf.byteLength,
+            base64: `data:${att.mime_type || "application/octet-stream"};base64,${b64}`,
           });
         } catch (e) {
           console.log(`[gclick-create] anexo erro: ${att.file_name} ${e instanceof Error ? e.message : e}`);

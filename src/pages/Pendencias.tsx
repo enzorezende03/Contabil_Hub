@@ -1079,6 +1079,10 @@ function DetailsDialog({ pendency, clientName, responsavelName, onClose }: { pen
             {pendency.resolution_notes && <div><strong>Resolução:</strong> {pendency.resolution_notes}</div>}
           </div>
 
+          <RelatedPlanningSection clientName={clientName} competencia={pendency.competencia} />
+
+
+
           {pendency.tipo === "externa" && (
             <div>
               <div className="flex items-center justify-between mb-2">

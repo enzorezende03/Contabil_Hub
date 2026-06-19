@@ -246,10 +246,12 @@ Deno.serve(async (req) => {
         .eq("id", body.resolve_task_url).maybeSingle();
       if (!pend?.gclick_task_id) return json({ ok: false, error: "Pendência sem pré-tarefa" });
       const { data: cli } = await supabase
-        .from("clients").select("unidade").eq("id", pend.client_id).maybeSingle();
+        .from("clients").select("unidade, gclick_cliente_id").eq("id", pend.client_id).maybeSingle();
       const { data: cred } = await supabase
         .from("gclick_credentials").select("*").eq("unidade", cli?.unidade).maybeSingle();
       if (!cred) return json({ ok: true, url: pend.gclick_task_url });
+      const buildLegacyUrl = (eveId: string | number) =>
+        `https://app.gclick.com.br/csListar.do?obj=csevento&csid=${(cred as any).sistema_id}&eveId=${eveId}&empId=${cli?.gclick_cliente_id ?? ""}`;
       try {
         const token = await getToken(supabase, cred as Credential);
         const paths = [

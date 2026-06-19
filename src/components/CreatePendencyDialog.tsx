@@ -330,6 +330,71 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId: clientIdPro
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          {/* Picker de cliente e competência (quando não vem como prop) */}
+          {!clientIdProp && clients && (
+            <div className="space-y-3 rounded-md border bg-muted/20 p-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Cliente *</Label>
+                <Input
+                  autoFocus
+                  placeholder="Buscar por razão social ou CNPJ"
+                  value={clientSearch}
+                  onChange={(e) => { setClientSearch(e.target.value); if (pickedClientId) setPickedClientId(""); }}
+                />
+                {clientSearch.trim() ? (
+                  <div className="max-h-48 overflow-y-auto rounded-md border bg-background">
+                    {filteredClients.length === 0 ? (
+                      <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                        {clients.length === 0 ? "Nenhum cliente cadastrado" : "Nenhum cliente encontrado"}
+                      </div>
+                    ) : (
+                      filteredClients.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => { setPickedClientId(c.id); setClientSearch(c.razao_social); }}
+                          className={cn(
+                            "w-full text-left px-3 py-2 text-sm hover:bg-muted border-b last:border-b-0 transition-colors",
+                            pickedClientId === c.id && "bg-primary/10 text-primary font-medium"
+                          )}
+                        >
+                          <div className="truncate">{c.razao_social}</div>
+                          {c.cnpj && <div className="text-[10px] text-muted-foreground font-mono">{c.cnpj}</div>}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                ) : (
+                  <div className="px-3 py-3 text-center text-xs text-muted-foreground rounded-md border border-dashed">
+                    Digite para pesquisar o cliente
+                  </div>
+                )}
+                {selectedClient && (
+                  <div className="text-[11px] text-muted-foreground">
+                    Selecionado: <span className="font-medium text-foreground">{selectedClient.razao_social}</span>
+                  </div>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-xs">Mês</Label>
+                  <Select value={pickedMonth} onValueChange={setPickedMonth}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0")).map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Ano</Label>
+                  <Input value={pickedYear} onChange={(e) => setPickedYear(e.target.value)} />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Toggle tipo */}
           <div className="grid grid-cols-2 gap-2">
             <button type="button" onClick={() => setTipo("externa")} className={`p-3 rounded-md border text-sm font-medium transition-colors ${tipo === "externa" ? "border-primary bg-primary/10 text-primary" : "border-border hover:bg-muted"}`}>
@@ -339,6 +404,7 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId: clientIdPro
               Interna (outro setor)
             </button>
           </div>
+
 
           {tipo === "interna" ? (
             <div className="space-y-1.5">

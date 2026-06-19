@@ -265,10 +265,12 @@ function GclickBadge({ pendency: p }: { pendency: Pendency }) {
     setSending(true);
     const { data, error } = await supabase.functions.invoke("gclick-create-task", { body: { pendency_id: p.id } });
     setSending(false);
-    if (error || !data?.ok) {
-      toast.error(`GClick: ${data?.error || error?.message || "falha"}`);
+    if (data?.code === "not_configured") {
+      toast.warning("Integração GClick não configurada. Configure os secrets em Configurações → Integrações para sincronizar automaticamente.", { duration: 8000 });
+    } else if (error || !data?.ok) {
+      toast.error(`Falha ao sincronizar com GClick: ${data?.error || error?.message || "erro desconhecido"}`);
     } else {
-      toast.success(`Tarefa criada no GClick (${data.instancia})`);
+      toast.success(`Sincronizada no GClick (${data.instancia})`);
     }
     qc.invalidateQueries({ queryKey: ["pendencies"] });
   }
@@ -281,10 +283,20 @@ function GclickBadge({ pendency: p }: { pendency: Pendency }) {
         rel="noreferrer"
         onClick={(e) => e.stopPropagation()}
         className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-emerald-500/15 text-emerald-700 border-emerald-500/30 inline-flex items-center gap-1 hover:bg-emerald-500/25"
-        title={`Tarefa GClick: ${p.gclick_task_id}`}
+        title={`Sincronizada no GClick · ${p.gclick_task_id}`}
       >
-        <ExternalLink className="w-2.5 h-2.5" /> GClick #{p.gclick_task_id.slice(0, 8)}
+        <ExternalLink className="w-2.5 h-2.5" /> Abrir no GClick
       </a>
+    );
+  }
+  if (p.gclick_status === "nao_configurado") {
+    return (
+      <span
+        className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-amber-500/15 text-amber-700 border-amber-500/30 inline-flex items-center gap-1"
+        title={p.gclick_sync_error || "Integração GClick não configurada"}
+      >
+        GClick não configurado
+      </span>
     );
   }
   if (p.gclick_sync_error) {
@@ -296,7 +308,7 @@ function GclickBadge({ pendency: p }: { pendency: Pendency }) {
         title={p.gclick_sync_error}
         className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-red-500/15 text-red-600 border-red-500/30 inline-flex items-center gap-1 hover:bg-red-500/25"
       >
-        <RefreshCw className={cn("w-2.5 h-2.5", sending && "animate-spin")} /> GClick: reenviar
+        <RefreshCw className={cn("w-2.5 h-2.5", sending && "animate-spin")} /> Sincronização falhou — reenviar
       </button>
     );
   }
@@ -305,9 +317,10 @@ function GclickBadge({ pendency: p }: { pendency: Pendency }) {
       type="button"
       onClick={reenviar}
       disabled={sending}
+      title="Sincronizar pré-tarefa no GClick"
       className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-muted text-muted-foreground hover:bg-muted/80 inline-flex items-center gap-1"
     >
-      <RefreshCw className={cn("w-2.5 h-2.5", sending && "animate-spin")} /> Enviar ao GClick
+      <RefreshCw className={cn("w-2.5 h-2.5", sending && "animate-spin")} /> Sincronizar GClick
     </button>
   );
 }

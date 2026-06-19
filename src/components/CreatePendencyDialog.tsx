@@ -161,15 +161,19 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
       );
     }
 
-    // Auto-disparo: pendência interna vira tarefa no GClick
+    // Auto-disparo: pendência interna vira pré-tarefa no GClick automaticamente.
+    // O operador NÃO precisa criar nada no GClick — só acompanhar o status depois.
     if (tipo === "interna" && newPendencyId) {
-      toast.loading("Enviando ao GClick...", { id: `gclick-${newPendencyId}` });
+      toast.loading("Sincronizando com GClick...", { id: `gclick-${newPendencyId}` });
       supabase.functions.invoke("gclick-create-task", { body: { pendency_id: newPendencyId } })
         .then(({ data, error: fnErr }) => {
-          if (fnErr || !data?.ok) {
-            toast.error(`GClick: ${data?.error || fnErr?.message || "falha ao criar tarefa"}`, { id: `gclick-${newPendencyId}` });
+          if (data?.code === "not_configured") {
+            toast.warning("Pendência salva. Integração GClick não configurada — configure os secrets em Configurações → Integrações para sincronizar automaticamente.", { id: `gclick-${newPendencyId}`, duration: 8000 });
+          } else if (fnErr || !data?.ok) {
+            const detail = data?.error || fnErr?.message || "falha ao sincronizar";
+            toast.error(`Pendência salva, mas a sincronização com o GClick falhou: ${detail}. Você pode reenviar pela lista de pendências.`, { id: `gclick-${newPendencyId}`, duration: 8000 });
           } else {
-            toast.success(`Tarefa criada no GClick (${data.instancia})`, { id: `gclick-${newPendencyId}` });
+            toast.success(`Sincronizada no GClick (${data.instancia})`, { id: `gclick-${newPendencyId}` });
           }
           qc.invalidateQueries({ queryKey: ["pendencies"] });
         });

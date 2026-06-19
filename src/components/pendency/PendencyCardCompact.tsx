@@ -41,6 +41,7 @@ import {
   criticalityStripeClass,
   criticalityStatusPill,
 } from "@/lib/pendency-criticality";
+import { hasExternalContactHint } from "./RegistrarContatoExternoDialog";
 
 // --- helpers ---------------------------------------------------------------
 
@@ -98,6 +99,7 @@ export interface PendencyCardCompactProps {
   onExcluir: () => void;
   onLinkPortal?: () => void;
   onReassigned?: () => void;
+  onRegistrarExterno?: () => void;
   selectable?: boolean;
   selected?: boolean;
   selectionActive?: boolean;
@@ -118,6 +120,7 @@ export function PendencyCardCompact({
   onExcluir,
   onLinkPortal,
   onReassigned,
+  onRegistrarExterno,
   selectable = false,
   selected = false,
   selectionActive = false,
@@ -126,6 +129,7 @@ export function PendencyCardCompact({
   const aberta = diasAberta(p.created_at);
   const ultimoCont = diasUltimoContato(p.ultimo_contato_em);
   const finalizada = p.status === "resolvida" || p.status === "cancelada";
+  const externalHint = hasExternalContactHint(p);
 
   const showPriority = p.prioridade !== "media";
 
@@ -249,6 +253,23 @@ export function PendencyCardCompact({
               {responsavelName}
             </span>
           </div>
+
+          {/* Banner: dica de contato externo não registrado */}
+          {!finalizada && externalHint && onRegistrarExterno && (
+            <button
+              type="button"
+              onClick={onRegistrarExterno}
+              className="mt-2 w-full text-left flex items-center gap-2 rounded-md border border-warning/30 bg-warning/10 px-2 py-1.5 text-[11px] text-warning-foreground hover:bg-warning/20 transition-colors"
+            >
+              <span className="text-warning">⚠</span>
+              <span className="flex-1">
+                A descrição menciona contato com o cliente, mas nenhuma cobrança foi registrada.
+              </span>
+              <span className="font-medium underline-offset-2 hover:underline">
+                Registrar contato externo
+              </span>
+            </button>
+          )}
         </div>
 
         {/* Right: actions */}

@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { RegistrarCobrancaDialog } from "@/components/RegistrarCobrancaDialog";
+import { RegistrarContatoExternoDialog } from "@/components/pendency/RegistrarContatoExternoDialog";
 import { CreatePendencyDialog } from "@/components/CreatePendencyDialog";
 import { ImportPendenciesDialog } from "@/components/ImportPendenciesDialog";
 import { PendencyCardCompact } from "@/components/pendency/PendencyCardCompact";
@@ -46,6 +47,7 @@ export default function PendenciasPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [createCtx, setCreateCtx] = useState<{ clientId: string; clientName?: string } | null>(null);
   const [cobrarPendency, setCobrarPendency] = useState<Pendency | null>(null);
+  const [externoPendency, setExternoPendency] = useState<Pendency | null>(null);
   const [resolvePendency, setResolvePendency] = useState<Pendency | null>(null);
   const [pausePendency, setPausePendency] = useState<Pendency | null>(null);
   const [deletePendency, setDeletePendency] = useState<Pendency | null>(null);
@@ -270,6 +272,7 @@ export default function PendenciasPage() {
                     onDetalhes={() => setDetailsPendency(p)}
                     onExcluir={() => setDeletePendency(p)}
                     onReassigned={() => qc.invalidateQueries({ queryKey: ["pendencies"] })}
+                    onRegistrarExterno={() => setExternoPendency(p)}
                   />
                 ))}
               </div>
@@ -329,6 +332,14 @@ export default function PendenciasPage() {
           onOpenChange={(o) => !o && setCobrarPendency(null)}
           pendency={cobrarPendency}
           clientName={clientMap.get(cobrarPendency.client_id)?.razao_social}
+        />
+      )}
+      {externoPendency && (
+        <RegistrarContatoExternoDialog
+          open={!!externoPendency}
+          onOpenChange={(o) => !o && setExternoPendency(null)}
+          pendency={externoPendency}
+          clientName={clientMap.get(externoPendency.client_id)?.razao_social}
         />
       )}
       {resolvePendency && (

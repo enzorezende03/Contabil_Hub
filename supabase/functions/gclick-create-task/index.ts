@@ -173,6 +173,22 @@ function departamentoFromConfig(value: string): string {
   return match?.[0] || trimmed;
 }
 
+function decodeJwtPayload(token: string): any | null {
+  try {
+    const part = token.split(".")[1];
+    if (!part) return null;
+    const padded = part.padEnd(part.length + ((4 - part.length % 4) % 4), "=");
+    return JSON.parse(atob(padded.replace(/-/g, "+").replace(/_/g, "/")));
+  } catch {
+    return null;
+  }
+}
+
+function getEmpresaIdFromToken(token: string): string | null {
+  const payload = decodeJwtPayload(token);
+  return payload?.empresa?.id ? String(payload.empresa.id) : null;
+}
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -250,10 +266,14 @@ Deno.serve(async (req) => {
       const { data: cred } = await supabase
         .from("gclick_credentials").select("*").eq("unidade", cli?.unidade).maybeSingle();
       if (!cred) return json({ ok: true, url: pend.gclick_task_url });
-      const buildLegacyUrl = (eveId: string | number) =>
-        `https://app.gclick.com.br/csListar.do?obj=csevento&csid=${(cred as any).sistema_id}&eveId=${eveId}&empId=${cli?.gclick_cliente_id ?? ""}`;
       try {
         const token = await getToken(supabase, cred as Credential);
+        const empresaId = getEmpresaIdFromToken(token);
+        const buildLegacyUrl = (eveId: string | number, csid?: string | number | null) => {
+          const safeCsid = String(csid || (/^\d+$/.test(String((cred as any).sistema_id || "")) ? (cred as any).sistema_id : "3"));
+          const safeEmpId = empresaId || "";
+          return `https://app.gclick.com.br/csListar.do?obj=csevento&csid=${safeCsid}&eveId=${eveId}&empId=${safeEmpId}`;
+        };
         const paths = [
           `/v2/tarefas/preTarefas/${pend.gclick_task_id}`,
           `/tarefas/preTarefas/${pend.gclick_task_id}`,
@@ -261,6 +281,7 @@ Deno.serve(async (req) => {
           `/preTarefas/${pend.gclick_task_id}`,
         ];
         let realId: string | null = null;
+        let realCsid: string | null = null;
         let lastDump: any = null;
         for (const p of paths) {
           const r = await fetch(`${BASE_URL}${p}`, {
@@ -278,11 +299,19 @@ Deno.serve(async (req) => {
             d?.tarefaGeradaId ?? d?.idTarefaGerada ?? d?.codigoTarefa ?? d?.codigo ??
             (Array.isArray(d?.tarefas) ? (d.tarefas[0]?.eveId ?? d.tarefas[0]?.id ?? d.tarefas[0]?.codigo) : null) ??
             (Array.isArray(d?.tarefasGeradas) ? (d.tarefasGeradas[0]?.eveId ?? d.tarefasGeradas[0]?.id ?? d.tarefasGeradas[0]?.codigo) : null);
-          if (candidate) { realId = String(candidate); break; }
+          if (candidate) {
+            realId = String(candidate);
+            realCsid = String(d?.csid ?? d?.tarefa?.csid ?? d?.evento?.csid ?? "") || null;
+            break;
+          }
         }
         console.log(`[gclick-resolve] preTarefa=${pend.gclick_task_id} realId=${realId} keys=${lastDump ? Object.keys(lastDump).join(",") : "none"}`);
 
         if (!realId) {
+          // Na URL clássica do GClick, o número exibido como "3.37400" usa o próprio ID retornado
+          // na criação como eveId. Evitamos usar a listagem /v2/tarefas como fallback porque ela
+          // pode ignorar filtros e retornar a primeira página de tarefas de outros clientes.
+          realId = String(pend.gclick_task_id);
           const sParams = [
             `/tarefas?preTarefaId=${pend.gclick_task_id}`,
             `/v2/tarefas?preTarefaId=${pend.gclick_task_id}`,
@@ -297,7 +326,15 @@ Deno.serve(async (req) => {
               let d: any; try { d = JSON.parse(txt); } catch { d = null; }
               const list = Array.isArray(d) ? d : (d?.content ?? d?.tarefas ?? d?.data ?? []);
               if (Array.isArray(list) && list.length) {
-                realId = String(list[0]?.eveId ?? list[0]?.id ?? list[0]?.codigo ?? "");
+                const expectedClienteId = String(cli?.gclick_cliente_id ?? "");
+                const accepted = list.filter((item: any) => item?.pretarefa === false);
+                const subjectMatch = accepted.find((item: any) => String(item?.assunto ?? "").includes(String(pend.gclick_task_id)));
+                const chosen = subjectMatch && String(subjectMatch?.clienteId ?? subjectMatch?.cliente?.id ?? expectedClienteId) === expectedClienteId
+                  ? subjectMatch
+                  : null;
+                if (!chosen) continue;
+                realId = String(chosen?.eveId ?? chosen?.id ?? chosen?.codigo ?? "");
+                realCsid = String(chosen?.csid ?? chosen?.sistemaId ?? chosen?.sistema_id ?? "") || null;
                 if (realId) break;
               }
             } catch (e) { console.log("[gclick-resolve-search] err", e); }
@@ -308,10 +345,14 @@ Deno.serve(async (req) => {
           // O GClick usa URL clássica: csListar.do?obj=csevento&csid=<sistema>&eveId=<evento>&empId=<empresa>
           // Se realId vier no formato "3.37400" (sistema.evento), separamos.
           let eveId = realId;
-          if (/^\d+\.\d+$/.test(realId)) eveId = realId.split(".")[1];
-          const url = buildLegacyUrl(eveId);
+          if (/^\d+\.\d+$/.test(realId)) {
+            const [csidPart, eveIdPart] = realId.split(".");
+            realCsid = realCsid || csidPart;
+            eveId = eveIdPart;
+          }
+          const url = buildLegacyUrl(eveId, realCsid);
           await supabase.from("pendencies").update({ gclick_task_url: url }).eq("id", pend.id);
-          return json({ ok: true, url, real_task_id: realId });
+          return json({ ok: true, url, real_task_id: realId, csid: realCsid, empId: empresaId });
         }
         const fallback = `https://app.gclick.com.br/#/tarefas/pretarefas/${pend.gclick_task_id}`;
         return json({ ok: true, url: fallback, pending: true, dump_keys: lastDump ? Object.keys(lastDump) : [] });

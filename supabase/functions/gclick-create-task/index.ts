@@ -308,6 +308,10 @@ Deno.serve(async (req) => {
         console.log(`[gclick-resolve] preTarefa=${pend.gclick_task_id} realId=${realId} keys=${lastDump ? Object.keys(lastDump).join(",") : "none"}`);
 
         if (!realId) {
+          // Na URL clássica do GClick, o número exibido como "3.37400" usa o próprio ID retornado
+          // na criação como eveId. Evitamos usar a listagem /v2/tarefas como fallback porque ela
+          // pode ignorar filtros e retornar a primeira página de tarefas de outros clientes.
+          realId = String(pend.gclick_task_id);
           const sParams = [
             `/tarefas?preTarefaId=${pend.gclick_task_id}`,
             `/v2/tarefas?preTarefaId=${pend.gclick_task_id}`,
@@ -324,9 +328,11 @@ Deno.serve(async (req) => {
               if (Array.isArray(list) && list.length) {
                 const expectedClienteId = String(cli?.gclick_cliente_id ?? "");
                 const accepted = list.filter((item: any) => item?.pretarefa === false);
-                const sameClient = accepted.find((item: any) => String(item?.clienteId ?? item?.cliente?.id ?? "") === expectedClienteId);
                 const subjectMatch = accepted.find((item: any) => String(item?.assunto ?? "").includes(String(pend.gclick_task_id)));
-                const chosen = sameClient || subjectMatch || accepted[0] || list[0];
+                const chosen = subjectMatch && String(subjectMatch?.clienteId ?? subjectMatch?.cliente?.id ?? expectedClienteId) === expectedClienteId
+                  ? subjectMatch
+                  : null;
+                if (!chosen) continue;
                 realId = String(chosen?.eveId ?? chosen?.id ?? chosen?.codigo ?? "");
                 realCsid = String(chosen?.csid ?? chosen?.sistemaId ?? chosen?.sistema_id ?? "") || null;
                 if (realId) break;

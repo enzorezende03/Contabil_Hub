@@ -150,10 +150,10 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
 
     const newPendencyId = created?.id;
 
-    // Insere itens da checklist (somente os preenchidos)
-    const cleanItems = items
-      .map((it, idx) => ({ ...it, ordem: idx }))
-      .filter((it) => it.titulo.trim().length > 0);
+    // Insere itens da checklist apenas para pendências externas
+    const cleanItems = tipo === "externa"
+      ? items.map((it, idx) => ({ ...it, ordem: idx })).filter((it) => it.titulo.trim().length > 0)
+      : [];
     if (newPendencyId && cleanItems.length > 0) {
       await supabase.from("pendency_items").insert(
         cleanItems.map((it) => ({
@@ -164,6 +164,26 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
           created_by: user.id,
         })),
       );
+    }
+
+    // Faz upload dos anexos para pendências internas
+    if (tipo === "interna" && newPendencyId && attachments.length > 0) {
+      for (const file of attachments) {
+        const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+        const path = `${newPendencyId}/${Date.now()}_${safeName}`;
+        const { error: upErr } = await supabase.storage
+          .from("pendency-attachments")
+          .upload(path, file, { contentType: file.type || undefined });
+        if (upErr) { toast.error(`Falha ao anexar ${file.name}: ${upErr.message}`); continue; }
+        await supabase.from("pendency_attachments").insert({
+          pendency_id: newPendencyId,
+          storage_path: path,
+          file_name: file.name,
+          file_size: file.size,
+          mime_type: file.type || null,
+          uploaded_by: user.id,
+        });
+      }
     }
 
     // Auto-disparo: pendência interna vira pré-tarefa no GClick automaticamente.

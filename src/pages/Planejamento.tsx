@@ -66,6 +66,7 @@ export default function PlanejamentoPage() {
   useActionPermissions();
   const canSeeAll = canPerformAction("ver_todas_demandas", profile?.role);
   const canSeeWorkloadByRole = canPerformAction("ver_carga_equipe", profile?.role);
+  const canReassign = canPerformAction("gerenciar_ausencias_equipe", profile?.role);
 
   const { data: workloadExtraUsers = [] } = useQuery({
     queryKey: ["ver_carga_equipe_users"],
@@ -289,6 +290,9 @@ export default function PlanejamentoPage() {
               pendencies={getPendenciesFor(d)}
               memberName={getMember(d.assignee)?.name}
               onClick={() => setEditPlanning(d)}
+              canReassign={canReassign}
+              reassignMembers={teamMembers.map((m) => ({ id: m.id, name: m.name }))}
+              onReassigned={() => refetch()}
             />
           ))}
           {items.length === 0 && (

@@ -1,5 +1,9 @@
-import { AlertTriangle } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, UserCog, Check } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import type { Demand } from "@/lib/types";
 import type { CellPendencyInfo } from "@/hooks/use-pendencies";
 import {
@@ -14,19 +18,38 @@ import {
 } from "./planning-utils";
 import { DEMAND_TYPE_LABELS } from "@/lib/types";
 
+interface ReassignMember {
+  id: string;
+  name: string;
+}
+
 interface Props {
   demand: Demand;
   pendencies: CellPendencyInfo[];
   memberName?: string;
   onClick?: () => void;
+  canReassign?: boolean;
+  reassignMembers?: ReassignMember[];
+  onReassigned?: () => void;
 }
 
-export function PlanningCard({ demand, pendencies, memberName, onClick }: Props) {
+export function PlanningCard({
+  demand,
+  pendencies,
+  memberName,
+  onClick,
+  canReassign,
+  reassignMembers = [],
+  onReassigned,
+}: Props) {
+  const [reassignOpen, setReassignOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
+
   const tone = deadlineTone(demand.internalDeadline);
   const kind = pendencyAlertKind(pendencies);
   const showPriority = demand.priority === "alta" || demand.priority === "urgente";
 
-  // Subtitle: aggregate types
   const typesLabel =
     demand.types.length === 0
       ? ""
@@ -52,6 +75,32 @@ export function PlanningCard({ demand, pendencies, memberName, onClick }: Props)
 
   const avInitials = initials(memberName ?? "");
 
+  const filteredMembers = reassignMembers.filter((m) =>
+    m.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleReassign = async (newAssigneeId: string) => {
+    if (newAssigneeId === demand.assignee) {
+      setReassignOpen(false);
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from("plannings")
+      .update({ assignee: newAssigneeId })
+      .eq("id", demand.id);
+    setSaving(false);
+    if (error) {
+      toast.error("Erro ao remanejar: " + error.message);
+      return;
+    }
+    const newName = reassignMembers.find((m) => m.id === newAssigneeId)?.name ?? "responsável";
+    toast.success(`Demanda remanejada para ${newName}`);
+    setReassignOpen(false);
+    setSearch("");
+    onReassigned?.();
+  };
+
   return (
     <div
       onClick={onClick}
@@ -61,15 +110,83 @@ export function PlanningCard({ demand, pendencies, memberName, onClick }: Props)
         <p className="text-[12px] font-medium leading-snug truncate" title={demand.client}>
           {sentenceCase(demand.client)}
         </p>
-        {showPriority && (
-          <span
-            className={`shrink-0 text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${
-              demand.priority === "urgente" ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning"
-            }`}
-          >
-            {demand.priority === "urgente" ? "Urgente" : "Alta"}
-          </span>
-        )}
+        <div className="flex items-center gap-1 shrink-0">
+          {showPriority && (
+            <span
+              className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                demand.priority === "urgente" ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning"
+              }`}
+            >
+              {demand.priority === "urgente" ? "Urgente" : "Alta"}
+            </span>
+          )}
+          {canReassign && (
+            <Popover open={reassignOpen} onOpenChange={setReassignOpen}>
+              <TooltipProvider delayDuration={150}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                        }}
+                        className="inline-flex items-center justify-center w-5 h-5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition"
+                        aria-label="Remanejar"
+                      >
+                        <UserCog className="w-3.5 h-3.5" />
+                      </button>
+                    </PopoverTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Remanejar</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <PopoverContent
+                align="end"
+                className="w-64 p-2"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="text-xs font-semibold mb-2 px-1">Remanejar para…</div>
+                <input
+                  autoFocus
+                  placeholder="Buscar responsável..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="h-7 w-full px-2 text-xs border rounded-md bg-card mb-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <div className="max-h-56 overflow-y-auto space-y-0.5">
+                  {filteredMembers.length === 0 && (
+                    <div className="text-[11px] text-muted-foreground p-2 text-center">
+                      Nenhum responsável encontrado
+                    </div>
+                  )}
+                  {filteredMembers.map((m) => {
+                    const isCurrent = m.id === demand.assignee;
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        disabled={saving}
+                        onClick={() => handleReassign(m.id)}
+                        className={`w-full flex items-center justify-between gap-2 px-2 py-1.5 text-xs rounded hover:bg-muted transition ${
+                          isCurrent ? "bg-muted/50" : ""
+                        } disabled:opacity-50`}
+                      >
+                        <span className="flex items-center gap-2 truncate">
+                          <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-[9px] font-semibold ${avatarColor(m.id)}`}>
+                            {initials(m.name)}
+                          </span>
+                          <span className="truncate">{m.name}</span>
+                        </span>
+                        {isCurrent && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
       </div>
 
       {subtitle && (

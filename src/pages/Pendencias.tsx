@@ -275,13 +275,13 @@ export default function PendenciasPage() {
 
 function KpiBlock({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
   return (
-    <div className="rounded-lg border bg-card p-4 flex items-start gap-3">
-      <div className={cn("p-2 rounded-md bg-muted/50", color)}>
-        <Icon className="w-4 h-4" />
+    <div className="rounded-lg border bg-card px-3 py-2 flex items-center gap-2.5 min-h-[60px]">
+      <div className={cn("p-1.5 rounded-md bg-muted/50 shrink-0", color)}>
+        <Icon className="w-3.5 h-3.5" />
       </div>
-      <div>
-        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
-        <div className={cn("text-2xl font-bold leading-tight mt-0.5", color)}>{value}</div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">{label}</div>
+        <div className={cn("text-xl font-bold leading-tight", color)}>{value}</div>
       </div>
     </div>
   );

@@ -18,10 +18,11 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -379,21 +380,20 @@ function CardMoreMenu({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Inline reassign popover (driven by state) */}
-      <Popover open={reassignOpen} onOpenChange={setReassignOpen}>
-        <PopoverTrigger asChild>
-          <span className="sr-only" />
-        </PopoverTrigger>
-        <PopoverContent align="end" className="w-64 p-2">
-          <div className="text-xs font-semibold mb-2 px-1">Reatribuir para…</div>
+      {/* Inline reassign dialog (driven by state) */}
+      <Dialog open={reassignOpen} onOpenChange={setReassignOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Reatribuir pendência</DialogTitle>
+          </DialogHeader>
           <input
             autoFocus
             placeholder="Buscar responsável..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="h-7 w-full px-2 text-xs border rounded-md bg-card mb-2 focus:outline-none focus:ring-1 focus:ring-primary"
+            className="h-8 w-full px-2 text-sm border rounded-md bg-card focus:outline-none focus:ring-1 focus:ring-primary"
           />
-          <div className="max-h-56 overflow-y-auto space-y-0.5">
+          <div className="max-h-72 overflow-y-auto space-y-0.5 mt-2">
             {filtered.length === 0 && (
               <div className="text-[11px] text-muted-foreground p-2 text-center">
                 Nenhum responsável encontrado
@@ -408,7 +408,7 @@ function CardMoreMenu({
                   disabled={saving}
                   onClick={() => handleReassign(r.user_id)}
                   className={cn(
-                    "w-full flex items-center justify-between gap-2 px-2 py-1.5 text-xs rounded hover:bg-muted transition",
+                    "w-full flex items-center justify-between gap-2 px-2 py-2 text-sm rounded hover:bg-muted transition",
                     isCurrent && "bg-muted/50",
                     "disabled:opacity-50",
                   )}
@@ -419,8 +419,8 @@ function CardMoreMenu({
               );
             })}
           </div>
-        </PopoverContent>
-      </Popover>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

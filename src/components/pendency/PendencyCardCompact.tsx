@@ -118,6 +118,10 @@ export function PendencyCardCompact({
   onExcluir,
   onLinkPortal,
   onReassigned,
+  selectable = false,
+  selected = false,
+  selectionActive = false,
+  onToggleSelected,
 }: PendencyCardCompactProps) {
   const aberta = diasAberta(p.created_at);
   const ultimoCont = diasUltimoContato(p.ultimo_contato_em);

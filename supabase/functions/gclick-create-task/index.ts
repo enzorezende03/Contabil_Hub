@@ -166,9 +166,12 @@ async function createPreTarefa(
 }
 
 function departamentoFromConfig(value: string): string {
-  const match = value.trim().match(/^\d+/);
-  return match?.[0] || value.trim();
+  // Aceita "5", "5. Fiscal" ou "Fiscal" — extrai o número se houver, senão devolve o texto.
+  const trimmed = value.trim();
+  const match = trimmed.match(/^\d+/);
+  return match?.[0] || trimmed;
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });

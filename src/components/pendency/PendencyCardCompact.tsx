@@ -120,6 +120,7 @@ export function PendencyCardCompact({
   onExcluir,
   onLinkPortal,
   onReassigned,
+  onRegistrarExterno,
   selectable = false,
   selected = false,
   selectionActive = false,
@@ -128,6 +129,7 @@ export function PendencyCardCompact({
   const aberta = diasAberta(p.created_at);
   const ultimoCont = diasUltimoContato(p.ultimo_contato_em);
   const finalizada = p.status === "resolvida" || p.status === "cancelada";
+  const externalHint = hasExternalContactHint(p);
 
   const showPriority = p.prioridade !== "media";
 

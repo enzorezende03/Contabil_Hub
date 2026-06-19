@@ -225,6 +225,7 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
     setMostrandoNovoContato(false);
     setDescricao(""); setPrazo(""); setPrioridade("media"); setCadencia(5);
     setItems([{ titulo: "", descricao: "" }]);
+    setAttachments([]);
     onOpenChange(false);
   }
 

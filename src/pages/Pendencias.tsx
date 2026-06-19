@@ -36,6 +36,7 @@ export default function PendenciasPage() {
   const [filterSetor, setFilterSetor] = useState<string>("all");
   const [filterCobrarHoje, setFilterCobrarHoje] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [createCtx, setCreateCtx] = useState<{ clientId: string; clientName?: string } | null>(null);
   const [cobrarPendency, setCobrarPendency] = useState<Pendency | null>(null);
   const [resolvePendency, setResolvePendency] = useState<Pendency | null>(null);

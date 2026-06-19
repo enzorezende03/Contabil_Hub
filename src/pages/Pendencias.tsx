@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { RegistrarCobrancaDialog } from "@/components/RegistrarCobrancaDialog";
 import { CreatePendencyDialog } from "@/components/CreatePendencyDialog";
 import { ImportPendenciesDialog } from "@/components/ImportPendenciesDialog";
+import { PendencyCardCompact } from "@/components/pendency/PendencyCardCompact";
 import { AlertCircle, Clock, CheckCircle2, Inbox, Plus, Pause, Play, Building2, History, ExternalLink, RefreshCw, Link2, Copy, KeyRound, FileSpreadsheet, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -125,7 +126,7 @@ export default function PendenciasPage() {
         <header className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold">Pendências</h1>
-            <p className="text-sm text-muted-foreground">Painel de cobrança de pendências internas e externas.</p>
+            <p className="text-sm text-muted-foreground">Painel de cobrança · internas e externas</p>
           </div>
           <div className="flex items-center gap-2">
             <Button onClick={() => setCreateOpen(true)} disabled={!clients.length}>
@@ -201,17 +202,21 @@ export default function PendenciasPage() {
             ) : (
               <div className="space-y-2">
                 {filtered.map((p) => (
-                  <PendencyCard
+                  <PendencyCardCompact
                     key={p.id}
                     pendency={p}
                     clientName={clientMap.get(p.client_id)?.razao_social || "—"}
                     responsavelName={profileMap.get(p.responsavel_id) || "—"}
-                    clientUnidade={clientMap.get(p.client_id)?.unidade || null}
+                    responsavelOptions={profiles.map((pr) => ({
+                      user_id: pr.user_id,
+                      display_name: pr.display_name || "—",
+                    }))}
                     onCobrar={() => setCobrarPendency(p)}
                     onResolver={() => setResolvePendency(p)}
                     onPausar={() => setPausePendency(p)}
                     onDetalhes={() => setDetailsPendency(p)}
                     onExcluir={() => setDeletePendency(p)}
+                    onReassigned={() => qc.invalidateQueries({ queryKey: ["pendencies"] })}
                   />
                 ))}
               </div>

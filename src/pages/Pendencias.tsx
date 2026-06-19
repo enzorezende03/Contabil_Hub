@@ -445,6 +445,11 @@ function PendencyCard({ pendency: p, clientName, responsavelName, clientUnidade,
         <Button size="sm" variant="ghost" className="ml-auto" onClick={onDetalhes}>
           <History className="w-3.5 h-3.5 mr-1" /> {p.tipo === "externa" ? "Ver respostas / histórico" : "Histórico"}
         </Button>
+        {!finalizada && (
+          <Button size="sm" variant="ghost" onClick={onExcluir} className="text-red-600 hover:text-red-700 hover:bg-red-500/10">
+            <Trash2 className="w-3.5 h-3.5 mr-1" /> Excluir
+          </Button>
+        )}
       </div>
     </div>
   );

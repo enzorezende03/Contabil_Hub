@@ -394,9 +394,30 @@ export default function PendenciasPage() {
   );
 }
 
-function KpiBlock({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
+function KpiBlock({
+  icon: Icon,
+  label,
+  value,
+  color,
+  active,
+  onClick,
+}: {
+  icon: any;
+  label: string;
+  value: number;
+  color: string;
+  active?: boolean;
+  onClick?: () => void;
+}) {
   return (
-    <div className="rounded-lg border bg-card px-3 py-2 flex items-center gap-2.5 min-h-[60px]">
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "w-full text-left rounded-lg border bg-card px-3 py-2 flex items-center gap-2.5 min-h-[60px] transition-colors hover:bg-muted/30",
+        active && "ring-1 ring-primary border-primary/50 bg-primary/[0.03]",
+      )}
+    >
       <div className={cn("p-1.5 rounded-md bg-muted/50 shrink-0", color)}>
         <Icon className="w-3.5 h-3.5" />
       </div>
@@ -404,7 +425,7 @@ function KpiBlock({ icon: Icon, label, value, color }: { icon: any; label: strin
         <div className="text-[10px] uppercase tracking-wide text-muted-foreground truncate">{label}</div>
         <div className={cn("text-xl font-bold leading-tight", color)}>{value}</div>
       </div>
-    </div>
+    </button>
   );
 }
 

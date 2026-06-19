@@ -22,13 +22,18 @@ import { RegistrarCobrancaDialog } from "@/components/RegistrarCobrancaDialog";
 import { CreatePendencyDialog } from "@/components/CreatePendencyDialog";
 import { ImportPendenciesDialog } from "@/components/ImportPendenciesDialog";
 import { PendencyCardCompact } from "@/components/pendency/PendencyCardCompact";
+import { BulkActionBar } from "@/components/pendency/BulkActionBar";
+import { BulkCobrarDialog } from "@/components/pendency/BulkCobrarDialog";
+import { BulkReassignDialog } from "@/components/pendency/BulkReassignDialog";
 import { AlertCircle, Clock, CheckCircle2, Inbox, Plus, Pause, Play, Building2, History, ExternalLink, RefreshCw, Link2, Copy, KeyRound, FileSpreadsheet, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ClientRow { id: string; razao_social: string; cnpj: string; unidade: string | null; }
 
 export default function PendenciasPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const role = profile?.role || "";
+  const canBulkManage = role === "coordenacao" || role === "analista";
   const qc = useQueryClient();
   const [tab, setTab] = useState<"externas" | "internas" | "resolvidas">("externas");
   const [search, setSearch] = useState("");
@@ -45,6 +50,9 @@ export default function PendenciasPage() {
   const [pausePendency, setPausePendency] = useState<Pendency | null>(null);
   const [deletePendency, setDeletePendency] = useState<Pendency | null>(null);
   const [detailsPendency, setDetailsPendency] = useState<Pendency | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkCobrarOpen, setBulkCobrarOpen] = useState(false);
+  const [bulkReassignOpen, setBulkReassignOpen] = useState(false);
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients-min"],
@@ -207,7 +215,28 @@ export default function PendenciasPage() {
             <span className="ml-auto text-xs text-muted-foreground">{filtered.length} pendência(s)</span>
           </div>
 
-          <TabsContent value={tab} className="mt-4">
+          <TabsContent value={tab} className="mt-4 space-y-2">
+            {canBulkManage && selectedIds.size > 0 && (
+              <BulkActionBar
+                count={selectedIds.size}
+                onClear={() => setSelectedIds(new Set())}
+                onCobrar={() => setBulkCobrarOpen(true)}
+                onReatribuir={() => setBulkReassignOpen(true)}
+                onPausar={async () => {
+                  const ids = Array.from(selectedIds);
+                  const { error } = await supabase
+                    .from("pendencies")
+                    .update({ followup_paused: true })
+                    .in("id", ids);
+                  if (error) toast.error("Erro ao pausar: " + error.message);
+                  else {
+                    toast.success(`${ids.length} pendência(s) pausada(s)`);
+                    setSelectedIds(new Set());
+                    qc.invalidateQueries({ queryKey: ["pendencies"] });
+                  }
+                }}
+              />
+            )}
             {isLoading ? (
               <div className="text-center py-12 text-muted-foreground">Carregando...</div>
             ) : filtered.length === 0 ? (
@@ -224,6 +253,17 @@ export default function PendenciasPage() {
                       user_id: pr.user_id,
                       display_name: pr.display_name || "—",
                     }))}
+                    selectable={canBulkManage}
+                    selected={selectedIds.has(p.id)}
+                    selectionActive={selectedIds.size > 0}
+                    onToggleSelected={() => {
+                      setSelectedIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(p.id)) next.delete(p.id);
+                        else next.add(p.id);
+                        return next;
+                      });
+                    }}
                     onCobrar={() => setCobrarPendency(p)}
                     onResolver={() => setResolvePendency(p)}
                     onPausar={() => setPausePendency(p)}
@@ -248,6 +288,40 @@ export default function PendenciasPage() {
         />
       )}
       <ImportPendenciesDialog open={importOpen} onOpenChange={setImportOpen} />
+
+      {bulkCobrarOpen && (
+        <BulkCobrarDialog
+          open={bulkCobrarOpen}
+          onOpenChange={(o) => {
+            setBulkCobrarOpen(o);
+            if (!o) setSelectedIds(new Set());
+          }}
+          pendencies={pendencies.filter((p) => selectedIds.has(p.id))}
+          clientNameOf={(id) => clientMap.get(id)?.razao_social || "—"}
+        />
+      )}
+      {bulkReassignOpen && (
+        <BulkReassignDialog
+          open={bulkReassignOpen}
+          onOpenChange={setBulkReassignOpen}
+          count={selectedIds.size}
+          options={profiles.map((pr) => ({ user_id: pr.user_id, display_name: pr.display_name || "—" }))}
+          onConfirm={async (userId) => {
+            const ids = Array.from(selectedIds);
+            const { error } = await supabase
+              .from("pendencies")
+              .update({ responsavel_id: userId })
+              .in("id", ids);
+            if (error) {
+              toast.error("Erro ao reatribuir: " + error.message);
+              return;
+            }
+            toast.success(`${ids.length} pendência(s) reatribuída(s)`);
+            setSelectedIds(new Set());
+            qc.invalidateQueries({ queryKey: ["pendencies"] });
+          }}
+        />
+      )}
 
       {cobrarPendency && (
         <RegistrarCobrancaDialog

@@ -14,6 +14,7 @@ interface ReqBody {
   pendency_id?: string;
   test_unidade?: string; // quando setado, apenas testa /oauth/token e retorna
   list_departamentos?: string; // unidade — retorna lista de departamentos do GClick
+  resolve_task_url?: string; // pendency_id — busca a tarefa real (aceita) gerada a partir da pré-tarefa
 }
 
 
@@ -238,7 +239,55 @@ Deno.serve(async (req) => {
     }
 
 
+    // === Modo "resolver URL da tarefa real (após aceite)" ===
+    if (body.resolve_task_url) {
+      const { data: pend } = await supabase
+        .from("pendencies").select("id, client_id, gclick_task_id, gclick_task_url")
+        .eq("id", body.resolve_task_url).maybeSingle();
+      if (!pend?.gclick_task_id) return json({ ok: false, error: "Pendência sem pré-tarefa" });
+      const { data: cli } = await supabase
+        .from("clients").select("unidade").eq("id", pend.client_id).maybeSingle();
+      const { data: cred } = await supabase
+        .from("gclick_credentials").select("*").eq("unidade", cli?.unidade).maybeSingle();
+      if (!cred) return json({ ok: true, url: pend.gclick_task_url });
+      try {
+        const token = await getToken(supabase, cred as Credential);
+        // Tenta buscar a pré-tarefa para descobrir o id da tarefa real gerada
+        const paths = [
+          `/v2/tarefas/preTarefas/${pend.gclick_task_id}`,
+          `/tarefas/preTarefas/${pend.gclick_task_id}`,
+        ];
+        let realId: string | null = null;
+        for (const p of paths) {
+          const r = await fetch(`${BASE_URL}${p}`, {
+            headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+          });
+          if (!r.ok) continue;
+          const txt = await r.text();
+          let d: any; try { d = JSON.parse(txt); } catch { d = null; }
+          if (!d) continue;
+          // Possíveis campos onde o GClick guarda o id da tarefa aceita
+          const candidate =
+            d?.tarefaId ?? d?.idTarefa ?? d?.tarefa?.id ?? d?.tarefa_id ??
+            (Array.isArray(d?.tarefas) ? d.tarefas[0]?.id : null) ??
+            d?.tarefaGeradaId ?? d?.idTarefaGerada;
+          if (candidate) { realId = String(candidate); break; }
+        }
+        if (realId) {
+          const url = `https://app.gclick.com.br/#/tarefas/${realId}`;
+          await supabase.from("pendencies").update({ gclick_task_url: url }).eq("id", pend.id);
+          return json({ ok: true, url, real_task_id: realId });
+        }
+        // Sem id real — ainda em pré-tarefa
+        const fallback = `https://app.gclick.com.br/#/tarefas/pretarefas/${pend.gclick_task_id}`;
+        return json({ ok: true, url: fallback, pending: true });
+      } catch (e) {
+        return json({ ok: true, url: pend.gclick_task_url, error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+
     if (!body.pendency_id) return json({ error: "pendency_id obrigatório" }, 400);
+
 
     const { data: pend, error: pendErr } = await supabase
       .from("pendencies").select("*").eq("id", body.pendency_id).maybeSingle();

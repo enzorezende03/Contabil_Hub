@@ -289,13 +289,28 @@ function GclickBadge({ pendency: p }: { pendency: Pendency }) {
   }
 
   if (p.gclick_task_id) {
-    const url = p.gclick_task_url || `https://app.gclick.com.br/#/tarefas/pretarefas/${p.gclick_task_id}`;
+    const fallback = p.gclick_task_url || `https://app.gclick.com.br/#/tarefas/pretarefas/${p.gclick_task_id}`;
+    async function openGclick(e: React.MouseEvent) {
+      e.stopPropagation();
+      e.preventDefault();
+      const win = window.open("about:blank", "_blank");
+      try {
+        const { data } = await supabase.functions.invoke("gclick-create-task", {
+          body: { resolve_task_url: p.id },
+        });
+        const url = (data?.url as string) || fallback;
+        if (win) win.location.href = url; else window.open(url, "_blank");
+        qc.invalidateQueries({ queryKey: ["pendencies"] });
+      } catch {
+        if (win) win.location.href = fallback;
+      }
+    }
     return (
       <a
-        href={url}
+        href={fallback}
         target="_blank"
         rel="noreferrer"
-        onClick={(e) => e.stopPropagation()}
+        onClick={openGclick}
         className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-emerald-500/15 text-emerald-700 border-emerald-500/30 inline-flex items-center gap-1 hover:bg-emerald-500/25"
         title={`Sincronizada no GClick · ${p.gclick_task_id}`}
       >
@@ -303,6 +318,7 @@ function GclickBadge({ pendency: p }: { pendency: Pendency }) {
       </a>
     );
   }
+
   if (p.gclick_status === "nao_configurado" || p.gclick_status === "nao_aplicavel") {
     return (
       <span

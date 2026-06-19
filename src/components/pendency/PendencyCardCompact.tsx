@@ -163,8 +163,28 @@ export function PendencyCardCompact({
   const primaryActionLabel =
     p.status === "aguardando_resposta" || p.total_contatos > 0 ? "Cobrar novamente" : "Cobrar agora";
 
+  // Long-press → toggle selection (mobile)
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressed = useRef(false);
+  function startLongPress() {
+    if (!selectable || !onToggleSelected) return;
+    longPressed.current = false;
+    pressTimer.current = setTimeout(() => {
+      longPressed.current = true;
+      onToggleSelected();
+    }, 450);
+  }
+  function cancelLongPress() {
+    if (pressTimer.current) clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+  }
+
   return (
     <div
+      onTouchStart={startLongPress}
+      onTouchEnd={cancelLongPress}
+      onTouchMove={cancelLongPress}
+      onTouchCancel={cancelLongPress}
       className={cn(
         "group rounded-lg border bg-card transition-colors hover:border-primary/40",
         "px-3 py-2.5",
@@ -172,7 +192,7 @@ export function PendencyCardCompact({
         selected && "ring-1 ring-primary/40 border-primary/40 bg-primary/[0.03]",
       )}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
         {selectable && (
           <label
             className={cn(

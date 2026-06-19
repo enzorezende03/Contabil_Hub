@@ -202,8 +202,8 @@ Deno.serve(async (req) => {
       return json({ ok: false, code: "not_configured", error: msg });
     }
     const cred = credRow as Credential;
-    if (!cred.usuario || !cred.sistema_id) {
-      const msg = `Configuração incompleta para "${client.unidade}": preencha usuário e ID do sistema em Configurações → Integrações.`;
+    if (!cred.sistema_id) {
+      const msg = `Configuração incompleta para "${client.unidade}": preencha o ID do sistema em Configurações → Integrações.`;
       await supabase.from("pendencies").update({
         gclick_sync_error: msg, gclick_synced_at: new Date().toISOString(), gclick_status: "nao_configurado",
       }).eq("id", pend.id);

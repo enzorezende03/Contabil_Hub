@@ -8,38 +8,36 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useTeamMembers } from "@/hooks/use-team-members";
 import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import {
-  DEMAND_TYPE_LABELS,
   VISIBLE_PLANNING_TYPE_ENTRIES,
   DemandStatus,
   DemandType,
   STATUS_LABELS,
-  PRIORITY_LABELS,
   Priority,
   type Demand,
 } from "@/lib/types";
-import { formatMinutes, getDeadlineUrgency } from "@/lib/demand-utils";
-import { Search, LayoutGrid, List, Clock, Plus, CalendarRange, AlertTriangle } from "lucide-react";
+import { getDeadlineUrgency } from "@/lib/demand-utils";
+import { Search, LayoutGrid, List, Plus, CalendarRange, AlertTriangle, SlidersHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CreatePlanningDialog } from "@/components/CreatePlanningDialog";
 import { EditPlanningDialog } from "@/components/EditPlanningDialog";
-import { WorkloadPanel } from "@/components/WorkloadPanel";
 import { PlanningTimeline } from "@/components/PlanningTimeline";
-import { PlanningPendencyBadge } from "@/components/PlanningPendencyBadge";
 import { useActivePendenciesByPlanning, type CellPendencyInfo } from "@/hooks/use-pendencies";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { PlanningCard } from "@/components/planning/PlanningCard";
+import { PlanningWorkloadBar } from "@/components/planning/PlanningWorkloadBar";
+import { CompletedPlanningsDrawer } from "@/components/planning/CompletedPlanningsDrawer";
 import { toast } from "sonner";
 
 type ViewMode = "list" | "kanban" | "timeline";
+type ActiveCol = "not_started" | "in_progress" | "paused_pendency";
 
-type KanbanColumnKey = DemandStatus | "paused_pendency";
-
-const KANBAN_COLUMNS: KanbanColumnKey[] = [
-  "not_started",
-  "in_progress",
-  "paused_pendency",
-  "completed",
-];
-
+const ACTIVE_COLS: ActiveCol[] = ["not_started", "in_progress", "paused_pendency"];
 const PRIORITY_ORDER: Record<Priority, number> = { urgente: 0, alta: 1, media: 2, baixa: 3 };
+const COL_INITIAL_LIMIT = 20;
+
+const MONTH_LABELS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 export default function PlanejamentoPage() {
   const [view, setView] = usePersistedFilter<ViewMode>("planejamento", "view", "kanban");
@@ -56,11 +54,13 @@ export default function PlanejamentoPage() {
   })();
   const [filterDateFrom, setFilterDateFrom] = usePersistedFilter<string>("planejamento", "dateFromV2", _monthStart);
   const [filterDateTo, setFilterDateTo] = usePersistedFilter<string>("planejamento", "dateToV2", _monthEnd);
-  // Draft (pending) date inputs — applied only when user clicks "Filtrar"
   const [draftDateFrom, setDraftDateFrom] = useState<string>(filterDateFrom);
   const [draftDateTo, setDraftDateTo] = useState<string>(filterDateTo);
   const [createOpen, setCreateOpen] = useState(false);
   const [editPlanning, setEditPlanning] = useState<Demand | null>(null);
+  const [expandedCols, setExpandedCols] = useState<Record<string, boolean>>({});
+  const isMobile = useIsMobile();
+
   const { members: teamMembers } = useTeamMembers({ excludeCoordenacao: true });
   const { user, profile } = useAuth();
   useActionPermissions();
@@ -70,11 +70,7 @@ export default function PlanejamentoPage() {
   const { data: workloadExtraUsers = [] } = useQuery({
     queryKey: ["ver_carga_equipe_users"],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("settings")
-        .select("value")
-        .eq("key", "ver_carga_equipe_users")
-        .maybeSingle();
+      const { data } = await supabase.from("settings").select("value").eq("key", "ver_carga_equipe_users").maybeSingle();
       return ((data?.value as unknown as string[]) || []);
     },
     staleTime: 60_000,
@@ -113,13 +109,11 @@ export default function PlanejamentoPage() {
       const map: Record<string, DemandStatus> = {};
       const pageSize = 1000;
       let from = 0;
-
       while (true) {
         const { data, error } = await supabase
           .from("demand_status_entries")
           .select("client_name, month, year, demand_type, status")
           .range(from, from + pageSize - 1);
-
         if (error) throw error;
         (data || []).forEach((d: any) => {
           const key = `${d.client_name}|${d.month}/${d.year}|${d.demand_type}`;
@@ -128,7 +122,6 @@ export default function PlanejamentoPage() {
         if (!data || data.length < pageSize) break;
         from += pageSize;
       }
-
       return map;
     },
     refetchOnWindowFocus: true,
@@ -149,7 +142,6 @@ export default function PlanejamentoPage() {
       const closingTypes = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"];
       const relevantTypes = d.types.filter((t) => closingTypes.includes(t));
       if (relevantTypes.length === 0 || d.competencias.length === 0) return d;
-
       const allStatuses: DemandStatus[] = [];
       d.competencias.forEach((comp) => {
         relevantTypes.forEach((type) => {
@@ -157,17 +149,14 @@ export default function PlanejamentoPage() {
           allStatuses.push(statusEntries[key] || "not_started");
         });
       });
-
       let derivedStatus: DemandStatus;
       if (allStatuses.every((s) => s === "completed")) derivedStatus = "completed";
       else if (allStatuses.some((s) => s !== "not_started")) derivedStatus = "in_progress";
       else derivedStatus = "not_started";
-
       return { ...d, status: derivedStatus };
     });
   }, [dbPlannings, statusEntries]);
 
-  // Sincroniza status derivado de volta para o banco quando diverge (mantém consistência com outras telas)
   useEffect(() => {
     const toSync = planningsWithDerivedStatus.filter((d) => {
       const original = dbPlannings.find((o) => o.id === d.id);
@@ -176,9 +165,7 @@ export default function PlanejamentoPage() {
     if (toSync.length === 0) return;
     (async () => {
       await Promise.all(
-        toSync.map((d) =>
-          supabase.from("plannings").update({ status: d.status }).eq("id", d.id)
-        )
+        toSync.map((d) => supabase.from("plannings").update({ status: d.status }).eq("id", d.id))
       );
       refetch();
     })();
@@ -223,235 +210,302 @@ export default function PlanejamentoPage() {
 
   const getMember = (id: string) => teamMembers.find((m) => m.id === id);
 
-  const urgencyClass = (deadline: string) => {
-    const u = getDeadlineUrgency(deadline);
-    if (u === "overdue") return "text-status-late font-medium";
-    if (u === "today") return "text-status-waiting font-medium";
-    if (u === "soon") return "text-status-waiting/70";
-    return "text-muted-foreground";
+  // Period label for header subtitle
+  const periodLabel = useMemo(() => {
+    if (!filterDateFrom && !filterDateTo) return "todos os prazos";
+    try {
+      const d = new Date(filterDateFrom || filterDateTo);
+      return `${MONTH_LABELS[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`;
+    } catch { return ""; }
+  }, [filterDateFrom, filterDateTo]);
+
+  // Active vs completed for kanban
+  const completedInPeriod = useMemo(
+    () => filtered.filter((d) => d.status === "completed"),
+    [filtered]
+  );
+  const activeOnly = useMemo(
+    () => filtered.filter((d) => d.status !== "completed"),
+    [filtered]
+  );
+
+  const columnsData = useMemo(() => {
+    const cols: Record<ActiveCol, Demand[]> = { not_started: [], in_progress: [], paused_pendency: [] };
+    activeOnly.forEach((d) => {
+      const hasPend = getPendenciesFor(d).length > 0;
+      if (hasPend) cols.paused_pendency.push(d);
+      else if (d.status === "not_started") cols.not_started.push(d);
+      else cols.in_progress.push(d);
+    });
+    return cols;
+  }, [activeOnly, pendenciesByPlanning]);
+
+  const activeFilterCount =
+    (filterType !== "all" ? 1 : 0) +
+    (filterWithPendency !== "all" ? 1 : 0) +
+    (filterDateFrom !== _monthStart || filterDateTo !== _monthEnd ? 1 : 0);
+
+  const renderColumn = (col: ActiveCol) => {
+    const items = columnsData[col];
+    const isPaused = col === "paused_pendency";
+    const isExpanded = expandedCols[col] || false;
+    const visible = isExpanded ? items : items.slice(0, COL_INITIAL_LIMIT);
+    const hidden = items.length - visible.length;
+
+    const headerLabel =
+      col === "not_started" ? "Não iniciada" : col === "in_progress" ? "Em andamento" : "Pausada · pendência";
+    const headerTone =
+      col === "not_started"
+        ? "text-muted-foreground border-border"
+        : col === "in_progress"
+          ? "text-info border-info/30"
+          : "text-warning border-warning";
+    const pillTone =
+      col === "not_started"
+        ? "bg-muted text-muted-foreground"
+        : col === "in_progress"
+          ? "bg-info/15 text-info"
+          : "bg-warning text-warning-foreground";
+
+    return (
+      <div
+        key={col}
+        className={`flex flex-col rounded-lg ${isPaused ? "bg-warning/[0.06] border border-warning/40 p-2" : ""}`}
+      >
+        <div className={`flex items-center justify-between gap-2 mb-2 px-1 pb-1.5 border-b ${headerTone}`}>
+          <div className="flex items-center gap-1.5">
+            {isPaused && <AlertTriangle className="w-3.5 h-3.5" />}
+            <span className="text-[11px] font-semibold uppercase tracking-[0.3px]">{headerLabel}</span>
+          </div>
+          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${pillTone}`}>
+            {items.length}
+          </span>
+        </div>
+        <div className="space-y-2">
+          {visible.map((d) => (
+            <PlanningCard
+              key={d.id}
+              demand={d}
+              pendencies={getPendenciesFor(d)}
+              memberName={getMember(d.assignee)?.name}
+              onClick={() => setEditPlanning(d)}
+            />
+          ))}
+          {items.length === 0 && (
+            <div className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
+              {isPaused ? "Nenhuma demanda pausada" : "Nenhum planejamento"}
+            </div>
+          )}
+          {hidden > 0 && (
+            <button
+              type="button"
+              onClick={() => setExpandedCols((s) => ({ ...s, [col]: true }))}
+              className="w-full text-center text-xs text-muted-foreground hover:text-foreground py-2 rounded border border-dashed"
+            >
+              + {hidden} outras
+            </button>
+          )}
+        </div>
+      </div>
+    );
   };
+
+  const segBtn = (active: boolean) =>
+    `inline-flex items-center justify-center p-1.5 rounded-md transition-colors ${active ? "bg-card shadow-sm" : ""}`;
 
   return (
     <AppLayout>
-      <div className="p-6 space-y-4 max-w-7xl">
-        <div className="flex items-center justify-between">
+      <div className="p-4 sm:p-6 space-y-4 max-w-7xl">
+        {/* HEADER */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Planejamento Interno</h1>
-            <p className="text-sm text-muted-foreground mt-1">{filtered.length} planejamentos</p>
+            <h1 className="text-2xl font-semibold tracking-tight">Planejamento interno</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {filtered.length} planejamento{filtered.length !== 1 ? "s" : ""} · prazo {periodLabel}
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button onClick={() => setCreateOpen(true)} size="sm" className="gap-1.5">
-              <Plus className="w-4 h-4" />
-              Novo Planejamento
-            </Button>
-            <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
-              <button onClick={() => setView("kanban")} className={`p-1.5 rounded-md transition-colors ${view === "kanban" ? "bg-card shadow-sm" : ""}`}>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-0.5 bg-muted rounded-lg p-0.5">
+              <button onClick={() => setView("kanban")} className={segBtn(view === "kanban")} aria-label="Kanban">
                 <LayoutGrid className="w-4 h-4" />
               </button>
-              <button onClick={() => setView("list")} className={`p-1.5 rounded-md transition-colors ${view === "list" ? "bg-card shadow-sm" : ""}`}>
+              <button onClick={() => setView("list")} className={segBtn(view === "list")} aria-label="Lista">
                 <List className="w-4 h-4" />
               </button>
-              <button onClick={() => setView("timeline")} className={`p-1.5 rounded-md transition-colors ${view === "timeline" ? "bg-card shadow-sm" : ""}`}>
+              <button onClick={() => setView("timeline")} className={segBtn(view === "timeline")} aria-label="Calendário">
                 <CalendarRange className="w-4 h-4" />
               </button>
             </div>
+            <Button onClick={() => setCreateOpen(true)} size="sm" className="gap-1.5">
+              <Plus className="w-4 h-4" />
+              Novo
+            </Button>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <div className="relative">
+        {/* FILTERS BAR */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 min-w-[200px] max-w-md">
             <Search className="w-4 h-4 absolute left-2.5 top-2 text-muted-foreground" />
             <input
               placeholder="Buscar empresa ou descrição..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-8 pl-8 pr-3 text-sm border rounded-md bg-card focus:outline-none focus:ring-1 focus:ring-primary w-56"
+              className="h-8 w-full pl-8 pr-3 text-sm border rounded-md bg-card focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
-          <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="h-8 px-2 text-sm border rounded-md bg-card">
-            <option value="all">Todos os tipos</option>
-            {VISIBLE_PLANNING_TYPE_ENTRIES.map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
-            ))}
-          </select>
-          <select value={filterAssignee} onChange={(e) => setFilterAssignee(e.target.value)} className="h-8 px-2 text-sm border rounded-md bg-card">
-            <option value="all">Todos responsáveis</option>
-            {teamMembers.map((m) => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
-          <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="h-8 px-2 text-sm border rounded-md bg-card">
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="h-8 px-2 text-xs border rounded-full bg-card"
+          >
             <option value="all">Todos status</option>
             <option value="not_started">{STATUS_LABELS.not_started}</option>
             <option value="in_progress">{STATUS_LABELS.in_progress}</option>
             <option value="completed">{STATUS_LABELS.completed}</option>
             <option value="overdue">Em atraso</option>
           </select>
-          <select value={filterWithPendency} onChange={(e) => setFilterWithPendency(e.target.value)} className="h-8 px-2 text-sm border rounded-md bg-card" title="Filtrar por pendências relacionadas">
-            <option value="all">Todas (com/sem pendência)</option>
-            <option value="with">Com pendências abertas</option>
-            <option value="overdue">Com pendências vencidas</option>
-            <option value="without">Sem pendências</option>
+          <select
+            value={filterAssignee}
+            onChange={(e) => setFilterAssignee(e.target.value)}
+            className="h-8 px-2 text-xs border rounded-full bg-card"
+          >
+            <option value="all">Todos responsáveis</option>
+            {teamMembers.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
           </select>
-          <div className="flex items-center gap-1">
-            <label className="text-xs text-muted-foreground">Prazo:</label>
-            <input
-              type="date"
-              value={draftDateFrom}
-              onChange={(e) => setDraftDateFrom(e.target.value)}
-              className="h-8 px-2 text-sm border rounded-md bg-card"
-            />
-            <span className="text-xs text-muted-foreground">até</span>
-            <input
-              type="date"
-              value={draftDateTo}
-              onChange={(e) => setDraftDateTo(e.target.value)}
-              className="h-8 px-2 text-sm border rounded-md bg-card"
-            />
-            <Button
-              size="sm"
-              variant="default"
-              className="h-8"
-              onClick={() => { setFilterDateFrom(draftDateFrom); setFilterDateTo(draftDateTo); }}
-            >
-              Filtrar
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-8"
-              onClick={() => {
-                setSearch("");
-                setFilterType("all");
-                setFilterAssignee("all");
-                setFilterStatus("all");
-                setFilterWithPendency("all");
-                setDraftDateFrom("");
-                setDraftDateTo("");
-                setFilterDateFrom("");
-                setFilterDateTo("");
-              }}
-            >
-              Limpar
-            </Button>
-          </div>
+          <span className="text-xs text-muted-foreground hidden sm:inline">Prazo: {periodLabel}</span>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="inline-flex items-center gap-1 h-8 px-2.5 text-xs border rounded-full bg-card hover:bg-muted transition">
+                <SlidersHorizontal className="w-3.5 h-3.5" />
+                Mais filtros
+                {activeFilterCount > 0 && (
+                  <span className="ml-1 bg-primary text-primary-foreground rounded-full px-1.5 text-[10px] font-semibold">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Tipo de demanda</label>
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="mt-1 h-8 w-full px-2 text-sm border rounded-md bg-card"
+                >
+                  <option value="all">Todos os tipos</option>
+                  {VISIBLE_PLANNING_TYPE_ENTRIES.map(([k, v]) => (
+                    <option key={k} value={k}>{v}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Pendências</label>
+                <select
+                  value={filterWithPendency}
+                  onChange={(e) => setFilterWithPendency(e.target.value)}
+                  className="mt-1 h-8 w-full px-2 text-sm border rounded-md bg-card"
+                >
+                  <option value="all">Todas (com/sem)</option>
+                  <option value="with">Com pendências abertas</option>
+                  <option value="overdue">Com pendências vencidas</option>
+                  <option value="without">Sem pendências</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Prazo (intervalo)</label>
+                <div className="mt-1 flex items-center gap-1">
+                  <input
+                    type="date"
+                    value={draftDateFrom}
+                    onChange={(e) => setDraftDateFrom(e.target.value)}
+                    className="h-8 flex-1 px-2 text-xs border rounded-md bg-card"
+                  />
+                  <span className="text-xs text-muted-foreground">até</span>
+                  <input
+                    type="date"
+                    value={draftDateTo}
+                    onChange={(e) => setDraftDateTo(e.target.value)}
+                    className="h-8 flex-1 px-2 text-xs border rounded-md bg-card"
+                  />
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <Button
+                    size="sm"
+                    className="h-7"
+                    onClick={() => { setFilterDateFrom(draftDateFrom); setFilterDateTo(draftDateTo); }}
+                  >
+                    Aplicar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7"
+                    onClick={() => {
+                      setSearch("");
+                      setFilterType("all");
+                      setFilterAssignee("all");
+                      setFilterStatus("all");
+                      setFilterWithPendency("all");
+                      setDraftDateFrom(_monthStart);
+                      setDraftDateTo(_monthEnd);
+                      setFilterDateFrom(_monthStart);
+                      setFilterDateTo(_monthEnd);
+                    }}
+                  >
+                    Limpar
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
-        {/* Workload Panel */}
+        {/* WORKLOAD BAR */}
         {canSeeWorkload && (
-          <WorkloadPanel
+          <PlanningWorkloadBar
             plannings={planningsWithDerivedStatus}
             activeFilter={filterAssignee}
             onFilterByAssignee={setFilterAssignee}
           />
         )}
 
+        {/* KANBAN */}
         {view === "kanban" && (
-          <div className="flex gap-3 overflow-x-auto pb-4">
-            {KANBAN_COLUMNS.map((colKey) => {
-              const col = filtered.filter((d) => {
-                const hasOpenPend = getPendenciesFor(d).length > 0;
-                if (colKey === "paused_pendency") {
-                  return hasOpenPend && d.status !== "completed";
-                }
-                if (hasOpenPend && d.status !== "completed") return false;
-                return d.status === colKey;
-              });
-              const isPaused = colKey === "paused_pendency";
-              return (
-                <div key={colKey} className={`flex-shrink-0 w-72 ${isPaused ? "rounded-lg bg-amber-500/5 border border-amber-500/30 p-2" : ""}`}>
-                  <div className="flex items-center gap-2 mb-2 px-1">
-                    {isPaused ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                        Pausada (pendência)
-                      </span>
-                    ) : (
-                      <StatusBadge status={colKey as DemandStatus} />
-                    )}
-                    <span className="text-xs text-muted-foreground font-medium">{col.length}</span>
-                  </div>
-                  <div className="space-y-2">
-                    {col.map((d) => {
-                      const isCompleted = d.status === "completed";
-                      const u = isCompleted ? "normal" : getDeadlineUrgency(d.internalDeadline);
-                      const cardTone = isPaused
-                        ? "bg-card border-amber-500/40 hover:border-amber-500"
-                        : isCompleted ? "bg-muted/40 border-muted/50 hover:border-muted"
-                        : u === "overdue" ? "bg-status-late/10 border-status-late/40 hover:border-status-late" :
-                          u === "today" || u === "soon" ? "bg-status-waiting/10 border-status-waiting/40 hover:border-status-waiting" :
-                          "bg-card hover:border-primary/30";
-                      if (isCompleted) {
-                        return (
-                          <div key={d.id} onClick={() => setEditPlanning(d)} className={`rounded-lg border px-2 py-1.5 transition-colors cursor-pointer ${cardTone}`}>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-muted-foreground">
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                              </span>
-                              <p className="text-xs font-medium leading-tight text-muted-foreground truncate">{d.client}</p>
-                              <span className={`text-[9px] font-medium px-1 py-0 rounded ${
-                                d.priority === "urgente" ? "bg-destructive/10 text-destructive" :
-                                d.priority === "alta" ? "bg-status-waiting/10 text-status-waiting" :
-                                "bg-muted text-muted-foreground"
-                              }`}>{PRIORITY_LABELS[d.priority]}</span>
-                            </div>
-                          </div>
-                        );
-                      }
-                      return (
-                      <div key={d.id} onClick={() => setEditPlanning(d)} className={`rounded-lg border p-3 transition-colors cursor-pointer ${cardTone}`}>
-                        <div className="flex items-start justify-between mb-1.5">
-                          <p className="text-sm font-medium leading-tight">{d.client}</p>
-                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                            d.priority === "urgente" ? "bg-destructive/10 text-destructive" :
-                            d.priority === "alta" ? "bg-status-waiting/10 text-status-waiting" :
-                            "bg-muted text-muted-foreground"
-                          }`}>
-                            {PRIORITY_LABELS[d.priority]}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-1 mb-1.5">
-                          {d.types.map((t) => (
-                            <span key={t} className="text-[9px] bg-muted px-1.5 py-0.5 rounded font-medium">
-                              {DEMAND_TYPE_LABELS[t]}
-                            </span>
-                          ))}
-                          <PlanningPendencyBadge pendencies={getPendenciesFor(d)} compact />
-                          {isPaused && (
-                            <span className="text-[9px] uppercase tracking-wide font-semibold text-muted-foreground">
-                              · status real: {STATUS_LABELS[d.status]}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">
-                            {d.competencias.length > 2
-                              ? `${d.competencias[0]} … ${d.competencias[d.competencias.length - 1]}`
-                              : d.competencias.join(", ")}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <span className={urgencyClass(d.internalDeadline)}>
-                              <Clock className="w-3 h-3 inline mr-0.5" />
-                              {new Date(d.internalDeadline).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
-                            </span>
-                            <span className="text-muted-foreground">
-                              {getMember(d.assignee)?.name.split(" ")[0]}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      );
-                    })}
-                    {col.length === 0 && (
-                      <div className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">
-                        {isPaused ? "Nenhuma demanda pausada" : "Nenhum planejamento"}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <>
+            <div className="flex justify-end">
+              <CompletedPlanningsDrawer
+                completed={completedInPeriod}
+                onOpenDemand={(d) => setEditPlanning(d)}
+                periodLabel={periodLabel}
+              />
+            </div>
+
+            {isMobile ? (
+              <Tabs defaultValue="paused_pendency" className="w-full">
+                <TabsList className="grid grid-cols-3 w-full">
+                  <TabsTrigger value="not_started" className="text-[11px]">Não iniciada ({columnsData.not_started.length})</TabsTrigger>
+                  <TabsTrigger value="in_progress" className="text-[11px]">Em andamento ({columnsData.in_progress.length})</TabsTrigger>
+                  <TabsTrigger value="paused_pendency" className="text-[11px] data-[state=active]:text-warning">
+                    Pausada ({columnsData.paused_pendency.length})
+                  </TabsTrigger>
+                </TabsList>
+                {ACTIVE_COLS.map((c) => (
+                  <TabsContent key={c} value={c} className="mt-3">
+                    {renderColumn(c)}
+                  </TabsContent>
+                ))}
+              </Tabs>
+            ) : (
+              <div className="grid grid-cols-3 gap-3">
+                {ACTIVE_COLS.map(renderColumn)}
+              </div>
+            )}
+          </>
         )}
 
         {view === "list" && (
@@ -468,31 +522,38 @@ export default function PlanejamentoPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map((d) => (
-                  <tr key={d.id} onClick={() => setEditPlanning(d)} className="hover:bg-muted/30 transition-colors cursor-pointer">
-                    <td className="px-3 py-2.5 font-medium">{d.client}</td>
-                    <td className="px-3 py-2.5 text-xs max-w-40">
-                      <div className="flex flex-wrap gap-1">
-                        {d.types.map((t) => (
-                          <span key={t} className="bg-muted px-1 py-0.5 rounded text-[10px]">{DEMAND_TYPE_LABELS[t]}</span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2.5 text-xs">{d.competencias.join(", ")}</td>
-                    <td className="px-3 py-2.5"><div className="flex items-center gap-1.5"><StatusBadge status={d.status} /><PlanningPendencyBadge pendencies={getPendenciesFor(d)} /></div></td>
-                    <td className={`px-3 py-2.5 text-xs ${urgencyClass(d.internalDeadline)}`}>
-                      {new Date(d.internalDeadline).toLocaleDateString("pt-BR")}
-                    </td>
-                    <td className="px-3 py-2.5 text-xs">{getMember(d.assignee)?.name}</td>
-                  </tr>
-                ))}
+                {filtered.map((d) => {
+                  const pend = getPendenciesFor(d);
+                  return (
+                    <tr key={d.id} onClick={() => setEditPlanning(d)} className="hover:bg-muted/30 transition-colors cursor-pointer">
+                      <td className="px-3 py-2.5 font-medium">{d.client}</td>
+                      <td className="px-3 py-2.5 text-xs max-w-40">
+                        {d.types.length > 1 ? `${d.types.length} tarefas` : d.types[0]}
+                      </td>
+                      <td className="px-3 py-2.5 text-xs">{d.competencias.join(", ")}</td>
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-1.5">
+                          <StatusBadge status={d.status} />
+                          {pend.length > 0 && (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-warning">
+                              <AlertTriangle className="w-3 h-3" />
+                              {pend.length}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-xs">
+                        {new Date(d.internalDeadline).toLocaleDateString("pt-BR")}
+                      </td>
+                      <td className="px-3 py-2.5 text-xs">{getMember(d.assignee)?.name}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
-        {view === "timeline" && (
-          <PlanningTimeline plannings={filtered} />
-        )}
+        {view === "timeline" && <PlanningTimeline plannings={filtered} />}
       </div>
 
       <EditPlanningDialog

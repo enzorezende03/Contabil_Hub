@@ -123,9 +123,9 @@ export default function GClickIntegrationSettings() {
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-xs text-muted-foreground">Login do responsável no GClick</label>
-                <input value={cred.usuario} onChange={(e) => patch(cred.id, { usuario: e.target.value })} className="w-full text-sm px-2 py-1.5 rounded border border-border bg-background" placeholder="ex: integrador" />
-                <div className="text-[10px] text-muted-foreground mt-0.5">Usuário GClick atribuído como responsável das tarefas.</div>
+                <label className="text-xs text-muted-foreground">Login do responsável no GClick <span className="text-muted-foreground/70">(opcional)</span></label>
+                <input value={cred.usuario || ""} onChange={(e) => patch(cred.id, { usuario: e.target.value })} className="w-full text-sm px-2 py-1.5 rounded border border-border bg-background" placeholder="deixe vazio p/ distribuir no GClick" />
+                <div className="text-[10px] text-muted-foreground mt-0.5">Se vazio, a tarefa chega sem responsável e é distribuída manualmente no GClick.</div>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">ID do Sistema (GClick)</label>

@@ -202,8 +202,8 @@ Deno.serve(async (req) => {
       return json({ ok: false, code: "not_configured", error: msg });
     }
     const cred = credRow as Credential;
-    if (!cred.usuario || !cred.sistema_id) {
-      const msg = `Configuração incompleta para "${client.unidade}": preencha usuário e ID do sistema em Configurações → Integrações.`;
+    if (!cred.sistema_id) {
+      const msg = `Configuração incompleta para "${client.unidade}": preencha o ID do sistema em Configurações → Integrações.`;
       await supabase.from("pendencies").update({
         gclick_sync_error: msg, gclick_synced_at: new Date().toISOString(), gclick_status: "nao_configurado",
       }).eq("id", pend.id);
@@ -279,12 +279,14 @@ Deno.serve(async (req) => {
       profile?.display_name ? `Solicitado por: ${profile.display_name}` : null,
     ].filter(Boolean).join("\n");
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       inscricao: cnpj,
-      usuario: cred.usuario,
       sistema: cred.sistema_id,
       preTarefas: [{ tag, assunto, andamento, arquivos: [] as unknown[] }],
     };
+    if (cred.usuario && cred.usuario.trim()) {
+      payload.usuario = cred.usuario.trim();
+    }
 
     const result = await createPreTarefa(token, payload);
     if (!result.ok) {

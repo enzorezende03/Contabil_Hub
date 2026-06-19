@@ -226,8 +226,11 @@ export default function PendenciasPage() {
           open={createOpen}
           onOpenChange={setCreateOpen}
           clients={clients}
+          onSwitchToImport={() => { setCreateOpen(false); setImportOpen(true); }}
         />
       )}
+      <ImportPendenciesDialog open={importOpen} onOpenChange={setImportOpen} />
+
       {cobrarPendency && (
         <RegistrarCobrancaDialog
           open={!!cobrarPendency}

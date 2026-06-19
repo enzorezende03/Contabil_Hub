@@ -41,6 +41,7 @@ export default function PendenciasPage() {
   const [cobrarPendency, setCobrarPendency] = useState<Pendency | null>(null);
   const [resolvePendency, setResolvePendency] = useState<Pendency | null>(null);
   const [pausePendency, setPausePendency] = useState<Pendency | null>(null);
+  const [deletePendency, setDeletePendency] = useState<Pendency | null>(null);
   const [detailsPendency, setDetailsPendency] = useState<Pendency | null>(null);
 
   const { data: clients = [] } = useQuery({

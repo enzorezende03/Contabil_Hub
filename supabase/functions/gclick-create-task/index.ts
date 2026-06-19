@@ -149,7 +149,7 @@ async function createPreTarefa(
   const text = await resp.text();
   let data: any;
   try { data = JSON.parse(text); } catch { data = { raw: text }; }
-  if (!resp.ok || data?.status === "erro" || (Array.isArray(data?.respostas) && data.respostas.some((r: any) => r?.status !== "sucesso"))) {
+  if (!resp.ok || data?.status === "erro" || (Array.isArray(data?.respostas) && data.respostas.some((r: any) => !["sucesso", "ok"].includes(String(r?.status || "").toLowerCase())))) {
     console.log(`[gclick-create] status=${resp.status} response=${text.slice(0, 1000)}`);
   }
   if (!resp.ok) {
@@ -157,7 +157,7 @@ async function createPreTarefa(
   }
   const r = Array.isArray(data?.respostas) ? data.respostas[0] : null;
   if (!r) return { ok: false, msg: `Resposta inesperada do GClick: ${text.slice(0, 200)}`, raw: data };
-  if (r.status === "sucesso") {
+  if (["sucesso", "ok"].includes(String(r.status || "").toLowerCase())) {
     return { ok: true, id: String(r.id ?? ""), msg: r.msg || "Pré-tarefa criada", raw: data };
   }
   return { ok: false, msg: r.msg || "Erro desconhecido ao criar pré-tarefa", raw: data };

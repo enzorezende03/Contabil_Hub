@@ -289,6 +289,40 @@ export default function PendenciasPage() {
       )}
       <ImportPendenciesDialog open={importOpen} onOpenChange={setImportOpen} />
 
+      {bulkCobrarOpen && (
+        <BulkCobrarDialog
+          open={bulkCobrarOpen}
+          onOpenChange={(o) => {
+            setBulkCobrarOpen(o);
+            if (!o) setSelectedIds(new Set());
+          }}
+          pendencies={pendencies.filter((p) => selectedIds.has(p.id))}
+          clientNameOf={(id) => clientMap.get(id)?.razao_social || "—"}
+        />
+      )}
+      {bulkReassignOpen && (
+        <BulkReassignDialog
+          open={bulkReassignOpen}
+          onOpenChange={setBulkReassignOpen}
+          count={selectedIds.size}
+          options={profiles.map((pr) => ({ user_id: pr.user_id, display_name: pr.display_name || "—" }))}
+          onConfirm={async (userId) => {
+            const ids = Array.from(selectedIds);
+            const { error } = await supabase
+              .from("pendencies")
+              .update({ responsavel_id: userId })
+              .in("id", ids);
+            if (error) {
+              toast.error("Erro ao reatribuir: " + error.message);
+              return;
+            }
+            toast.success(`${ids.length} pendência(s) reatribuída(s)`);
+            setSelectedIds(new Set());
+            qc.invalidateQueries({ queryKey: ["pendencies"] });
+          }}
+        />
+      )}
+
       {cobrarPendency && (
         <RegistrarCobrancaDialog
           open={!!cobrarPendency}

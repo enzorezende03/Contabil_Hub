@@ -313,8 +313,8 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
               <Select value={setor} onValueChange={(v) => setSetor(v as PendencySetor)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {Object.entries(SETOR_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                  {SETORES_INTERNOS.map((k) => (
+                    <SelectItem key={k} value={k}>{SETOR_LABELS[k]}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

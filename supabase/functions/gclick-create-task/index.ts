@@ -135,8 +135,9 @@ async function searchClienteByCnpj(token: string, cnpj: string): Promise<string 
 async function createPreTarefa(
   token: string,
   payload: Record<string, unknown>,
+  path = "/tarefas/preTarefas",
 ): Promise<{ ok: boolean; id?: string; msg: string; raw: any }> {
-  const resp = await fetch(`${BASE_URL}/tarefas/preTarefas`, {
+  const resp = await fetch(`${BASE_URL}${path}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -148,15 +149,23 @@ async function createPreTarefa(
   const text = await resp.text();
   let data: any;
   try { data = JSON.parse(text); } catch { data = { raw: text }; }
+  if (!resp.ok || data?.status === "erro" || (Array.isArray(data?.respostas) && data.respostas.some((r: any) => !["sucesso", "ok"].includes(String(r?.status || "").toLowerCase())))) {
+    console.log(`[gclick-create] status=${resp.status} response=${text.slice(0, 1000)}`);
+  }
   if (!resp.ok) {
     return { ok: false, msg: `GClick HTTP ${resp.status}: ${text.slice(0, 300)}`, raw: data };
   }
   const r = Array.isArray(data?.respostas) ? data.respostas[0] : null;
   if (!r) return { ok: false, msg: `Resposta inesperada do GClick: ${text.slice(0, 200)}`, raw: data };
-  if (r.status === "sucesso") {
+  if (["sucesso", "ok"].includes(String(r.status || "").toLowerCase())) {
     return { ok: true, id: String(r.id ?? ""), msg: r.msg || "Pré-tarefa criada", raw: data };
   }
   return { ok: false, msg: r.msg || "Erro desconhecido ao criar pré-tarefa", raw: data };
+}
+
+function departamentoFromConfig(value: string): string {
+  const match = value.trim().match(/^\d+/);
+  return match?.[0] || value.trim();
 }
 
 Deno.serve(async (req) => {
@@ -313,25 +322,22 @@ Deno.serve(async (req) => {
     ].filter(Boolean).join("\n");
 
     const payload: Record<string, unknown> = {
-      inscricao: cnpj,
-      sistema: cred.sistema_id,
-      pretarefas: [
-        {
-          tag,
-          assunto,
-          andamento,
-          arquivos: [] as unknown[],
-        },
-      ],
+      inscricoes: [cnpj],
+      clienteId: gclickClienteId,
+      departamentoId: departamentoFromConfig(tag),
+      assunto,
+      andamento,
+      arquivos: [] as unknown[],
+      convidadosIds: [] as unknown[],
     };
 
-    const result = await createPreTarefa(token, payload);
+    const result = await createPreTarefa(token, payload, "/v2/tarefas/preTarefas");
     if (!result.ok) {
       // se token expirado, tenta renovar uma vez
       if (/401|unauthorized|token/i.test(result.msg)) {
         try {
           const fresh = await fetchAndCacheToken(supabase, cred);
-          const retry = await createPreTarefa(fresh, payload);
+          const retry = await createPreTarefa(fresh, payload, "/v2/tarefas/preTarefas");
           if (retry.ok) {
             await supabase.from("pendencies").update({
               gclick_task_id: retry.id, gclick_status: "criada",

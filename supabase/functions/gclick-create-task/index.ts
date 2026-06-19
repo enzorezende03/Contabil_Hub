@@ -388,12 +388,16 @@ Deno.serve(async (req) => {
       }
     }
 
+    const andamentoFinal = arquivosMeta.length
+      ? `${andamento}\n\nAnexos:\n${arquivosMeta.map((a) => `• ${a.nome}`).join("\n")}`
+      : andamento;
+
     const payload: Record<string, unknown> = {
       inscricoes: [cnpj],
       clienteId: gclickClienteId,
       departamentoId: departamentoFromConfig(tag),
       assunto,
-      andamento,
+      andamento: andamentoFinal,
       arquivos,
       convidadosIds: [] as unknown[],
     };

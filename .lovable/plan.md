@@ -1,142 +1,120 @@
-# Painel gerencial — Plano de implementação
+# Redesenho /pendencias — painel denso e acionável
 
-Nova área `/controle-gerencial` para a reunião semanal de liderança: backlog consolidado, velocity, projeção (ETA), aderência ao planejamento, heatmap cliente × competência e briefing semanal com fluxo de revisão/aprovação antes do envio.
+Sem mudança no modelo de dados. Apenas UI + 1 função SQL derivada de criticidade + ajustes em edge functions já existentes para suportar lote.
 
-Fatiamento entregue em **9 PRs** sequenciais. Cada PR é independente e deployável.
-
----
-
-## PR 1 — Modelagem e permissões
-
-**Tabelas novas:**
-- `backlog_snapshots` (snapshot semanal versionado por indicador × unidade × tributação, único em `(snapshot_date, indicador, unidade, tributacao)`)
-- `gestao_metas` (metas configuráveis — usado só no PR 9)
-- `briefing_drafts` (rascunho semanal com workflow `em_revisao → aprovado → enviado/arquivado`, único em `iso_week`)
-
-**Índices em `demand_status_entries`:**
-- `(status, year, month)`
-- `(filled_by, status) WHERE status = 'completed'`
-
-**RLS:**
-- SELECT em todas: quem tem `ver_painel_gerencial`
-- `briefing_drafts` UPDATE: `revisar_briefing_semanal` e só quando `status = 'em_revisao'`
-- `gestao_metas` mutação: `configurar_metas`
-- INSERT em `backlog_snapshots`/`briefing_drafts`: service_role apenas
-
-**`settings.action_permissions` — chaves novas:**
-- `ver_painel_gerencial` (default: coordenacao, admin)
-- `revisar_briefing_semanal` (default: coordenacao)
-- `configurar_metas` (default: admin)
-
-**`settings` — chave nova:**
-- `painel_gerencial_recipients` (array de e-mails)
-
-**Storage bucket:** `briefing-pptx` (privado).
+Vou entregar fatiado em 8 PRs. Cada PR é independente e seguro de revisar. Aprove e eu começo pelo PR 1 (maior ganho visual, menor risco). A cada PR concluído, pauso para você validar antes do próximo.
 
 ---
 
-## PR 2 — Edge function `generate-backlog-snapshot`
+## PR 1 — Cards densos + sentence case + ações reduzidas
 
-Cron pg_cron toda segunda 06:00 America/Sao_Paulo + botão "Atualizar agora" (`force=true`).
+Refatora `PendencyCard` para um layout horizontal compacto (~80px de altura, 5+ por tela).
 
-**Indicadores calculados** (cada um × unidade × tributação + total):
-- `lancamentos_pendentes`, `conciliacao_bancaria_pendente`, `conciliacao_contabil_pendente`, `fechamento_mensal_pendente` — count distinct (cliente, ano, mês) em `demand_status_entries` com status ≠ completed, respeitando `clients.competencia_inicio`
-- `fechamento_anual_pendente` — count distinct cliente com algum mês do ano corrente não fechado
-- `revisao_pendente` — `review_submissions` em `aguardando`/`em_revisao`
-- `velocity_*` por tipo — entries movidos para completed nos últimos 7 dias
+- Cliente em sentence case, 13px peso 500, ellipsis após 40 chars
+- Competência vira pílula azul mono ao lado do nome
+- Prioridade só aparece se ≠ "media"
+- Linha meta única: `aberta há Xd · N cobranças (canal/data) · Responsável`
+- Se `total_contatos = 0` → "nunca cobrada no sistema" (sem duplicação com "Nunca contatado")
+- Ações: 2 botões primários visíveis + menu `⋯` com Pausar / Reatribuir / Link portal / Histórico / Excluir
+- Em cards `normal`, ações primárias só aparecem em hover
+- Subtítulo do header encurtado para "Painel de cobrança · internas e externas"
 
-Idempotente via UPSERT. `detalhes` jsonb guarda top 10 clientes/competências para o drill-down.
+## PR 2 — Criticidade derivada + ordenação + borda colorida
 
----
+Cria a função SQL `pendency_criticality(pendency_id)` retornando enum `critica | urgente | aguardando_resposta | normal` com as regras:
 
-## PR 3 — Página `/controle-gerencial` (versão básica)
+```text
+critica   = prazo_resposta < now()
+          OR (idade > 14d AND total_contatos = 0)
+          OR (ultimo_contato_em < now() - 10d AND total_contatos > 0)
+urgente   = next_followup_at <= now()
+          OR prazo_resposta < now() + 3d
+aguardando = ultimo_contato_em >= now() - 7d
+normal    = resto
+```
 
-Rota nova em `App.tsx`, registrada em `src/lib/permissions.ts` com guard `ver_painel_gerencial`. Item no sidebar condicional.
+Exposta via view `pendencies_with_criticality` (join leve). Hook `usePendencies` passa a ler dessa view.
 
-**Layout:**
-- Header: título, subtítulo com semana corrente + timestamp do snapshot, botão "Atualizar agora", filtros Unidade e Tributação
-- **Bloco 1 — 6 KPIs** (grid 3×2): número grande, delta vs semana anterior (verde/vermelho/—), sparkline 8 sem (Recharts), click abre drawer (stub no PR 4)
-- **Bloco 2 — Burndown** (LineChart, últimas 12 semanas, linha por tipo, linha tracejada de meta se houver)
-- **Bloco 3 — Velocity + ETA**: bar chart 8 semanas por tipo; lista ETA (`backlog/velocity` com semáforo verde/amarelo/vermelho; aviso "Backlog crescendo — capacidade insuficiente" quando entrada > saída)
+- Borda esquerda 3px: vermelho (crítica) / amarelo (urgente / aguardando) / sem (normal)
+- Status pill contextual no canto direito: `crítica · Xd sem contato`, `cobrar hoje`, `aguardando resposta · Xd`, `cobrar em Xd`
+- Default de ordenação: criticidade desc → idade desc
+- Card "aguardando resposta" troca botão primário "Cobrar agora" por "Cobrar novamente"
 
-Skeletons em cada bloco. Tokens HSL navy/teal. Número em peso 500 32px.
+## PR 3 — KPIs compactos + tabs com contador
 
----
+- 4 cards em grid horizontal, ~70px de altura, clicáveis (filtram a lista)
+- KPI "Vencidas" → substituído por "Críticas" (vermelho se > 0)
+- Mantidos: "Abertas", "Sem contato > 7d" (laranja se > 0), "Resolvidas no mês" (verde)
+- Tabs ganham contador inline: `Externas · cliente · 5`
 
-## PR 4 — Drill-down e rankings
+## PR 4 — Bulk selection e ações em lote
 
-- Drawer (`Sheet`) ao clicar em qualquer KPI: breakdown por unidade/tributação, lista de items agrupados por cliente, filtros (idade, responsável), botão "Exportar Excel" (xlsx), link para `/competencias` filtrado
-- **Bloco 6 — Rankings** (3 listas lado a lado): top 10 clientes com mais backlog, top 5 competências mais atrasadas, top 5 colaboradores com fila mais antiga
+- Checkbox pequeno no canto esquerdo de cada card
+- Barra azul navy aparece quando ≥1 selecionado: `✓ N selecionadas [Cobrar em lote] [Pausar] [Reatribuir] [×]`
+- Modal "Cobrar em lote": escolhe canal (e-mail / WhatsApp), aplica template e dispara `registrar_cobranca` para cada pendência (loop individual no client, não bulk insert, para não cair em SPAM)
+- Pausar em lote: aplica `followup_paused=true` + data opcional
+- Reatribuir em lote: muda `responsavel_id`
 
----
+## PR 5 — Detecção de inconsistência descrição × log
 
-## PR 5 — Heatmap cliente × competência
+- Regex `/cobrei|liguei|enviei|mandei|falei|contatei/i` na `descricao`
+- Quando match AND `total_contatos = 0` → banner amarelo inline no card com botão "Registrar contato externo"
+- Modal pré-preenchido com trecho que disparou o match, canal (e-mail/telefone/WhatsApp/Teams/Digsac/outro), data (hoje editável), resposta recebida (sim/não)
+- Lista de palavras-gatilho fica em `settings.key = 'cobranca_keywords'` (editável)
 
-- **Bloco 5** com `<div>` grid (sem libs)
-- Linhas: top 30 clientes mais pendentes; Colunas: últimas 12 competências
-- Cor: verde / amarelo (1-2 tipos) / laranja (3+) / vermelho (todos + atrasado)
-- Hover com tooltip detalhado; click → `/competencias` filtrado
-- Cache TanStack Query 1h
-- Mobile: vira lista vertical com cor agregada
+## PR 6 — Integração bidirecional com planejamento
 
----
+No drawer de detalhe, nova seção "Trabalho relacionado no planejamento":
 
-## PR 6 — Aderência ao planejamento
+- Query `plannings` + `demand_status_entries` por `client_id` + `competencia` + `demand_type`
+- Cada item é um link que abre `/planejamento` com filtros aplicados
+- Texto: "Esta pendência bloqueia 2 conciliações em jan/25 e fev/25"
 
-- **Bloco 4**: planejado vs concluído na semana corrente (a partir de `plannings` com prazo dentro da semana), % aderência, barra de progresso, mini-tabela de atrasos, link para `/planejamento` filtrado
-- Snapshot da aderência adicionado ao job semanal
+## PR 7 — Timeline de comunicações
 
----
+Drawer lateral acessado por `⋯` → "Histórico":
 
-## PR 7 — Briefing semanal (geração + revisão, sem envio)
+- Lista vertical de `pendency_communications` ordenada desc
+- Cada item: data, ícone do canal, autor, resumo da mensagem, resposta se houve
+- Estilo "incident timeline" (linha vertical com pontos)
 
-**Edge function `generate-weekly-briefing`** (cron segunda 06:05, após snapshot):
-1. Recalcula deltas vs semana anterior
-2. Infere alertas automáticos por regras: backlog crescendo 4 semanas seguidas → crítico; aderência caiu >5pp → atenção; cliente com 3+ meses atrasados → atenção
-3. Gera PPTX 10 slides com **pptxgenjs no servidor**, paleta navy/teal
-4. Salva em Storage `briefing-pptx/{iso_week}.pptx`
-5. Cria `briefing_drafts` com `status='em_revisao'`
-6. Notificação in-app para `revisar_briefing_semanal`
+## PR 8 — Mobile (< 768px)
 
-**Tela `/controle-gerencial/briefing/:isoWeek`** (duas colunas):
-- Esquerda: textarea resumo executivo, editor de lista de alertas (severity/title/detail, add/remove/reorder), editor de prioridades da próxima semana, notas internas (não vão pro PPTX)
-- Direita: preview do PPTX (thumbnails), botão "Regenerar PPTX", "Baixar PPTX"
-- Rodapé: Salvar rascunho · Aprovar e enviar (stub no PR 8) · Aprovar sem enviar · Arquivar
-- Read-only após aprovação
-
----
-
-## PR 8 — Envio e histórico do briefing
-
-**Edge function `send-briefing-email`** (chamada só pelo botão "Aprovar e enviar"):
-- Lê `painel_gerencial_recipients`
-- E-mail com resumo + alertas + link, PPTX em anexo (via Lovable email infra — `email_domain--setup_email_infra` + template app email; verificar se anexos cabem ou usar signed URL do Storage como fallback)
-- Atualiza status → `enviado`, grava `sent_by`, `sent_at`, `recipients_snapshot`
-
-**Lembretes** (cron diário):
-- Rascunho > 24h sem revisão → notifica liderança
-- Rascunho > 72h → escala para admin
-
-**Página `/controle-gerencial/briefings`:**
-- Lista últimos 12 briefings (semana, status, revisor, envio, destinatários)
-- Filtro por status, métrica "taxa de aprovação no prazo" (aprovados antes de quarta / total)
-- Click abre em modo read-only
+- KPIs com scroll horizontal (swipe)
+- Filtros viram bottom sheet (1 botão "Filtros")
+- Cards full-width, mesma densidade
+- Ações em bottom sheet ao tocar no card
+- Long-press ativa modo bulk
 
 ---
 
-## PR 9 — Metas (v2)
+## Detalhes técnicos
 
-- Tela `/configuracoes` → aba Metas: CRUD em `gestao_metas` por indicador, unidade opcional, valor, tipo (máximo/mínimo), vigência
-- Linhas tracejadas nos gráficos; badge "fora da meta" nos KPIs
+**Arquivos novos**
+- `src/components/pendency/PendencyCardCompact.tsx` (PR 1)
+- `src/components/pendency/BulkActionBar.tsx` (PR 4)
+- `src/components/pendency/BulkCobrarDialog.tsx` (PR 4)
+- `src/components/pendency/RegistrarContatoExternoDialog.tsx` (PR 5)
+- `src/components/pendency/PendencyTimelineDrawer.tsx` (PR 7)
+- `src/components/pendency/RelatedPlanningSection.tsx` (PR 6)
+- `src/lib/pendency-criticality.ts` (helper de cor/label — PR 2)
+
+**Migrations**
+- PR 2: `CREATE OR REPLACE FUNCTION public.pendency_criticality(...)` + `CREATE OR REPLACE VIEW public.pendencies_with_criticality AS ...` + grants
+
+**Tokens**
+- Sem cor hardcoded. Reuso `--destructive`, `--warning`, `--info` já existentes em `index.css`
+- Adiciono apenas `--pendency-stripe-*` se necessário
+
+**Sem regressão**
+- Modelagem de dados inalterada
+- Permissões existentes (`gerenciar_pendencias`, `supervisionar_pendencias`) continuam aplicadas
+- `use-persisted-filter` cobre as novas seleções (ordenação, bulk)
 
 ---
 
-## Notas técnicas
+## Ordem recomendada de aprovação
 
-- **Stack**: React 18 + Vite + Tailwind + shadcn + Recharts + TanStack Query + Lovable Cloud (Supabase). PPTX via `pptxgenjs` em edge function Deno.
-- **Performance**: backlog atual em tempo real (com índices novos); tendências sempre via `backlog_snapshots`; heatmap top-30 cacheado 1h; drill-down lazy.
-- **Anexo de e-mail**: a infra de e-mail Lovable não suporta anexos hoje. Plano: enviar **link assinado do Storage** no corpo do e-mail em vez de anexar o PPTX. Confirmar com você antes do PR 8.
-- **Sidebar**: novo item "Controle gerencial" condicional à permissão.
-- **Mobile**: heatmap colapsa em lista; rankings empilham; KPIs viram 2×3.
+Sugiro aprovar PR 1 isoladamente primeiro — já entrega ~50% do ganho visual com risco mínimo. PRs 2-4 são o coração da nova UX. PRs 5-8 são refinamentos.
 
-Confirma para começar pelo PR 1?
+Posso começar pelo PR 1? Ou quer que ajuste algo no plano antes?

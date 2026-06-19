@@ -24,6 +24,8 @@ import { CreatePlanningDialog } from "@/components/CreatePlanningDialog";
 import { EditPlanningDialog } from "@/components/EditPlanningDialog";
 import { WorkloadPanel } from "@/components/WorkloadPanel";
 import { PlanningTimeline } from "@/components/PlanningTimeline";
+import { PlanningPendencyBadge } from "@/components/PlanningPendencyBadge";
+import { useActivePendenciesByPlanning, type CellPendencyInfo } from "@/hooks/use-pendencies";
 import { toast } from "sonner";
 
 type ViewMode = "list" | "kanban" | "timeline";

@@ -24,6 +24,8 @@ import { CreatePlanningDialog } from "@/components/CreatePlanningDialog";
 import { EditPlanningDialog } from "@/components/EditPlanningDialog";
 import { WorkloadPanel } from "@/components/WorkloadPanel";
 import { PlanningTimeline } from "@/components/PlanningTimeline";
+import { PlanningPendencyBadge } from "@/components/PlanningPendencyBadge";
+import { useActivePendenciesByPlanning, type CellPendencyInfo } from "@/hooks/use-pendencies";
 import { toast } from "sonner";
 
 type ViewMode = "list" | "kanban" | "timeline";
@@ -42,6 +44,7 @@ export default function PlanejamentoPage() {
   const [filterType, setFilterType] = usePersistedFilter<string>("planejamento", "type", "all");
   const [filterAssignee, setFilterAssignee] = usePersistedFilter<string>("planejamento", "assignee", "all");
   const [filterStatus, setFilterStatus] = usePersistedFilter<string>("planejamento", "status", "all");
+  const [filterWithPendency, setFilterWithPendency] = usePersistedFilter<string>("planejamento", "withPendency", "all");
   const _now = new Date();
   const _monthStart = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, "0")}-01`;
   const _monthEnd = (() => {
@@ -178,6 +181,19 @@ export default function PlanejamentoPage() {
     })();
   }, [planningsWithDerivedStatus, dbPlannings, refetch]);
 
+  const { data: pendenciesByPlanning } = useActivePendenciesByPlanning();
+
+  const getPendenciesFor = (d: Demand): CellPendencyInfo[] => {
+    if (!pendenciesByPlanning) return [];
+    const out: CellPendencyInfo[] = [];
+    const seen = new Set<string>();
+    d.competencias.forEach((comp) => {
+      const arr = pendenciesByPlanning.get(`${d.client}|${comp}`) || [];
+      arr.forEach((p) => { if (!seen.has(p.id)) { seen.add(p.id); out.push(p); } });
+    });
+    return out;
+  };
+
   const filtered = useMemo(() => {
     return planningsWithDerivedStatus
       .filter((d) => {
@@ -191,10 +207,16 @@ export default function PlanejamentoPage() {
         } else if (filterStatus !== "all" && d.status !== filterStatus) return false;
         if (filterDateFrom && d.internalDeadline < filterDateFrom) return false;
         if (filterDateTo && d.internalDeadline > filterDateTo) return false;
+        if (filterWithPendency !== "all") {
+          const pend = getPendenciesFor(d);
+          if (filterWithPendency === "with" && pend.length === 0) return false;
+          if (filterWithPendency === "overdue" && !pend.some((p) => p.vencida)) return false;
+          if (filterWithPendency === "without" && pend.length > 0) return false;
+        }
         return true;
       })
       .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
-  }, [search, filterType, filterAssignee, filterStatus, filterDateFrom, filterDateTo, planningsWithDerivedStatus, canSeeAll, user]);
+  }, [search, filterType, filterAssignee, filterStatus, filterDateFrom, filterDateTo, filterWithPendency, planningsWithDerivedStatus, canSeeAll, user, pendenciesByPlanning]);
 
   const getMember = (id: string) => teamMembers.find((m) => m.id === id);
 
@@ -262,6 +284,12 @@ export default function PlanejamentoPage() {
             <option value="completed">{STATUS_LABELS.completed}</option>
             <option value="overdue">Em atraso</option>
           </select>
+          <select value={filterWithPendency} onChange={(e) => setFilterWithPendency(e.target.value)} className="h-8 px-2 text-sm border rounded-md bg-card" title="Filtrar por pendências relacionadas">
+            <option value="all">Todas (com/sem pendência)</option>
+            <option value="with">Com pendências abertas</option>
+            <option value="overdue">Com pendências vencidas</option>
+            <option value="without">Sem pendências</option>
+          </select>
           <div className="flex items-center gap-1">
             <label className="text-xs text-muted-foreground">Prazo:</label>
             <input
@@ -294,6 +322,7 @@ export default function PlanejamentoPage() {
                 setFilterType("all");
                 setFilterAssignee("all");
                 setFilterStatus("all");
+                setFilterWithPendency("all");
                 setDraftDateFrom("");
                 setDraftDateTo("");
                 setFilterDateFrom("");
@@ -343,12 +372,13 @@ export default function PlanejamentoPage() {
                             {PRIORITY_LABELS[d.priority]}
                           </span>
                         </div>
-                        <div className="flex flex-wrap gap-1 mb-1.5">
+                        <div className="flex flex-wrap items-center gap-1 mb-1.5">
                           {d.types.map((t) => (
                             <span key={t} className="text-[9px] bg-muted px-1.5 py-0.5 rounded font-medium">
                               {DEMAND_TYPE_LABELS[t]}
                             </span>
                           ))}
+                          <PlanningPendencyBadge pendencies={getPendenciesFor(d)} compact />
                         </div>
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-muted-foreground">
@@ -406,7 +436,7 @@ export default function PlanejamentoPage() {
                       </div>
                     </td>
                     <td className="px-3 py-2.5 text-xs">{d.competencias.join(", ")}</td>
-                    <td className="px-3 py-2.5"><StatusBadge status={d.status} /></td>
+                    <td className="px-3 py-2.5"><div className="flex items-center gap-1.5"><StatusBadge status={d.status} /><PlanningPendencyBadge pendencies={getPendenciesFor(d)} /></div></td>
                     <td className={`px-3 py-2.5 text-xs ${urgencyClass(d.internalDeadline)}`}>
                       {new Date(d.internalDeadline).toLocaleDateString("pt-BR")}
                     </td>

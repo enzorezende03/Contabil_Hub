@@ -44,6 +44,7 @@ export default function PlanejamentoPage() {
   const [filterType, setFilterType] = usePersistedFilter<string>("planejamento", "type", "all");
   const [filterAssignee, setFilterAssignee] = usePersistedFilter<string>("planejamento", "assignee", "all");
   const [filterStatus, setFilterStatus] = usePersistedFilter<string>("planejamento", "status", "all");
+  const [filterWithPendency, setFilterWithPendency] = usePersistedFilter<string>("planejamento", "withPendency", "all");
   const _now = new Date();
   const _monthStart = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, "0")}-01`;
   const _monthEnd = (() => {

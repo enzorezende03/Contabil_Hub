@@ -5,6 +5,7 @@ import type { CellPendencyInfo } from "@/hooks/use-pendencies";
 import {
   avatarColor,
   deadlineClass,
+  deadlineLabel,
   deadlineTone,
   fmtPeriod,
   initials,

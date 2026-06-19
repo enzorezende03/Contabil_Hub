@@ -99,7 +99,7 @@ export default function GClickIntegrationSettings() {
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2"><Plug className="w-5 h-5" /> Integração GClick</h3>
           <p className="text-xs text-muted-foreground mt-1">
-            Cada unidade tem uma conta GClick separada com credenciais próprias. As credenciais (client_id e client_secret) ficam armazenadas como secrets do backend — para alterar, acesse o painel do backend → Edge Functions → Secrets.
+            Cada unidade tem uma conta GClick separada. O <strong>ID de cliente</strong> e o <strong>Segredo de cliente</strong> (gerados no GClick em Configurações → API) já estão armazenados como secrets do backend e não aparecem nesta tela. Os campos abaixo são informações operacionais usadas na criação das tarefas.
           </p>
         </div>
         <button onClick={load} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"><RefreshCw className="w-3 h-3" /> Atualizar</button>
@@ -111,7 +111,9 @@ export default function GClickIntegrationSettings() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-medium">{UNIDADE_LABEL[cred.unidade] || cred.unidade}</div>
-                <div className="text-[11px] text-muted-foreground font-mono">{cred.client_id_secret_name} / {cred.client_secret_secret_name}</div>
+                <div className="text-[11px] text-muted-foreground font-mono">
+                  Credenciais OAuth: {cred.client_id_secret_name} · {cred.client_secret_secret_name}
+                </div>
               </div>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" checked={cred.enabled} onChange={(e) => patch(cred.id, { enabled: e.target.checked })} className="w-4 h-4 rounded border-border" />
@@ -121,12 +123,14 @@ export default function GClickIntegrationSettings() {
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-xs text-muted-foreground">Usuário GClick</label>
+                <label className="text-xs text-muted-foreground">Login do responsável no GClick</label>
                 <input value={cred.usuario} onChange={(e) => patch(cred.id, { usuario: e.target.value })} className="w-full text-sm px-2 py-1.5 rounded border border-border bg-background" placeholder="ex: integrador" />
+                <div className="text-[10px] text-muted-foreground mt-0.5">Usuário GClick atribuído como responsável das tarefas.</div>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">ID do Sistema</label>
+                <label className="text-xs text-muted-foreground">ID do Sistema (GClick)</label>
                 <input value={cred.sistema_id} onChange={(e) => patch(cred.id, { sistema_id: e.target.value })} className="w-full text-sm px-2 py-1.5 rounded border border-border bg-background" placeholder="ex: 12345" />
+                <div className="text-[10px] text-muted-foreground mt-0.5">Identificador numérico do sistema/módulo.</div>
               </div>
             </div>
 

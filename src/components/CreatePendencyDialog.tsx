@@ -51,10 +51,12 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId, clientName,
   const [cadencia, setCadencia] = useState(5);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [saving, setSaving] = useState(false);
-  // Checklist de itens da pendência
+  // Checklist de itens da pendência (apenas para externa)
   const [items, setItems] = useState<{ titulo: string; descricao: string }[]>([
     { titulo: "", descricao: "" },
   ]);
+  // Anexos (apenas para interna)
+  const [attachments, setAttachments] = useState<File[]>([]);
   // Resultado da geração de link (mostrado após criar)
   const [generatedLink, setGeneratedLink] = useState<{ url: string; code: string } | null>(null);
 

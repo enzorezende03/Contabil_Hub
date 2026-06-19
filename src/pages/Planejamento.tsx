@@ -322,6 +322,7 @@ export default function PlanejamentoPage() {
                 setFilterType("all");
                 setFilterAssignee("all");
                 setFilterStatus("all");
+                setFilterWithPendency("all");
                 setDraftDateFrom("");
                 setDraftDateTo("");
                 setFilterDateFrom("");

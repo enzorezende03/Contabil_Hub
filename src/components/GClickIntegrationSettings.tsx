@@ -85,7 +85,20 @@ export default function GClickIntegrationSettings() {
     else toast.error(data?.error || "Falha na conexão");
   }
 
+  async function listarDepartamentos(cred: Credential) {
+    setListingId(cred.id);
+    const { data, error } = await supabase.functions.invoke("gclick-create-task", {
+      body: { list_departamentos: cred.unidade },
+    });
+    setListingId(null);
+    if (error) { toast.error("Falha: " + error.message); return; }
+    if (!data?.ok) { toast.error(data?.error || "Falha ao listar"); return; }
+    setDepartamentos((prev) => ({ ...prev, [cred.id]: data.departamentos || [] }));
+    toast.success(`${data.departamentos?.length || 0} departamentos carregados`);
+  }
+
   async function reenviar(pendencyId: string) {
+
     toast.loading("Reenviando...", { id: `re-${pendencyId}` });
     const { data, error } = await supabase.functions.invoke("gclick-create-task", { body: { pendency_id: pendencyId } });
     if (error) { toast.error(error.message, { id: `re-${pendencyId}` }); return; }

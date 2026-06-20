@@ -157,6 +157,8 @@ export type Database = {
       }
       clients: {
         Row: {
+          apelido: string | null
+          cadencia_fechamento: string
           cnpj: string
           competencia_inicio: string
           created_at: string
@@ -173,6 +175,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          apelido?: string | null
+          cadencia_fechamento?: string
           cnpj: string
           competencia_inicio: string
           created_at?: string
@@ -189,6 +193,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          apelido?: string | null
+          cadencia_fechamento?: string
           cnpj?: string
           competencia_inicio?: string
           created_at?: string

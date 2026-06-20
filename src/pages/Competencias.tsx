@@ -1306,8 +1306,8 @@ export default function CompetenciasPage() {
               return isMonthEnabled(cli.competencia_inicio || "", m, year, cli.data_fim_contrato);
             }}
             filter={focoFilter}
-            onChangeStatus={(client, month, type, status) => setDemandStatus(client, month, type, status)}
             onOpenClient={(client) => setPanelClient(client)}
+
             displayName={displayName}
             isCurrentOrPast={parseInt(year, 10) <= nowYear}
           />

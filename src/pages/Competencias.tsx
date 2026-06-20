@@ -1247,6 +1247,7 @@ export default function CompetenciasPage() {
                   const rowPct = eligibleMonths.length > 0 ? Math.round((doneMonths.length / eligibleMonths.length) * 100) : 0;
                   const rowPctColor = rowPct >= 80 ? "text-success" : rowPct >= 50 ? "text-warning" : "text-destructive";
                   return (
+                  <>
                     <tr key={client} className={`group transition-colors ${finalized ? "bg-muted/40 text-muted-foreground opacity-60 grayscale" : selectedClients.has(client) ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/30"}`}>
                       <td className="px-2 py-2 w-8">
                         <input

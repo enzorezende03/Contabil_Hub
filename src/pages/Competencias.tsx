@@ -944,7 +944,7 @@ export default function CompetenciasPage() {
           />
           <MultiSelectFilter
             allLabel="Todas empresas"
-            options={allClientNames.map((c) => ({ value: c, label: c }))}
+            options={allClientNames.map((c) => ({ value: c, label: displayName(c) }))}
             value={selectedClientsFilter}
             onChange={setSelectedClientsFilter}
             className="flex-1 min-w-[140px] max-w-[220px]"

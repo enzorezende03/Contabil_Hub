@@ -1540,8 +1540,10 @@ export default function CompetenciasPage() {
                       const lvl = matrix[c][m];
                       return lvl !== "disabled" && lvl !== "sem_movimento";
                     });
-                    const done = elig.filter((c) => matrix[c][m] === "conc_contabil").length;
-                    const pct = elig.length > 0 ? Math.round((done / elig.length) * 100) : 0;
+                    const ETAPAS_F = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"] as const;
+                    const stepsDone = elig.reduce((acc, c) => acc + ETAPAS_F.reduce((a, t) => a + (demandStatuses[`${c}|${m}|${t}`] === "completed" ? 1 : 0), 0), 0);
+                    const stepsTotal = elig.length * ETAPAS_F.length;
+                    const pct = stepsTotal > 0 ? Math.round((stepsDone / stepsTotal) * 100) : 0;
                     const future = isFutureMonth(m);
                     const current = isCurrentMonth(m);
                     const color = future
@@ -1557,7 +1559,7 @@ export default function CompetenciasPage() {
                       <td
                         key={m}
                         className={`text-center px-1 py-2 text-[11px] font-semibold tabular-nums ${color} ${current ? "bg-primary/[0.06]" : ""}`}
-                        title={`${done}/${elig.length} empresas com fechamento mensal completo`}
+                        title={`${stepsDone}/${stepsTotal} etapas concluídas (Lanç. + Banc. + Cont.)`}
                       >
                         {elig.length === 0 ? "—" : `${pct}%`}
                       </td>

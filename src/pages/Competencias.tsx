@@ -1918,6 +1918,21 @@ export default function CompetenciasPage() {
         />
       )}
 
+      {fecharPeriodoDialog && (
+        <FecharPeriodoDialog
+          open={!!fecharPeriodoDialog}
+          onOpenChange={(o) => { if (!o) setFecharPeriodoDialog(null); }}
+          clientId={fecharPeriodoDialog.clientId}
+          clientName={fecharPeriodoDialog.clientName}
+          tributacao={fecharPeriodoDialog.tributacao}
+          cadencia={fecharPeriodoDialog.cadencia}
+          periodoLabel={fecharPeriodoDialog.periodoLabel}
+          periodoInicio={fecharPeriodoDialog.periodoInicio}
+          periodoFim={fecharPeriodoDialog.periodoFim}
+          demandStatuses={demandStatuses}
+        />
+      )}
+
       {pendencyDialog && (
         <CreatePendencyDialog
           open={!!pendencyDialog}

@@ -312,6 +312,9 @@ export default function CompetenciasPage() {
     clientId: string; clientName: string; tributacao: string; cadencia: string;
     periodoLabel: string; periodoInicio: string; periodoFim: string;
   } | null>(null);
+  const [viewMode, setViewMode] = usePersistedFilter<"matriz" | "foco">("competencias", "view_mode", "matriz");
+  const [focoMonth, setFocoMonth] = usePersistedFilter<string>("competencias", "foco_month", String(new Date().getMonth() + 1).padStart(2, "0"));
+  const [focoFilter, setFocoFilter] = usePersistedFilter<"all" | "pendentes" | "atrasados">("competencias", "foco_filter", "pendentes");
 
   useActionPermissions();
   const canLiberar = canPerformAction("liberar_para_revisao", profile?.role);

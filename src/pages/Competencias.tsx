@@ -316,6 +316,18 @@ export default function CompetenciasPage() {
   const [focoMonth, setFocoMonth] = usePersistedFilter<string>("competencias", "foco_month", String(new Date().getMonth() + 1).padStart(2, "0"));
   const [focoFilter, setFocoFilter] = usePersistedFilter<"all" | "pendentes" | "atrasados">("competencias", "foco_filter", "pendentes");
 
+  // Default mobile = "Foco no mês" (once per browser, respects user choice after)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const FLAG = "competencias_mobile_default_applied";
+    if (sessionStorage.getItem(FLAG)) return;
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      setViewMode("foco");
+    }
+    sessionStorage.setItem(FLAG, "1");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useActionPermissions();
   const canLiberar = canPerformAction("liberar_para_revisao", profile?.role);
   const canCreatePendency = canPerformAction("gerenciar_pendencias", profile?.role);
@@ -1096,7 +1108,7 @@ export default function CompetenciasPage() {
         </div>
 
         {/* Legenda compacta */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground overflow-x-auto md:flex-wrap whitespace-nowrap md:whitespace-normal pb-1 md:pb-0">
           <div className="flex items-center gap-1.5">
             <span className="font-medium text-foreground">Posições:</span>
             <div className="grid grid-cols-3 gap-px w-7 h-[14px] rounded-sm overflow-hidden">

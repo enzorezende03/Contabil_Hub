@@ -59,10 +59,12 @@ Cada PR é mergeável sozinho. Confirmação entre PRs antes de seguir.
 - Status com chip colorido + select para alteração inline; clique no nome abre o drawer existente.
 - Ordenação default: pendentes primeiro, depois alfabética.
 
-### PR 10 — Mobile (<768px)
-- KPIs em scroll horizontal; header/filtros empilhados.
-- Default mobile = "Foco no mês"; mês corrente pré-selecionado.
-- Tooltip → click → drawer.
+### PR 10 — Mobile (<768px) ✅
+- Default mobile = "Foco no mês" (aplicado uma vez por sessão; respeita escolha posterior do usuário).
+- Mês corrente pré-selecionado (já era default do `focoMonth`).
+- Legenda/KPIs com scroll horizontal em telas pequenas (whitespace-nowrap < md).
+- Filtros: barra com `overflow-x-auto` existente já cobre o caso.
+- Tabela "Foco no mês" usa overflow-x-auto e é navegável no toque; clique no nome → drawer (mesmo padrão da matriz).
 
 ## Detalhes técnicos
 
@@ -82,4 +84,4 @@ Cada PR é mergeável sozinho. Confirmação entre PRs antes de seguir.
 
 ## Próximo passo
 
-Próximo passo: PR 10 — Mobile (<768px).
+Roadmap dos 10 PRs concluído. Próximos refinamentos opcionais: reatribuição de responsável (depende de campo no modelo) e otimizações de performance da view `v_closing_periods` quando a base crescer.

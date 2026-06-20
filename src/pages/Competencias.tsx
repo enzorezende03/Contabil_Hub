@@ -1197,7 +1197,7 @@ export default function CompetenciasPage() {
         )}
 
         {/* Matriz */}
-        {visibleClients.length > 0 ? (
+        {visibleClients.length > 0 && (
           <div className="rounded-lg border bg-card overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

@@ -334,30 +334,31 @@ export default function CompetenciasPage() {
     },
   });
 
+  type ClosingPeriod = {
+    client_id: string; client_name: string; cadencia: string;
+    periodo_label: string; periodo_inicio: string; periodo_fim: string;
+    meses_esperados: number; meses_completos: number;
+    periodo_status: "aprovado" | "em_revisao" | "pronto" | "em_andamento" | "nao_iniciado";
+  };
   // Closing periods (v_closing_periods) for the displayed year
-  const { data: closingPeriods = [] } = useQuery({
+  const { data: closingPeriods = [] } = useQuery<ClosingPeriod[]>({
     queryKey: ["v_closing_periods", year],
     queryFn: async () => {
       const start = `${year}-01-01`;
       const end = `${year}-12-31`;
-      const { data, error } = await supabase
-        .from("v_closing_periods" as any)
+      const { data, error } = await (supabase as any)
+        .from("v_closing_periods")
         .select("client_id, client_name, cadencia, periodo_label, periodo_inicio, periodo_fim, meses_esperados, meses_completos, periodo_status")
         .lte("periodo_inicio", end)
         .gte("periodo_fim", start);
-      if (error) { console.error(error); return [] as any[]; }
-      return ((data as any[]) || []) as Array<{
-        client_id: string; client_name: string; cadencia: string;
-        periodo_label: string; periodo_inicio: string; periodo_fim: string;
-        meses_esperados: number; meses_completos: number;
-        periodo_status: "aprovado" | "em_revisao" | "pronto" | "em_andamento" | "nao_iniciado";
-      }>;
+      if (error) { console.error(error); return []; }
+      return (data || []) as ClosingPeriod[];
     },
   });
 
   // Map clientName -> periods
   const periodsByClient = useMemo(() => {
-    const m = new Map<string, typeof closingPeriods>();
+    const m = new Map<string, ClosingPeriod[]>();
     closingPeriods.forEach((p) => {
       const arr = m.get(p.client_name) || [];
       arr.push(p);
@@ -371,6 +372,7 @@ export default function CompetenciasPage() {
     () => closingPeriods.filter((p) => p.periodo_status === "pronto").length,
     [closingPeriods],
   );
+
 
   // Realtime updates for submissions
   useEffect(() => {

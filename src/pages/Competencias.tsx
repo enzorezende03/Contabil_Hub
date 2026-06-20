@@ -1096,7 +1096,7 @@ export default function CompetenciasPage() {
         </div>
 
         {/* Legenda compacta */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground">
+        <div className="flex items-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground overflow-x-auto md:flex-wrap whitespace-nowrap md:whitespace-normal pb-1 md:pb-0">
           <div className="flex items-center gap-1.5">
             <span className="font-medium text-foreground">Posições:</span>
             <div className="grid grid-cols-3 gap-px w-7 h-[14px] rounded-sm overflow-hidden">

@@ -1239,7 +1239,10 @@ export default function CompetenciasPage() {
                         const triMode: "disabled" | "sem_movimento" | "normal" =
                           isDisabled ? "disabled" : level === "sem_movimento" ? "sem_movimento" : "normal";
                         return (
-                          <td key={m} className="text-center px-1 py-2">
+                          <td
+                            key={m}
+                            className={`text-center px-1 py-2 ${isCurrentMonth(m) ? "bg-primary/[0.06]" : ""}`}
+                          >
                             <div className="relative mx-auto w-7 h-[22px]">
                               <div
                                 className={`w-full h-full rounded-sm ${
@@ -1262,10 +1265,59 @@ export default function CompetenciasPage() {
                           </td>
                         );
                       })}
+                      <td className="text-center px-2 py-2 border-l border-border bg-muted/30">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`text-[11px] font-semibold tabular-nums ${rowPctColor}`}>{rowPct}%</span>
+                          <div className="w-12 h-[3px] rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${rowPct >= 80 ? "bg-success" : rowPct >= 50 ? "bg-warning" : "bg-destructive"}`}
+                              style={{ width: `${rowPct}%` }}
+                            />
+                          </div>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
+              <tfoot className="border-t-2 border-border bg-muted/40">
+                <tr>
+                  <td className="px-2 py-2" />
+                  <td className="px-2 py-2 text-xs font-semibold text-muted-foreground sticky left-0 bg-muted/40 z-10">
+                    % conciliado / mês
+                  </td>
+                  <td colSpan={3} />
+                  {MONTHS.map((m) => {
+                    const elig = visibleClients.filter((c) => {
+                      const lvl = matrix[c][m];
+                      return lvl !== "disabled" && lvl !== "sem_movimento";
+                    });
+                    const done = elig.filter((c) => matrix[c][m] === "conc_contabil").length;
+                    const pct = elig.length > 0 ? Math.round((done / elig.length) * 100) : 0;
+                    const future = isFutureMonth(m);
+                    const current = isCurrentMonth(m);
+                    const color = future
+                      ? "text-muted-foreground/50"
+                      : current
+                      ? "text-info"
+                      : pct >= 80
+                      ? "text-success"
+                      : pct >= 50
+                      ? "text-warning"
+                      : "text-destructive";
+                    return (
+                      <td
+                        key={m}
+                        className={`text-center px-1 py-2 text-[11px] font-semibold tabular-nums ${color} ${current ? "bg-primary/[0.06]" : ""}`}
+                        title={`${done}/${elig.length} empresas com fechamento mensal completo`}
+                      >
+                        {elig.length === 0 ? "—" : `${pct}%`}
+                      </td>
+                    );
+                  })}
+                  <td className="border-l border-border bg-muted/50" />
+                </tr>
+              </tfoot>
             </table>
           </div>
         ) : (

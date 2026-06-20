@@ -77,4 +77,4 @@ Cada PR é mergeável sozinho. Confirmação entre PRs antes de seguir.
 
 ## Próximo passo
 
-Próximo passo: PR 2 — Células com 3 mini-barras (Lançamento | Conc. Banc. | Conc. Cont.).
+Próximo passo: PR 3 — Totais, mês corrente, hover row.

@@ -754,10 +754,11 @@ export default function CompetenciasPage() {
   // Current real-world month/year for highlighting
   const nowYear = new Date().getFullYear();
   const nowMonth = new Date().getMonth() + 1;
-  const isDisplayedYearCurrent = currentYear === nowYear;
+  const displayedYear = parseInt(year, 10);
+  const isDisplayedYearCurrent = displayedYear === nowYear;
   const isCurrentMonth = (m: string) => isDisplayedYearCurrent && parseInt(m, 10) === nowMonth;
   const isFutureMonth = (m: string) =>
-    currentYear > nowYear || (currentYear === nowYear && parseInt(m, 10) > nowMonth);
+    displayedYear > nowYear || (displayedYear === nowYear && parseInt(m, 10) > nowMonth);
 
   // Manual override: marks client as finalized regardless of step completion
   const isManuallyFinalized = useCallback((client: string) => {

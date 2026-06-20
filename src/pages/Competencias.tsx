@@ -578,18 +578,17 @@ export default function CompetenciasPage() {
     return map;
   }, [dbClients]);
 
-  // Deriva apelido a partir da razão social: primeira palavra significativa (>=3 chars), sentence case.
-  const deriveApelido = useCallback((razao: string): string => {
+  // Converte razão social para sentence case (preserva acentos, hífens e espaços).
+  const toSentenceCase = useCallback((razao: string): string => {
     if (!razao) return "";
-    const cleaned = razao.replace(/[^\p{L}\p{N}\s\-]/gu, " ");
-    const match = cleaned.match(/([\p{L}\p{N}]{3,})/u);
-    const word = (match?.[1] || razao.split(/\s+/)[0] || razao).toLowerCase();
-    return word.charAt(0).toUpperCase() + word.slice(1);
+    return razao
+      .toLowerCase()
+      .replace(/(?:^|\s|-)\p{L}/gu, (match) => match.toUpperCase());
   }, []);
 
   const displayName = useCallback((client: string): string => {
-    return clientsMap[client]?.apelido || deriveApelido(client);
-  }, [clientsMap, deriveApelido]);
+    return toSentenceCase(client);
+  }, [toSentenceCase]);
 
   const allClientNames = useMemo(() => Object.keys(clientsMap).sort(), [clientsMap]);
   const allTributacoes = useMemo(() => {
@@ -841,7 +840,7 @@ export default function CompetenciasPage() {
     const rows = visibleClients.map((client) => {
       const info = clientsMap[client] || ({} as any);
       const row: Record<string, string> = {
-        "Empresa": client,
+        "Empresa": displayName(client),
         "Tributação": TRIBUTACAO_LABELS_MAP[info.tributacao] || info.tributacao || "",
         "Unidade": UNIDADE_LBL[info.unidade] || info.unidade || "",
         "Perfil": PERFIL_LBL[info.perfil] || info.perfil || "",
@@ -1179,7 +1178,7 @@ export default function CompetenciasPage() {
                       <td
                         className={`px-2 py-2 font-medium text-xs whitespace-nowrap overflow-hidden text-ellipsis sticky left-0 z-10 cursor-pointer transition-colors w-[220px] max-w-[220px] ${finalized ? "bg-muted/40 text-muted-foreground hover:text-foreground" : "bg-card hover:text-primary"}`}
                         onClick={() => setPanelClient(client)}
-                        title={finalized ? `${client} — 🔒 Fechamento concluído (desativada)` : client}
+                        title={finalized ? `${displayName(client)} — 🔒 Fechamento concluído (desativada)` : displayName(client)}
                       >
                         <span className="flex items-center gap-1">
                           {finalized && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
@@ -1251,7 +1250,7 @@ export default function CompetenciasPage() {
               <DialogHeader className="pb-4 border-b">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <DialogTitle className="text-lg">{panelData.client}</DialogTitle>
+                    <DialogTitle className="text-lg">{displayName(panelData.client)}</DialogTitle>
                     <DialogDescription>
                       {TRIBUTACAO_LABELS_MAP[panelData.tributacao || ""] || "Sem tributação definida"} — {year}
                     </DialogDescription>

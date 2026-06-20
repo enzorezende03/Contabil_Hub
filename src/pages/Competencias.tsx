@@ -866,6 +866,39 @@ export default function CompetenciasPage() {
     return clients.filter((c) => isClientFinalized(c));
   }, [clients, selectedFinalStatus, isClientFinalized]);
 
+  const ETAPAS = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"] as const;
+
+  const sortedVisibleClients = useMemo(() => {
+    const withPct = visibleClients.map((client) => {
+      const eligibleMonths = MONTHS.filter((m) => {
+        const lvl = matrix[client][m];
+        return lvl !== "disabled" && lvl !== "sem_movimento";
+      });
+      const stepsDone = eligibleMonths.reduce((acc, m) => {
+        return acc + ETAPAS.reduce((a, t) => a + (demandStatuses[`${client}|${m}|${t}`] === "completed" ? 1 : 0), 0);
+      }, 0);
+      const stepsTotal = eligibleMonths.length * ETAPAS.length;
+      const rowPct = stepsTotal > 0 ? Math.round((stepsDone / stepsTotal) * 100) : 0;
+      return { client, rowPct };
+    });
+    if (totalSort === "none") return withPct.map((x) => x.client);
+    return withPct
+      .sort((a, b) => (totalSort === "asc" ? a.rowPct - b.rowPct : b.rowPct - a.rowPct))
+      .map((x) => x.client);
+  }, [visibleClients, matrix, demandStatuses, totalSort]);
+
+  const getClientPct = useCallback((client: string) => {
+    const eligibleMonths = MONTHS.filter((m) => {
+      const lvl = matrix[client][m];
+      return lvl !== "disabled" && lvl !== "sem_movimento";
+    });
+    const stepsDone = eligibleMonths.reduce((acc, m) => {
+      return acc + ETAPAS.reduce((a, t) => a + (demandStatuses[`${client}|${m}|${t}`] === "completed" ? 1 : 0), 0);
+    }, 0);
+    const stepsTotal = eligibleMonths.length * ETAPAS.length;
+    return stepsTotal > 0 ? Math.round((stepsDone / stepsTotal) * 100) : 0;
+  }, [matrix, demandStatuses]);
+
   const setManualFinalized = useCallback(async (clientsSet: Set<string>, finalized: boolean) => {
     if (!user) return;
     if (clientsSet.size === 0) { toast.error("Selecione ao menos uma empresa"); return; }

@@ -469,6 +469,12 @@ export default function CompetenciasPage() {
       months.forEach((m) => { next[`${client}|${m}|${type}`] = status; });
       return next;
     });
+    setCellMeta((prev) => {
+      const next = { ...prev };
+      const now = new Date().toISOString();
+      months.forEach((m) => { next[`${client}|${m}|${type}`] = { filledBy: user.id, updatedAt: now }; });
+      return next;
+    });
 
     const rows = [...months].map((m) => ({
       client_name: client,

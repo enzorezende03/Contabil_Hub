@@ -77,4 +77,4 @@ Cada PR é mergeável sozinho. Confirmação entre PRs antes de seguir.
 
 ## Próximo passo
 
-Próximo passo: PR 7 — Modal "Fechar período" + integração com revisão.
+Próximo passo: PR 8 — Bulk selection.

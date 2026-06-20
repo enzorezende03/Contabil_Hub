@@ -292,6 +292,7 @@ export default function CompetenciasPage() {
   const selectedPerfil = Array.isArray(selectedPerfilRaw) ? selectedPerfilRaw : [];
   const selectedFinalStatus = Array.isArray(selectedFinalStatusRaw) ? selectedFinalStatusRaw : [];
   const selectedEcd = Array.isArray(selectedEcdRaw) ? selectedEcdRaw : [];
+  const [semMovimento, setSemMovimento] = useState<Set<string>>(new Set());
   const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
   const [panelClient, setPanelClient] = useState<string | null>(null);
   const [demandStatuses, setDemandStatuses] = useState<Record<string, DemandStatus>>({});
@@ -720,7 +721,6 @@ export default function CompetenciasPage() {
   const { clients, matrix } = useMemo(() => {
     let clientSet = [...allClientNames];
 
-    if (selectedClientsFilter.length > 0) clientSet = clientSet.filter((c) => selectedClientsFilter.includes(c));
     const searchTrim = searchClient.trim().toLowerCase();
     if (searchTrim) clientSet = clientSet.filter((c) => c.toLowerCase().includes(searchTrim));
     if (selectedTributacao.length > 0) clientSet = clientSet.filter((c) => selectedTributacao.includes(clientsMap[c]?.tributacao));
@@ -779,7 +779,7 @@ export default function CompetenciasPage() {
     );
 
     return { clients: activeClients, matrix };
-  }, [year, selectedClientsFilter, searchClient, selectedTributacao, selectedUnidade, selectedPerfil, selectedEcd, allClientNames, clientsMap, semMovimento, demandStatuses]);
+  }, [year, searchClient, selectedTributacao, selectedUnidade, selectedPerfil, selectedEcd, allClientNames, clientsMap, semMovimento, demandStatuses]);
 
   // Map razao_social -> client UUID for review submissions wiring
   const clientIdByName = useMemo(() => {
@@ -1030,13 +1030,6 @@ export default function CompetenciasPage() {
             className={`${selectClass} h-8 text-xs px-2 flex-1 min-w-[160px] max-w-[240px]`}
           />
           <MultiSelectFilter
-            allLabel="Todas empresas"
-            options={allClientNames.map((c) => ({ value: c, label: displayName(c) }))}
-            value={selectedClientsFilter}
-            onChange={setSelectedClientsFilter}
-            className="flex-1 min-w-[140px] max-w-[220px]"
-          />
-          <MultiSelectFilter
             allLabel="Todas tributações"
             options={allTributacoes.map((t) => ({ value: t, label: TRIBUTACAO_LABELS_MAP[t] || t }))}
             value={selectedTributacao}
@@ -1085,11 +1078,10 @@ export default function CompetenciasPage() {
             onChange={setSelectedFinalStatus}
             width="150px"
           />
-          {(selectedClientsFilter.length + selectedTributacao.length + selectedUnidade.length + selectedPerfil.length + selectedEcd.length + selectedFinalStatus.length > 0 || searchClient.trim().length > 0) && (
+          {(selectedTributacao.length + selectedUnidade.length + selectedPerfil.length + selectedEcd.length + selectedFinalStatus.length > 0 || searchClient.trim().length > 0) && (
             <button
               type="button"
               onClick={() => {
-                setSelectedClientsFilter([]);
                 setSelectedTributacao([]);
                 setSelectedUnidade([]);
                 setSelectedPerfil([]);

@@ -11,13 +11,14 @@ const TYPES = [
 
 type TypeKey = (typeof TYPES)[number]["key"];
 
-const STATUS_META: Record<DemandStatus, { label: string; icon: typeof Circle; cls: string }> = {
+const STATUS_META: Partial<Record<DemandStatus, { label: string; icon: typeof Circle; cls: string }>> = {
   not_started: { label: "Não iniciada", icon: Circle, cls: "text-muted-foreground bg-muted/40" },
   in_progress: { label: "Em andamento", icon: Loader2, cls: "text-warning bg-warning/15" },
   waiting_info: { label: "Aguard. doc.", icon: Clock, cls: "text-destructive bg-destructive/15" },
   in_review: { label: "Em revisão", icon: AlertOctagon, cls: "text-info bg-info/15" },
   completed: { label: "Concluída", icon: CheckCircle2, cls: "text-success bg-success/15" },
 };
+const FALLBACK_META = { label: "—", icon: Circle, cls: "text-muted-foreground bg-muted/40" };
 
 export interface MonthFocusViewProps {
   clients: string[];

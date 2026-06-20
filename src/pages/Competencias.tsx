@@ -1385,47 +1385,6 @@ export default function CompetenciasPage() {
                           {finalized && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
                           <span className="truncate">{displayName(client)}</span>
                         </span>
-                        {(() => {
-                          const arr = periodsByClient.get(client) || [];
-                          if (!arr.length) return null;
-                          const ref = new Date();
-                          const refYear = ref.getFullYear();
-                          const dispYear = parseInt(year, 10);
-                          let p = dispYear === refYear
-                            ? arr.find((x) => new Date(x.periodo_inicio) <= ref && new Date(x.periodo_fim) >= ref)
-                            : undefined;
-                          if (!p) {
-                            const past = arr
-                              .filter((x) => new Date(x.periodo_fim) < ref)
-                              .sort((a, b) => (a.periodo_fim < b.periodo_fim ? 1 : -1));
-                            p = past[0] || arr[arr.length - 1];
-                          }
-                          if (!p) return null;
-                          const cad = p.cadencia === "mensal" ? "fech. mensal"
-                            : p.cadencia === "trimestral" ? "fech. trimestral"
-                            : p.cadencia === "semestral" ? "fech. semestral"
-                            : p.cadencia === "anual" ? "fech. anual"
-                            : "fech. livre";
-                          const stTxt: Record<string, string> = {
-                            nao_iniciado: "não iniciado",
-                            em_andamento: "em andamento",
-                            pronto: "pronto p/ fechar",
-                            em_revisao: "em revisão",
-                            aprovado: "aprovado",
-                          };
-                          const stColor: Record<string, string> = {
-                            nao_iniciado: "text-muted-foreground",
-                            em_andamento: "text-warning",
-                            pronto: "text-info",
-                            em_revisao: "text-warning",
-                            aprovado: "text-success",
-                          };
-                          return (
-                            <span className="block mt-0.5 text-[10px] text-muted-foreground truncate">
-                              {cad} · {p.periodo_label} <span className={stColor[p.periodo_status]}>{stTxt[p.periodo_status]}</span>
-                            </span>
-                          );
-                        })()}
                       </td>
                       <td className="px-1 py-2 whitespace-nowrap">
                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${
@@ -1559,46 +1518,6 @@ export default function CompetenciasPage() {
                         </div>
                       </td>
                     </tr>
-                    {(() => {
-                      const arr = periodsByClient.get(client) || [];
-                      if (!arr.length) return null;
-                      const bandColor = (st: string) =>
-                        st === "aprovado" ? "bg-success"
-                        : st === "em_revisao" ? "bg-warning"
-                        : st === "pronto" ? "bg-info"
-                        : st === "em_andamento" ? "bg-muted-foreground/30"
-                        : "bg-transparent";
-                      return (
-                        <tr key={`${client}-band`} aria-hidden="true" className="border-b border-border/40">
-                          <td className="p-0" colSpan={5} />
-                          {MONTHS.map((m) => {
-                            const monthDate = new Date(parseInt(year, 10), parseInt(m, 10) - 1, 15);
-                            const p = arr.find((x) => new Date(x.periodo_inicio) <= monthDate && new Date(x.periodo_fim) >= monthDate);
-                            const cid = clientIdByName[client];
-                            const trib = clientsMap[client]?.tributacao || "";
-                            const ready = p?.periodo_status === "pronto" && !!cid;
-                            return (
-                              <td key={m} className="p-0 align-top">
-                                <div
-                                  className={`h-[5px] mx-1 rounded-full ${p ? bandColor(p.periodo_status) : "bg-transparent"} ${ready ? "cursor-pointer hover:h-[7px] transition-all" : ""}`}
-                                  title={p ? `${p.periodo_label} · ${p.periodo_status.replace("_", " ")}${ready ? " · clique para fechar" : ""}` : ""}
-                                  onClick={ready ? () => setFecharPeriodoDialog({
-                                    clientId: cid!,
-                                    clientName: client,
-                                    tributacao: trib,
-                                    cadencia: p!.cadencia,
-                                    periodoLabel: p!.periodo_label,
-                                    periodoInicio: p!.periodo_inicio,
-                                    periodoFim: p!.periodo_fim,
-                                  }) : undefined}
-                                />
-                              </td>
-                            );
-                          })}
-                          <td className="p-0" />
-                        </tr>
-                      );
-                    })()}
                   </Fragment>
 
                   );

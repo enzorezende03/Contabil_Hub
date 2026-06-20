@@ -1,0 +1,1 @@
+ALTER VIEW public.v_closing_periods SET (security_invoker = true);

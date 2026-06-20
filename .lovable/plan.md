@@ -82,4 +82,4 @@ Cada PR é mergeável sozinho. Confirmação entre PRs antes de seguir.
 
 ## Próximo passo
 
-Próximo passo: PR 9 — Toggle "Matriz anual" / "Foco no mês".
+Próximo passo: PR 10 — Mobile (<768px).

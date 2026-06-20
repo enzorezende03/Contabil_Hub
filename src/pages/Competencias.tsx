@@ -413,22 +413,25 @@ export default function CompetenciasPage() {
       const pageSize = 1000;
       let from = 0;
       const statuses: Record<string, DemandStatus> = {};
+      const metas: Record<string, { filledBy?: string; updatedAt?: string }> = {};
       // eslint-disable-next-line no-constant-condition
       while (true) {
         const { data, error } = await supabase
           .from("demand_status_entries")
-          .select("client_name, month, year, demand_type, status")
+          .select("client_name, month, year, demand_type, status, filled_by, updated_at")
           .eq("year", year)
           .range(from, from + pageSize - 1);
         if (error || !data) break;
         data.forEach((d: any) => {
           const key = `${d.client_name}|${d.month}|${d.demand_type}`;
           statuses[key] = d.status as DemandStatus;
+          metas[key] = { filledBy: d.filled_by, updatedAt: d.updated_at };
         });
         if (data.length < pageSize) break;
         from += pageSize;
       }
       setDemandStatuses(statuses);
+      setCellMeta(metas);
     };
     loadStatuses();
   }, [year]);

@@ -84,4 +84,4 @@ Cada PR é mergeável sozinho. Confirmação entre PRs antes de seguir.
 
 ## Próximo passo
 
-Próximo passo: PR 10 — Mobile (<768px).
+Roadmap dos 10 PRs concluído. Próximos refinamentos opcionais: reatribuição de responsável (depende de campo no modelo) e otimizações de performance da view `v_closing_periods` quando a base crescer.

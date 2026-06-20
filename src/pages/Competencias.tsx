@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, Fragment } from "react";
 import { usePersistedFilter } from "@/hooks/use-persisted-filter";
 import { MultiSelectFilter } from "@/components/MultiSelectFilter";
 import AppLayout from "@/components/AppLayout";
@@ -333,6 +333,46 @@ export default function CompetenciasPage() {
       return data as Array<{ id: string; client_id: string; competencia: string; status: ReviewStatus; cycle_number: number; submitted_at: string }>;
     },
   });
+
+  type ClosingPeriod = {
+    client_id: string; client_name: string; cadencia: string;
+    periodo_label: string; periodo_inicio: string; periodo_fim: string;
+    meses_esperados: number; meses_completos: number;
+    periodo_status: "aprovado" | "em_revisao" | "pronto" | "em_andamento" | "nao_iniciado";
+  };
+  // Closing periods (v_closing_periods) for the displayed year
+  const { data: closingPeriods = [] } = useQuery<ClosingPeriod[]>({
+    queryKey: ["v_closing_periods", year],
+    queryFn: async () => {
+      const start = `${year}-01-01`;
+      const end = `${year}-12-31`;
+      const { data, error } = await (supabase as any)
+        .from("v_closing_periods")
+        .select("client_id, client_name, cadencia, periodo_label, periodo_inicio, periodo_fim, meses_esperados, meses_completos, periodo_status")
+        .lte("periodo_inicio", end)
+        .gte("periodo_fim", start);
+      if (error) { console.error(error); return []; }
+      return (data || []) as ClosingPeriod[];
+    },
+  });
+
+  // Map clientName -> periods
+  const periodsByClient = useMemo(() => {
+    const m = new Map<string, ClosingPeriod[]>();
+    closingPeriods.forEach((p) => {
+      const arr = m.get(p.client_name) || [];
+      arr.push(p);
+      m.set(p.client_name, arr);
+    });
+    return m;
+  }, [closingPeriods]);
+
+  // Count of periods ready to close (status = pronto)
+  const periodsReadyCount = useMemo(
+    () => closingPeriods.filter((p) => p.periodo_status === "pronto").length,
+    [closingPeriods],
+  );
+
 
   // Realtime updates for submissions
   useEffect(() => {
@@ -1073,6 +1113,8 @@ export default function CompetenciasPage() {
             <span>·</span>
             <span>{clients.filter(c => isClientFinalized(c)).length} finalizadas</span>
             <span>·</span>
+            <span className="text-info font-medium">{periodsReadyCount} períodos prontos p/ fechar</span>
+            <span>·</span>
             <span>{totalClients} total · {pctDone}% conciliado</span>
           </div>
         </div>
@@ -1155,7 +1197,7 @@ export default function CompetenciasPage() {
         )}
 
         {/* Matriz */}
-        {visibleClients.length > 0 ? (
+        {visibleClients.length > 0 && (
           <div className="rounded-lg border bg-card overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -1207,7 +1249,8 @@ export default function CompetenciasPage() {
                   const rowPct = eligibleMonths.length > 0 ? Math.round((doneMonths.length / eligibleMonths.length) * 100) : 0;
                   const rowPctColor = rowPct >= 80 ? "text-success" : rowPct >= 50 ? "text-warning" : "text-destructive";
                   return (
-                    <tr key={client} className={`group transition-colors ${finalized ? "bg-muted/40 text-muted-foreground opacity-60 grayscale" : selectedClients.has(client) ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/30"}`}>
+                  <Fragment key={client}>
+                    <tr className={`group transition-colors ${finalized ? "bg-muted/40 text-muted-foreground opacity-60 grayscale" : selectedClients.has(client) ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/30"}`}>
                       <td className="px-2 py-2 w-8">
                         <input
                           type="checkbox"
@@ -1225,6 +1268,47 @@ export default function CompetenciasPage() {
                           {finalized && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
                           <span className="truncate">{displayName(client)}</span>
                         </span>
+                        {(() => {
+                          const arr = periodsByClient.get(client) || [];
+                          if (!arr.length) return null;
+                          const ref = new Date();
+                          const refYear = ref.getFullYear();
+                          const dispYear = parseInt(year, 10);
+                          let p = dispYear === refYear
+                            ? arr.find((x) => new Date(x.periodo_inicio) <= ref && new Date(x.periodo_fim) >= ref)
+                            : undefined;
+                          if (!p) {
+                            const past = arr
+                              .filter((x) => new Date(x.periodo_fim) < ref)
+                              .sort((a, b) => (a.periodo_fim < b.periodo_fim ? 1 : -1));
+                            p = past[0] || arr[arr.length - 1];
+                          }
+                          if (!p) return null;
+                          const cad = p.cadencia === "mensal" ? "fech. mensal"
+                            : p.cadencia === "trimestral" ? "fech. trimestral"
+                            : p.cadencia === "semestral" ? "fech. semestral"
+                            : p.cadencia === "anual" ? "fech. anual"
+                            : "fech. livre";
+                          const stTxt: Record<string, string> = {
+                            nao_iniciado: "não iniciado",
+                            em_andamento: "em andamento",
+                            pronto: "pronto p/ fechar",
+                            em_revisao: "em revisão",
+                            aprovado: "aprovado",
+                          };
+                          const stColor: Record<string, string> = {
+                            nao_iniciado: "text-muted-foreground",
+                            em_andamento: "text-warning",
+                            pronto: "text-info",
+                            em_revisao: "text-warning",
+                            aprovado: "text-success",
+                          };
+                          return (
+                            <span className="block mt-0.5 text-[10px] text-muted-foreground truncate">
+                              {cad} · {p.periodo_label} <span className={stColor[p.periodo_status]}>{stTxt[p.periodo_status]}</span>
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-1 py-2 whitespace-nowrap">
                         <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${
@@ -1358,6 +1442,33 @@ export default function CompetenciasPage() {
                         </div>
                       </td>
                     </tr>
+                    {(() => {
+                      const arr = periodsByClient.get(client) || [];
+                      if (!arr.length) return null;
+                      const bandColor = (st: string) =>
+                        st === "aprovado" ? "bg-success"
+                        : st === "em_revisao" ? "bg-warning"
+                        : st === "pronto" ? "bg-info"
+                        : st === "em_andamento" ? "bg-muted-foreground/30"
+                        : "bg-transparent";
+                      return (
+                        <tr key={`${client}-band`} aria-hidden="true" className="border-b border-border/40">
+                          <td className="p-0" colSpan={5} />
+                          {MONTHS.map((m) => {
+                            const monthDate = new Date(parseInt(year, 10), parseInt(m, 10) - 1, 15);
+                            const p = arr.find((x) => new Date(x.periodo_inicio) <= monthDate && new Date(x.periodo_fim) >= monthDate);
+                            return (
+                              <td key={m} className="p-0 align-top">
+                                <div className={`h-[5px] mx-1 rounded-full ${p ? bandColor(p.periodo_status) : "bg-transparent"}`} title={p ? `${p.periodo_label} · ${p.periodo_status.replace("_", " ")}` : ""} />
+                              </td>
+                            );
+                          })}
+                          <td className="p-0" />
+                        </tr>
+                      );
+                    })()}
+                  </Fragment>
+
                   );
                 })}
               </tbody>
@@ -1401,7 +1512,27 @@ export default function CompetenciasPage() {
               </tfoot>
             </table>
           </div>
-        ) : (
+        )}
+        {periodsReadyCount > 0 && (
+          <div className="rounded-lg border border-info/40 bg-info/10 px-4 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="w-5 h-5 text-info" />
+              <div>
+                <p className="text-sm font-semibold">{periodsReadyCount} período(s) prontos para fechar</p>
+                <p className="text-[11px] text-muted-foreground">Todas as três tarefas concluídas em todos os meses do período. Revise e libere para revisão.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled
+              title="Disponível no próximo passo (PR 7)"
+              className="h-9 px-4 rounded-md bg-info text-info-foreground text-sm font-semibold opacity-60 cursor-not-allowed"
+            >
+              Fechar período
+            </button>
+          </div>
+        )}
+        {!visibleClients.length && (
           <p className="text-center text-muted-foreground py-12">Nenhuma empresa encontrada. Cadastre clientes primeiro.</p>
         )}
       </div>

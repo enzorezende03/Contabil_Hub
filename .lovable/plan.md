@@ -77,4 +77,4 @@ Cada PR é mergeável sozinho. Confirmação entre PRs antes de seguir.
 
 ## Próximo passo
 
-Confirma que posso começar pelo **PR 1** (modelagem leve + apelido + sentence case)? Ele já melhora muito a legibilidade sem mudar comportamento.
+Próximo passo: PR 2 — Células com 3 mini-barras (Lançamento | Conc. Banc. | Conc. Cont.).

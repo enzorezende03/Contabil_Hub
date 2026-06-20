@@ -52,9 +52,12 @@ Cada PR é mergeável sozinho. Confirmação entre PRs antes de seguir.
 - Ações: marcar fechamento concluído, forçar finalizado, reabrir, e aplicar status (Lanç / Conc.Banc / Conc.Cont) por tipo × meses selecionados.
 - Reatribuição de responsável: deferida — o modelo atual não possui `responsavel` por cliente/célula; será endereçada quando o campo existir.
 
-### PR 9 — Toggle "Matriz anual" / "Foco no mês"
-- Visão alternativa por competência: tabela Empresa | Lançamento | Conc.Banc. | Conc.Cont. | Responsável | Prazo.
-- Ordenação por prazo (default), filtros "só pendentes"/"só atrasados".
+### PR 9 — Toggle "Matriz anual" / "Foco no mês" ✅
+- Toggle persistido entre "Matriz anual" (visão padrão) e "Foco no mês".
+- "Foco no mês": tabela Empresa · Tributação · Lançamento · Conc. Banc. · Conc. Cont. · Status (n/3).
+- Seletor de mês + filtros "Todas" / "Só pendentes" (default) / "Só atrasados" (apenas anos passados/corrente).
+- Status com chip colorido + select para alteração inline; clique no nome abre o drawer existente.
+- Ordenação default: pendentes primeiro, depois alfabética.
 
 ### PR 10 — Mobile (<768px)
 - KPIs em scroll horizontal; header/filtros empilhados.
@@ -79,4 +82,4 @@ Cada PR é mergeável sozinho. Confirmação entre PRs antes de seguir.
 
 ## Próximo passo
 
-Próximo passo: PR 9 — Toggle "Matriz anual" / "Foco no mês".
+Próximo passo: PR 10 — Mobile (<768px).

@@ -161,6 +161,7 @@ import { CellTriBar } from "@/components/competencias/CellTriBar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useTeamMembers } from "@/hooks/use-team-members";
 import { FecharPeriodoDialog } from "@/components/competencias/FecharPeriodoDialog";
+import { MonthFocusView } from "@/components/competencias/MonthFocusView";
 
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
@@ -311,6 +312,9 @@ export default function CompetenciasPage() {
     clientId: string; clientName: string; tributacao: string; cadencia: string;
     periodoLabel: string; periodoInicio: string; periodoFim: string;
   } | null>(null);
+  const [viewMode, setViewMode] = usePersistedFilter<"matriz" | "foco">("competencias", "view_mode", "matriz");
+  const [focoMonth, setFocoMonth] = usePersistedFilter<string>("competencias", "foco_month", String(new Date().getMonth() + 1).padStart(2, "0"));
+  const [focoFilter, setFocoFilter] = usePersistedFilter<"all" | "pendentes" | "atrasados">("competencias", "foco_filter", "pendentes");
 
   useActionPermissions();
   const canLiberar = canPerformAction("liberar_para_revisao", profile?.role);
@@ -1216,8 +1220,89 @@ export default function CompetenciasPage() {
           </div>
         )}
 
+        {/* Toggle Matriz / Foco no mês */}
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <div className="inline-flex items-center rounded-lg border border-border bg-muted/40 p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode("matriz")}
+              className={cn(
+                "px-3 py-1 rounded-md text-xs font-medium transition-colors",
+                viewMode === "matriz" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Matriz anual
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("foco")}
+              className={cn(
+                "px-3 py-1 rounded-md text-xs font-medium transition-colors",
+                viewMode === "foco" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Foco no mês
+            </button>
+          </div>
+          {viewMode === "foco" && (
+            <>
+              <select
+                value={focoMonth}
+                onChange={(e) => setFocoMonth(e.target.value)}
+                className="h-7 px-2 text-xs border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary"
+                aria-label="Selecionar mês"
+              >
+                {MONTHS.map((m) => (
+                  <option key={m} value={m}>{MONTH_FULL[m]} / {year}</option>
+                ))}
+              </select>
+              <div className="inline-flex items-center rounded-lg border border-border bg-muted/40 p-0.5">
+                {([
+                  { v: "all", l: "Todas" },
+                  { v: "pendentes", l: "Só pendentes" },
+                  { v: "atrasados", l: "Só atrasados" },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setFocoFilter(opt.v)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors",
+                      focoFilter === opt.v ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Foco no mês */}
+        {viewMode === "foco" && visibleClients.length > 0 && (
+          <MonthFocusView
+            clients={visibleClients}
+            clientsMap={clientsMap}
+            month={focoMonth}
+            monthLabel={MONTH_FULL[focoMonth]}
+            year={year}
+            demandStatuses={demandStatuses}
+            isMonthEnabledFor={(c, m) => {
+              const cli = clientsMap[c];
+              if (!cli) return true;
+              return isMonthEnabled(cli.competencia_inicio || "", m, year, cli.data_fim_contrato);
+            }}
+            filter={focoFilter}
+            onChangeStatus={(client, month, type, status) => setDemandStatus(client, month, type, status)}
+            onOpenClient={(client) => setPanelClient(client)}
+            displayName={displayName}
+            isCurrentOrPast={parseInt(year, 10) <= nowYear}
+          />
+        )}
+
         {/* Matriz */}
-        {visibleClients.length > 0 && (
+        {viewMode === "matriz" && visibleClients.length > 0 && (
           <div className="rounded-lg border bg-card overflow-x-auto">
             <table className="w-full text-sm">
               <thead>

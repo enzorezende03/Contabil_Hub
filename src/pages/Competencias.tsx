@@ -1366,8 +1366,19 @@ export default function CompetenciasPage() {
                       {MONTH_SHORT[m]}
                     </th>
                   ))}
-                  <th className="text-center px-2 py-2 font-medium text-muted-foreground text-xs w-[64px] border-l border-border bg-muted/70">
-                    Total
+                  <th
+                    className="text-center px-2 py-2 font-medium text-muted-foreground text-xs w-[64px] border-l border-border bg-muted/70 cursor-pointer select-none hover:bg-muted transition-colors"
+                    onClick={() =>
+                      setTotalSort((prev) => (prev === "none" ? "desc" : prev === "desc" ? "asc" : "none"))
+                    }
+                    title="Ordenar por total"
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      Total
+                      {totalSort === "none" && <ArrowUpDown className="w-3 h-3 text-muted-foreground/60" />}
+                      {totalSort === "asc" && <ArrowUp className="w-3 h-3 text-primary" />}
+                      {totalSort === "desc" && <ArrowDown className="w-3 h-3 text-primary" />}
+                    </div>
                   </th>
                 </tr>
               </thead>

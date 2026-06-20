@@ -1512,7 +1512,27 @@ export default function CompetenciasPage() {
               </tfoot>
             </table>
           </div>
-        ) : (
+        )}
+        {periodsReadyCount > 0 && (
+          <div className="rounded-lg border border-info/40 bg-info/10 px-4 py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <ShieldCheck className="w-5 h-5 text-info" />
+              <div>
+                <p className="text-sm font-semibold">{periodsReadyCount} período(s) prontos para fechar</p>
+                <p className="text-[11px] text-muted-foreground">Todas as três tarefas concluídas em todos os meses do período. Revise e libere para revisão.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled
+              title="Disponível no próximo passo (PR 7)"
+              className="h-9 px-4 rounded-md bg-info text-info-foreground text-sm font-semibold opacity-60 cursor-not-allowed"
+            >
+              Fechar período
+            </button>
+          </div>
+        )}
+        {!visibleClients.length && (
           <p className="text-center text-muted-foreground py-12">Nenhuma empresa encontrada. Cadastre clientes primeiro.</p>
         )}
       </div>

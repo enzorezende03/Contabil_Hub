@@ -1465,7 +1465,8 @@ export default function CompetenciasPage() {
                         </tr>
                       );
                     })()}
-                  </>
+                  </Fragment>
+
                   );
                 })}
               </tbody>

@@ -231,7 +231,7 @@ export function LiberarRevisaoDialog({
         <DialogHeader>
           <DialogTitle>Liberar para revisão</DialogTitle>
           <DialogDescription>
-            {clientName} — anexe os demonstrativos contábeis gerados no UNICO SCI.
+            {clientName.toLowerCase().replace(/(?:^|\s|-)\p{L}/gu, (m) => m.toUpperCase())} — anexe os demonstrativos contábeis gerados no UNICO SCI.
           </DialogDescription>
         </DialogHeader>
 

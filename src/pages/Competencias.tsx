@@ -840,7 +840,7 @@ export default function CompetenciasPage() {
     const rows = visibleClients.map((client) => {
       const info = clientsMap[client] || ({} as any);
       const row: Record<string, string> = {
-        "Empresa": client,
+        "Empresa": displayName(client),
         "Tributação": TRIBUTACAO_LABELS_MAP[info.tributacao] || info.tributacao || "",
         "Unidade": UNIDADE_LBL[info.unidade] || info.unidade || "",
         "Perfil": PERFIL_LBL[info.perfil] || info.perfil || "",
@@ -1250,7 +1250,7 @@ export default function CompetenciasPage() {
               <DialogHeader className="pb-4 border-b">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <DialogTitle className="text-lg">{panelData.client}</DialogTitle>
+                    <DialogTitle className="text-lg">{displayName(panelData.client)}</DialogTitle>
                     <DialogDescription>
                       {TRIBUTACAO_LABELS_MAP[panelData.tributacao || ""] || "Sem tributação definida"} — {year}
                     </DialogDescription>

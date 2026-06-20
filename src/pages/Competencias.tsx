@@ -1362,8 +1362,13 @@ export default function CompetenciasPage() {
                     const lvl = matrix[client][m];
                     return lvl !== "disabled" && lvl !== "sem_movimento";
                   });
-                  const doneMonths = eligibleMonths.filter((m) => matrix[client][m] === "conc_contabil");
-                  const rowPct = eligibleMonths.length > 0 ? Math.round((doneMonths.length / eligibleMonths.length) * 100) : 0;
+                  // Progressão ponderada: cada etapa concluída vale 1/3 do mês
+                  const ETAPAS = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"] as const;
+                  const stepsDone = eligibleMonths.reduce((acc, m) => {
+                    return acc + ETAPAS.reduce((a, t) => a + (demandStatuses[`${client}|${m}|${t}`] === "completed" ? 1 : 0), 0);
+                  }, 0);
+                  const stepsTotal = eligibleMonths.length * ETAPAS.length;
+                  const rowPct = stepsTotal > 0 ? Math.round((stepsDone / stepsTotal) * 100) : 0;
                   const rowPctColor = rowPct >= 80 ? "text-success" : rowPct >= 50 ? "text-warning" : "text-destructive";
                   return (
                   <Fragment key={client}>

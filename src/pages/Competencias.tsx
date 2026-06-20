@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Upload, FileCheck, Lock, Send, ShieldCheck, Circle, Loader2, Clock, CheckCircle2, Eye, FileSpreadsheet } from "lucide-react";
+import { Upload, FileCheck, Lock, Send, ShieldCheck, Circle, Loader2, Clock, CheckCircle2, Eye, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 

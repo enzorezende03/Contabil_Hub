@@ -1156,10 +1156,18 @@ export default function CompetenciasPage() {
                   <th className="text-left px-1 py-2 font-medium text-muted-foreground text-xs w-[60px]">Perfil</th>
                   <th className="text-left px-1 py-2 font-medium text-muted-foreground text-xs w-[32px]">Trib.</th>
                   {MONTHS.map((m) => (
-                    <th key={m} className="text-center px-1 py-2 font-medium text-muted-foreground min-w-[44px]">
+                    <th
+                      key={m}
+                      className={`text-center px-1 py-2 font-medium text-muted-foreground min-w-[44px] ${
+                        isCurrentMonth(m) ? "bg-primary/10 text-foreground font-semibold" : ""
+                      }`}
+                    >
                       {MONTH_SHORT[m]}
                     </th>
                   ))}
+                  <th className="text-center px-2 py-2 font-medium text-muted-foreground text-xs w-[64px] border-l border-border bg-muted/70">
+                    Total
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">

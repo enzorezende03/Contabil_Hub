@@ -307,6 +307,10 @@ export default function CompetenciasPage() {
   const [uploading, setUploading] = useState(false);
   const [liberarDialog, setLiberarDialog] = useState<{ clientName: string; clientId: string; tributacao: string; month: string } | null>(null);
   const [pendencyDialog, setPendencyDialog] = useState<{ clientId: string; clientName: string; month: string } | null>(null);
+  const [fecharPeriodoDialog, setFecharPeriodoDialog] = useState<{
+    clientId: string; clientName: string; tributacao: string; cadencia: string;
+    periodoLabel: string; periodoInicio: string; periodoFim: string;
+  } | null>(null);
 
   useActionPermissions();
   const canLiberar = canPerformAction("liberar_para_revisao", profile?.role);

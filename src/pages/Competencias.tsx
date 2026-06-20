@@ -334,6 +334,44 @@ export default function CompetenciasPage() {
     },
   });
 
+  // Closing periods (v_closing_periods) for the displayed year
+  const { data: closingPeriods = [] } = useQuery({
+    queryKey: ["v_closing_periods", year],
+    queryFn: async () => {
+      const start = `${year}-01-01`;
+      const end = `${year}-12-31`;
+      const { data, error } = await supabase
+        .from("v_closing_periods" as any)
+        .select("client_id, client_name, cadencia, periodo_label, periodo_inicio, periodo_fim, meses_esperados, meses_completos, periodo_status")
+        .lte("periodo_inicio", end)
+        .gte("periodo_fim", start);
+      if (error) { console.error(error); return [] as any[]; }
+      return (data || []) as Array<{
+        client_id: string; client_name: string; cadencia: string;
+        periodo_label: string; periodo_inicio: string; periodo_fim: string;
+        meses_esperados: number; meses_completos: number;
+        periodo_status: "aprovado" | "em_revisao" | "pronto" | "em_andamento" | "nao_iniciado";
+      }>;
+    },
+  });
+
+  // Map clientName -> periods
+  const periodsByClient = useMemo(() => {
+    const m = new Map<string, typeof closingPeriods>();
+    closingPeriods.forEach((p) => {
+      const arr = m.get(p.client_name) || [];
+      arr.push(p);
+      m.set(p.client_name, arr);
+    });
+    return m;
+  }, [closingPeriods]);
+
+  // Count of periods ready to close (status = pronto)
+  const periodsReadyCount = useMemo(
+    () => closingPeriods.filter((p) => p.periodo_status === "pronto").length,
+    [closingPeriods],
+  );
+
   // Realtime updates for submissions
   useEffect(() => {
     const ch = supabase

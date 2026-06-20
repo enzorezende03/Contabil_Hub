@@ -1529,11 +1529,26 @@ export default function CompetenciasPage() {
             </div>
             <button
               type="button"
-              disabled
-              title="Disponível no próximo passo (PR 7)"
-              className="h-9 px-4 rounded-md bg-info text-info-foreground text-sm font-semibold opacity-60 cursor-not-allowed"
+              onClick={() => {
+                const ready = [...closingPeriods]
+                  .filter((p) => p.periodo_status === "pronto")
+                  .sort((a, b) => (a.periodo_fim < b.periodo_fim ? -1 : 1));
+                const p = ready[0];
+                if (!p) return;
+                const trib = clientsMap[p.client_name]?.tributacao || "";
+                setFecharPeriodoDialog({
+                  clientId: p.client_id,
+                  clientName: p.client_name,
+                  tributacao: trib,
+                  cadencia: p.cadencia,
+                  periodoLabel: p.periodo_label,
+                  periodoInicio: p.periodo_inicio,
+                  periodoFim: p.periodo_fim,
+                });
+              }}
+              className="h-9 px-4 rounded-md bg-info text-info-foreground text-sm font-semibold hover:bg-info/90 transition-colors"
             >
-              Fechar período
+              Fechar período mais antigo
             </button>
           </div>
         )}

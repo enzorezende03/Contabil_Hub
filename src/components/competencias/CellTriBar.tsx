@@ -1,4 +1,4 @@
-import type { DemandStatus } from "@/lib/demand-status";
+import type { DemandStatus } from "@/lib/types";
 
 export type TriBarMode = "normal" | "sem_movimento" | "disabled";
 

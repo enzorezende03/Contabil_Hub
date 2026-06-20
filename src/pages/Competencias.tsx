@@ -160,6 +160,7 @@ import { AlertOctagon } from "lucide-react";
 import { CellTriBar } from "@/components/competencias/CellTriBar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useTeamMembers } from "@/hooks/use-team-members";
+import { FecharPeriodoDialog } from "@/components/competencias/FecharPeriodoDialog";
 
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];

@@ -440,6 +440,7 @@ export default function CompetenciasPage() {
     if (!user) return;
     const key = `${client}|${month}|${type}`;
     setDemandStatuses((prev) => ({ ...prev, [key]: status }));
+    setCellMeta((prev) => ({ ...prev, [key]: { filledBy: user.id, updatedAt: new Date().toISOString() } }));
 
     const { error } = await supabase
       .from("demand_status_entries")

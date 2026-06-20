@@ -1383,7 +1383,7 @@ export default function CompetenciasPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {visibleClients.map((client) => {
+                {sortedVisibleClients.map((client) => {
                   const tribShort: Record<string, string> = { simples_nacional: "SN", lucro_presumido: "LP", lucro_real: "LR", isenta_imune: "II" };
                   const tribLabel = tribShort[clientsMap[client]?.tributacao] || "—";
                   const unidade = clientsMap[client]?.unidade || "2m_contabilidade";
@@ -1392,17 +1392,7 @@ export default function CompetenciasPage() {
                   const perfilLabels: Record<string, string> = { vip: "VIP", premium: "Premium", standard: "Standard", basico: "Básico" };
                   const perfilColors: Record<string, string> = { vip: "bg-yellow-500/15 text-yellow-600", premium: "bg-purple-500/15 text-purple-600", standard: "bg-blue-500/15 text-blue-600", basico: "bg-gray-500/15 text-gray-600" };
                   const finalized = isClientFinalized(client);
-                  const eligibleMonths = MONTHS.filter((m) => {
-                    const lvl = matrix[client][m];
-                    return lvl !== "disabled" && lvl !== "sem_movimento";
-                  });
-                  // Progressão ponderada: cada etapa concluída vale 1/3 do mês
-                  const ETAPAS = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"] as const;
-                  const stepsDone = eligibleMonths.reduce((acc, m) => {
-                    return acc + ETAPAS.reduce((a, t) => a + (demandStatuses[`${client}|${m}|${t}`] === "completed" ? 1 : 0), 0);
-                  }, 0);
-                  const stepsTotal = eligibleMonths.length * ETAPAS.length;
-                  const rowPct = stepsTotal > 0 ? Math.round((stepsDone / stepsTotal) * 100) : 0;
+                  const rowPct = getClientPct(client);
                   const rowPctColor = rowPct >= 80 ? "text-success" : rowPct >= 50 ? "text-warning" : "text-destructive";
                   return (
                   <Fragment key={client}>

@@ -6,11 +6,11 @@ Reformular a matriz cliente × mês para refletir o trabalho contábil real: 3 t
 
 Cada PR é mergeável sozinho. Confirmação entre PRs antes de seguir.
 
-### PR 1 — Legibilidade base (modelagem + apelido + sentence case)
+### PR 1 — Legibilidade base (modelagem + sentence case)
 - Migration: `clients.apelido text`, `clients.cadencia_fechamento text default 'mensal'`.
-- Backfill `apelido` derivando primeira palavra significativa da razão social em sentence case (script SQL na migration).
-- Coluna empresa na matriz: usa `apelido` com fallback derivado; tooltip com razão social completa; largura ~150px, peso 500, 12px.
+- Coluna empresa na matriz: mantém razão social completa, apenas convertida de caixa alta para sentence case/title case; tooltip com razão social formatada; largura ~220px, peso 500, 12px.
 - Header em sentence case ("Fechamento contábil 2025"); subtítulo curto.
+- Nota: apelido fica disponível no banco para uso futuro, mas a exibição padrão usa o nome completo.
 
 ### PR 2 — Células com 3 mini-barras
 - Novo `CellTriBar`: grid 3 colunas × altura total, gap 1px, ~26×22px.

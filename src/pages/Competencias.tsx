@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Upload, FileCheck, Lock, Send, ShieldCheck, Circle, Loader2, Clock, CheckCircle2, Eye, FileSpreadsheet } from "lucide-react";
+import { Upload, FileCheck, Lock, Send, ShieldCheck, Circle, Loader2, Clock, CheckCircle2, Eye, FileSpreadsheet, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 
@@ -292,6 +292,7 @@ export default function CompetenciasPage() {
   const selectedPerfil = Array.isArray(selectedPerfilRaw) ? selectedPerfilRaw : [];
   const selectedFinalStatus = Array.isArray(selectedFinalStatusRaw) ? selectedFinalStatusRaw : [];
   const selectedEcd = Array.isArray(selectedEcdRaw) ? selectedEcdRaw : [];
+  const [totalSort, setTotalSort] = useState<"none" | "asc" | "desc">("none");
   const [semMovimento, setSemMovimento] = useState<Set<string>>(new Set());
   const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
   const [panelClient, setPanelClient] = useState<string | null>(null);
@@ -865,6 +866,39 @@ export default function CompetenciasPage() {
     return clients.filter((c) => isClientFinalized(c));
   }, [clients, selectedFinalStatus, isClientFinalized]);
 
+  const ETAPAS = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"] as const;
+
+  const sortedVisibleClients = useMemo(() => {
+    const withPct = visibleClients.map((client) => {
+      const eligibleMonths = MONTHS.filter((m) => {
+        const lvl = matrix[client][m];
+        return lvl !== "disabled" && lvl !== "sem_movimento";
+      });
+      const stepsDone = eligibleMonths.reduce((acc, m) => {
+        return acc + ETAPAS.reduce((a, t) => a + (demandStatuses[`${client}|${m}|${t}`] === "completed" ? 1 : 0), 0);
+      }, 0);
+      const stepsTotal = eligibleMonths.length * ETAPAS.length;
+      const rowPct = stepsTotal > 0 ? Math.round((stepsDone / stepsTotal) * 100) : 0;
+      return { client, rowPct };
+    });
+    if (totalSort === "none") return withPct.map((x) => x.client);
+    return withPct
+      .sort((a, b) => (totalSort === "asc" ? a.rowPct - b.rowPct : b.rowPct - a.rowPct))
+      .map((x) => x.client);
+  }, [visibleClients, matrix, demandStatuses, totalSort]);
+
+  const getClientPct = useCallback((client: string) => {
+    const eligibleMonths = MONTHS.filter((m) => {
+      const lvl = matrix[client][m];
+      return lvl !== "disabled" && lvl !== "sem_movimento";
+    });
+    const stepsDone = eligibleMonths.reduce((acc, m) => {
+      return acc + ETAPAS.reduce((a, t) => a + (demandStatuses[`${client}|${m}|${t}`] === "completed" ? 1 : 0), 0);
+    }, 0);
+    const stepsTotal = eligibleMonths.length * ETAPAS.length;
+    return stepsTotal > 0 ? Math.round((stepsDone / stepsTotal) * 100) : 0;
+  }, [matrix, demandStatuses]);
+
   const setManualFinalized = useCallback(async (clientsSet: Set<string>, finalized: boolean) => {
     if (!user) return;
     if (clientsSet.size === 0) { toast.error("Selecione ao menos uma empresa"); return; }
@@ -1332,13 +1366,24 @@ export default function CompetenciasPage() {
                       {MONTH_SHORT[m]}
                     </th>
                   ))}
-                  <th className="text-center px-2 py-2 font-medium text-muted-foreground text-xs w-[64px] border-l border-border bg-muted/70">
-                    Total
+                  <th
+                    className="text-center px-2 py-2 font-medium text-muted-foreground text-xs w-[64px] border-l border-border bg-muted/70 cursor-pointer select-none hover:bg-muted transition-colors"
+                    onClick={() =>
+                      setTotalSort((prev) => (prev === "none" ? "desc" : prev === "desc" ? "asc" : "none"))
+                    }
+                    title="Ordenar por total"
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      Total
+                      {totalSort === "none" && <ArrowUpDown className="w-3 h-3 text-muted-foreground/60" />}
+                      {totalSort === "asc" && <ArrowUp className="w-3 h-3 text-primary" />}
+                      {totalSort === "desc" && <ArrowDown className="w-3 h-3 text-primary" />}
+                    </div>
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {visibleClients.map((client) => {
+                {sortedVisibleClients.map((client) => {
                   const tribShort: Record<string, string> = { simples_nacional: "SN", lucro_presumido: "LP", lucro_real: "LR", isenta_imune: "II" };
                   const tribLabel = tribShort[clientsMap[client]?.tributacao] || "—";
                   const unidade = clientsMap[client]?.unidade || "2m_contabilidade";
@@ -1347,17 +1392,7 @@ export default function CompetenciasPage() {
                   const perfilLabels: Record<string, string> = { vip: "VIP", premium: "Premium", standard: "Standard", basico: "Básico" };
                   const perfilColors: Record<string, string> = { vip: "bg-yellow-500/15 text-yellow-600", premium: "bg-purple-500/15 text-purple-600", standard: "bg-blue-500/15 text-blue-600", basico: "bg-gray-500/15 text-gray-600" };
                   const finalized = isClientFinalized(client);
-                  const eligibleMonths = MONTHS.filter((m) => {
-                    const lvl = matrix[client][m];
-                    return lvl !== "disabled" && lvl !== "sem_movimento";
-                  });
-                  // Progressão ponderada: cada etapa concluída vale 1/3 do mês
-                  const ETAPAS = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"] as const;
-                  const stepsDone = eligibleMonths.reduce((acc, m) => {
-                    return acc + ETAPAS.reduce((a, t) => a + (demandStatuses[`${client}|${m}|${t}`] === "completed" ? 1 : 0), 0);
-                  }, 0);
-                  const stepsTotal = eligibleMonths.length * ETAPAS.length;
-                  const rowPct = stepsTotal > 0 ? Math.round((stepsDone / stepsTotal) * 100) : 0;
+                  const rowPct = getClientPct(client);
                   const rowPctColor = rowPct >= 80 ? "text-success" : rowPct >= 50 ? "text-warning" : "text-destructive";
                   return (
                   <Fragment key={client}>

@@ -79,4 +79,4 @@ Cada PR é mergeável sozinho. Confirmação entre PRs antes de seguir.
 
 ## Próximo passo
 
-Próximo passo: PR 8 — Bulk selection.
+Próximo passo: PR 9 — Toggle "Matriz anual" / "Foco no mês".

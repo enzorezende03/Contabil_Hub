@@ -296,6 +296,7 @@ export default function CompetenciasPage() {
   const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
   const [panelClient, setPanelClient] = useState<string | null>(null);
   const [demandStatuses, setDemandStatuses] = useState<Record<string, DemandStatus>>({});
+  const [cellMeta, setCellMeta] = useState<Record<string, { filledBy?: string; updatedAt?: string }>>({});
   const [filledByMap, setFilledByMap] = useState<Record<string, string>>({});
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
   

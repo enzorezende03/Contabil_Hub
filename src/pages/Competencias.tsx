@@ -157,6 +157,7 @@ import { CellPendencyIndicator } from "@/components/CellPendencyIndicator";
 import { CreatePendencyDialog } from "@/components/CreatePendencyDialog";
 import { useActivePendenciesByCell } from "@/hooks/use-pendencies";
 import { AlertOctagon } from "lucide-react";
+import { CellTriBar } from "@/components/competencias/CellTriBar";
 
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];

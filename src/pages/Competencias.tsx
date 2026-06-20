@@ -292,6 +292,7 @@ export default function CompetenciasPage() {
   const selectedPerfil = Array.isArray(selectedPerfilRaw) ? selectedPerfilRaw : [];
   const selectedFinalStatus = Array.isArray(selectedFinalStatusRaw) ? selectedFinalStatusRaw : [];
   const selectedEcd = Array.isArray(selectedEcdRaw) ? selectedEcdRaw : [];
+  const [totalSort, setTotalSort] = useState<"none" | "asc" | "desc">("none");
   const [semMovimento, setSemMovimento] = useState<Set<string>>(new Set());
   const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
   const [panelClient, setPanelClient] = useState<string | null>(null);

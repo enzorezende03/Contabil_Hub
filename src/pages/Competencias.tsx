@@ -1018,32 +1018,29 @@ export default function CompetenciasPage() {
           )}
         </div>
 
-        {/* Legenda */}
-        <div className="flex flex-wrap items-center gap-3 text-xs">
-          {(["none", "lanc_andamento", "lancado", "cb_andamento", "conc_bancaria", "cc_andamento", "conc_contabil", "aguardando_doc", "sem_movimento", "disabled"] as CellLevel[]).map((level) => {
-            const cfg = LEVEL_CONFIG[level];
-            const labels: Record<CellLevel, string> = {
-              none: "Não Iniciada",
-              disabled: "Fora resp.",
-              sem_movimento: "Sem Mov.",
-              aguardando_doc: "Aguard. Doc.",
-              lanc_andamento: "Lanç. andamento",
-              lancado: "Lançado",
-              cb_andamento: "CB andamento",
-              conc_bancaria: "Conc. Bancária",
-              cc_andamento: "CC andamento",
-              conc_contabil: "Conc. Contábil",
-            };
-            return (
-              <div key={level} className="flex items-center gap-1">
-                <div className={`w-5 h-5 rounded flex items-center justify-center ${cfg.bg}`}>
-                  <span className={`font-semibold text-[8px] ${cfg.text}`}>{cfg.label}</span>
-                </div>
-                <span className="text-muted-foreground text-[10px]">{labels[level]}</span>
-              </div>
-            );
-          })}
-          <div className="ml-auto text-muted-foreground flex items-center gap-3">
+        {/* Legenda compacta */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium text-foreground">Posições:</span>
+            <div className="grid grid-cols-3 gap-px w-7 h-[14px] rounded-sm overflow-hidden">
+              <div className="bg-muted/60" /><div className="bg-muted/60" /><div className="bg-muted/60" />
+            </div>
+            <span>Lançamento · Conc. Banc. · Conc. Cont.</span>
+          </div>
+          <span className="opacity-40">|</span>
+          <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-success" /> Concluído</div>
+          <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-warning/70" /> Em andamento</div>
+          <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-destructive/70" /> Aguard. doc.</div>
+          <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-info/80" /> Em revisão</div>
+          <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-muted/50" /> Não iniciado</div>
+          <div className="flex items-center gap-1">
+            <span
+              className="w-2.5 h-2.5 rounded-sm"
+              style={{ backgroundImage: "repeating-linear-gradient(45deg, hsl(var(--warning) / 0.5) 0 2px, hsl(var(--warning) / 0.15) 2px 4px)" }}
+            />
+            Sem movimento
+          </div>
+          <div className="ml-auto flex items-center gap-3">
             <span>{clients.filter(c => !isClientFinalized(c)).length} em aberto</span>
             <span>·</span>
             <span>{clients.filter(c => isClientFinalized(c)).length} finalizadas</span>

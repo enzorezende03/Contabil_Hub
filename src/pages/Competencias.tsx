@@ -751,6 +751,15 @@ export default function CompetenciasPage() {
   );
   const pctDone = totalCells > 0 ? Math.round((doneCells / totalCells) * 100) : 0;
 
+  // Current real-world month/year for highlighting
+  const nowYear = new Date().getFullYear();
+  const nowMonth = new Date().getMonth() + 1;
+  const displayedYear = parseInt(year, 10);
+  const isDisplayedYearCurrent = displayedYear === nowYear;
+  const isCurrentMonth = (m: string) => isDisplayedYearCurrent && parseInt(m, 10) === nowMonth;
+  const isFutureMonth = (m: string) =>
+    displayedYear > nowYear || (displayedYear === nowYear && parseInt(m, 10) > nowMonth);
+
   // Manual override: marks client as finalized regardless of step completion
   const isManuallyFinalized = useCallback((client: string) => {
     return demandStatuses[`${client}|closing|manual_finalized`] === "completed";
@@ -1147,10 +1156,18 @@ export default function CompetenciasPage() {
                   <th className="text-left px-1 py-2 font-medium text-muted-foreground text-xs w-[60px]">Perfil</th>
                   <th className="text-left px-1 py-2 font-medium text-muted-foreground text-xs w-[32px]">Trib.</th>
                   {MONTHS.map((m) => (
-                    <th key={m} className="text-center px-1 py-2 font-medium text-muted-foreground min-w-[44px]">
+                    <th
+                      key={m}
+                      className={`text-center px-1 py-2 font-medium text-muted-foreground min-w-[44px] ${
+                        isCurrentMonth(m) ? "bg-primary/10 text-foreground font-semibold" : ""
+                      }`}
+                    >
                       {MONTH_SHORT[m]}
                     </th>
                   ))}
+                  <th className="text-center px-2 py-2 font-medium text-muted-foreground text-xs w-[64px] border-l border-border bg-muted/70">
+                    Total
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -1163,8 +1180,15 @@ export default function CompetenciasPage() {
                   const perfilLabels: Record<string, string> = { vip: "VIP", premium: "Premium", standard: "Standard", basico: "Básico" };
                   const perfilColors: Record<string, string> = { vip: "bg-yellow-500/15 text-yellow-600", premium: "bg-purple-500/15 text-purple-600", standard: "bg-blue-500/15 text-blue-600", basico: "bg-gray-500/15 text-gray-600" };
                   const finalized = isClientFinalized(client);
+                  const eligibleMonths = MONTHS.filter((m) => {
+                    const lvl = matrix[client][m];
+                    return lvl !== "disabled" && lvl !== "sem_movimento";
+                  });
+                  const doneMonths = eligibleMonths.filter((m) => matrix[client][m] === "conc_contabil");
+                  const rowPct = eligibleMonths.length > 0 ? Math.round((doneMonths.length / eligibleMonths.length) * 100) : 0;
+                  const rowPctColor = rowPct >= 80 ? "text-success" : rowPct >= 50 ? "text-warning" : "text-destructive";
                   return (
-                    <tr key={client} className={`${finalized ? "bg-muted/40 text-muted-foreground opacity-60 grayscale" : selectedClients.has(client) ? "bg-primary/5" : "hover:bg-muted/20"}`}>
+                    <tr key={client} className={`group transition-colors ${finalized ? "bg-muted/40 text-muted-foreground opacity-60 grayscale" : selectedClients.has(client) ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/30"}`}>
                       <td className="px-2 py-2 w-8">
                         <input
                           type="checkbox"
@@ -1215,7 +1239,10 @@ export default function CompetenciasPage() {
                         const triMode: "disabled" | "sem_movimento" | "normal" =
                           isDisabled ? "disabled" : level === "sem_movimento" ? "sem_movimento" : "normal";
                         return (
-                          <td key={m} className="text-center px-1 py-2">
+                          <td
+                            key={m}
+                            className={`text-center px-1 py-2 ${isCurrentMonth(m) ? "bg-primary/[0.06]" : ""}`}
+                          >
                             <div className="relative mx-auto w-7 h-[22px]">
                               <div
                                 className={`w-full h-full rounded-sm ${
@@ -1238,10 +1265,59 @@ export default function CompetenciasPage() {
                           </td>
                         );
                       })}
+                      <td className="text-center px-2 py-2 border-l border-border bg-muted/30">
+                        <div className="flex flex-col items-center gap-1">
+                          <span className={`text-[11px] font-semibold tabular-nums ${rowPctColor}`}>{rowPct}%</span>
+                          <div className="w-12 h-[3px] rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${rowPct >= 80 ? "bg-success" : rowPct >= 50 ? "bg-warning" : "bg-destructive"}`}
+                              style={{ width: `${rowPct}%` }}
+                            />
+                          </div>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
+              <tfoot className="border-t-2 border-border bg-muted/40">
+                <tr>
+                  <td className="px-2 py-2" />
+                  <td className="px-2 py-2 text-xs font-semibold text-muted-foreground sticky left-0 bg-muted/40 z-10">
+                    % conciliado / mês
+                  </td>
+                  <td colSpan={3} />
+                  {MONTHS.map((m) => {
+                    const elig = visibleClients.filter((c) => {
+                      const lvl = matrix[c][m];
+                      return lvl !== "disabled" && lvl !== "sem_movimento";
+                    });
+                    const done = elig.filter((c) => matrix[c][m] === "conc_contabil").length;
+                    const pct = elig.length > 0 ? Math.round((done / elig.length) * 100) : 0;
+                    const future = isFutureMonth(m);
+                    const current = isCurrentMonth(m);
+                    const color = future
+                      ? "text-muted-foreground/50"
+                      : current
+                      ? "text-info"
+                      : pct >= 80
+                      ? "text-success"
+                      : pct >= 50
+                      ? "text-warning"
+                      : "text-destructive";
+                    return (
+                      <td
+                        key={m}
+                        className={`text-center px-1 py-2 text-[11px] font-semibold tabular-nums ${color} ${current ? "bg-primary/[0.06]" : ""}`}
+                        title={`${done}/${elig.length} empresas com fechamento mensal completo`}
+                      >
+                        {elig.length === 0 ? "—" : `${pct}%`}
+                      </td>
+                    );
+                  })}
+                  <td className="border-l border-border bg-muted/50" />
+                </tr>
+              </tfoot>
             </table>
           </div>
         ) : (

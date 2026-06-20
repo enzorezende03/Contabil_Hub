@@ -1248,6 +1248,8 @@ export type Database = {
           created_at: string
           cycle_number: number
           id: string
+          periodo_fim: string | null
+          periodo_inicio: string | null
           review_started_at: string | null
           review_summary: string | null
           reviewed_at: string | null
@@ -1265,6 +1267,8 @@ export type Database = {
           created_at?: string
           cycle_number?: number
           id?: string
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
           review_started_at?: string | null
           review_summary?: string | null
           reviewed_at?: string | null
@@ -1282,6 +1286,8 @@ export type Database = {
           created_at?: string
           cycle_number?: number
           id?: string
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
           review_started_at?: string | null
           review_summary?: string | null
           reviewed_at?: string | null
@@ -1386,7 +1392,20 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_closing_periods: {
+        Row: {
+          cadencia: string | null
+          client_id: string | null
+          client_name: string | null
+          meses_completos: number | null
+          meses_esperados: number | null
+          periodo_fim: string | null
+          periodo_inicio: string | null
+          periodo_label: string | null
+          periodo_status: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       backlog_drilldown: {

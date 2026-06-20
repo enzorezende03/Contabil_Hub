@@ -46,9 +46,11 @@ Cada PR é mergeável sozinho. Confirmação entre PRs antes de seguir.
 - Seleção de analista revisora (carga atual visível, default menos sobrecarregada).
 - Cria `review_submission` com `periodo_inicio`/`periodo_fim`; faixa passa de teal para amarelo.
 
-### PR 8 — Bulk selection
-- Checkbox por linha; barra navy ao selecionar 1+.
-- Ações: "Marcar [tipo] concluído em [mês]" (modal escolhe tipo+mês), "Reatribuir responsável".
+### PR 8 — Bulk selection ✅
+- Checkbox por linha + checkbox "selecionar todos" no header.
+- Barra de ação em lote redesenhada: sticky no topo, fundo navy primary, contadores e ações com hierarquia visual clara.
+- Ações: marcar fechamento concluído, forçar finalizado, reabrir, e aplicar status (Lanç / Conc.Banc / Conc.Cont) por tipo × meses selecionados.
+- Reatribuição de responsável: deferida — o modelo atual não possui `responsavel` por cliente/célula; será endereçada quando o campo existir.
 
 ### PR 9 — Toggle "Matriz anual" / "Foco no mês"
 - Visão alternativa por competência: tabela Empresa | Lançamento | Conc.Banc. | Conc.Cont. | Responsável | Prazo.
@@ -77,4 +79,4 @@ Cada PR é mergeável sozinho. Confirmação entre PRs antes de seguir.
 
 ## Próximo passo
 
-Próximo passo: PR 8 — Bulk selection.
+Próximo passo: PR 9 — Toggle "Matriz anual" / "Foco no mês".

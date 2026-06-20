@@ -1126,13 +1126,15 @@ export default function CompetenciasPage() {
 
         {/* Barra de ação em lote */}
         {selectedClients.size > 0 && (
-          <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">Ação em Lote — {selectedClients.size} empresa(s) selecionada(s)</h3>
-              <div className="flex items-center gap-2">
+          <div className="sticky top-0 z-30 rounded-lg border border-primary/40 bg-primary text-primary-foreground shadow-lg p-4 space-y-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <h3 className="text-sm font-semibold">
+                {selectedClients.size} empresa{selectedClients.size > 1 ? "s" : ""} selecionada{selectedClients.size > 1 ? "s" : ""}
+              </h3>
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   onClick={() => markFullClosingCompleted(selectedClients)}
-                  className="h-7 px-3 text-[11px] font-semibold rounded bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-1"
+                  className="h-7 px-3 text-[11px] font-semibold rounded bg-success/90 text-white hover:bg-success transition-colors flex items-center gap-1"
                   title="Marca todos os meses, fechamento e revisão como concluídos para as empresas selecionadas"
                 >
                   <FileCheck className="w-3.5 h-3.5" />
@@ -1144,29 +1146,39 @@ export default function CompetenciasPage() {
                   title="Marca como finalizado mesmo sem todas as etapas concluídas (útil para anos anteriores)"
                 >
                   <Lock className="w-3.5 h-3.5" />
-                  Forçar finalizado (sem etapas)
+                  Forçar finalizado
                 </button>
                 <button
                   onClick={() => setManualFinalized(selectedClients, false)}
-                  className="h-7 px-3 text-[11px] font-semibold rounded border border-border bg-card hover:bg-muted transition-colors"
+                  className="h-7 px-3 text-[11px] font-semibold rounded border border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 transition-colors"
                   title="Remove a marcação manual de finalizado"
                 >
-                  Reabrir finalizado manual
+                  Reabrir finalizado
                 </button>
-                <button onClick={() => { setSelectedClients(new Set()); setBatchMonths(new Set()); }} className="text-xs text-muted-foreground hover:text-foreground">Limpar seleção</button>
+                <button
+                  onClick={() => { setSelectedClients(new Set()); setBatchMonths(new Set()); }}
+                  className="text-xs text-primary-foreground/80 hover:text-primary-foreground underline-offset-2 hover:underline"
+                >
+                  Limpar
+                </button>
               </div>
             </div>
             <div className="flex flex-wrap gap-1.5 items-center">
-              <span className="text-xs text-muted-foreground mr-1">Meses:</span>
-              <button onClick={toggleAllBatchMonths} className="h-6 px-2 text-[10px] font-medium border rounded bg-card hover:bg-muted transition-colors">
-                {batchMonths.size === 12 ? "Limpar" : "Todos"}
+              <span className="text-xs text-primary-foreground/80 mr-1">Aplicar em:</span>
+              <button
+                onClick={toggleAllBatchMonths}
+                className="h-6 px-2 text-[10px] font-medium border border-primary-foreground/30 rounded bg-transparent text-primary-foreground hover:bg-primary-foreground/10 transition-colors"
+              >
+                {batchMonths.size === 12 ? "Limpar meses" : "Todos meses"}
               </button>
               {MONTHS.map((m) => (
                 <button
                   key={m}
                   onClick={() => toggleBatchMonth(m)}
                   className={`h-6 w-9 text-[10px] font-medium rounded transition-colors ${
-                    batchMonths.has(m) ? "bg-primary text-primary-foreground" : "bg-card border hover:bg-muted"
+                    batchMonths.has(m)
+                      ? "bg-primary-foreground text-primary"
+                      : "bg-transparent border border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10"
                   }`}
                 >
                   {MONTH_SHORT[m]}
@@ -1174,10 +1186,10 @@ export default function CompetenciasPage() {
               ))}
             </div>
             {batchMonths.size > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-2 rounded bg-primary-foreground/10 p-2">
                 {DEMAND_TYPES_FOR_PANEL.map((dt) => (
                   <div key={dt.type} className="flex items-center gap-2">
-                    <span className="text-xs flex-1">{dt.label}</span>
+                    <span className="text-xs flex-1 text-primary-foreground/90">{dt.label}</span>
                     <select
                       defaultValue=""
                       onChange={(e) => {
@@ -1186,16 +1198,19 @@ export default function CompetenciasPage() {
                           e.target.value = "";
                         }
                       }}
-                      className="h-7 px-2 text-[11px] border rounded bg-card focus:outline-none focus:ring-1 focus:ring-primary min-w-[140px]"
+                      className="h-7 px-2 text-[11px] border border-primary-foreground/30 rounded bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary-foreground min-w-[160px]"
                     >
-                      <option value="" disabled>Aplicar status...</option>
-                      <option value="not_started">Não Iniciada</option>
-                      <option value="in_progress">Em Andamento</option>
-                      <option value="waiting_info">Aguardando Doc.</option>
+                      <option value="" disabled>Marcar status no(s) mês(es)…</option>
+                      <option value="not_started">Não iniciada</option>
+                      <option value="in_progress">Em andamento</option>
+                      <option value="waiting_info">Aguardando documento</option>
                       <option value="completed">Concluída</option>
                     </select>
                   </div>
                 ))}
+                <p className="text-[10px] text-primary-foreground/70 pt-1">
+                  Aplica a {selectedClients.size} empresa{selectedClients.size > 1 ? "s" : ""} × {batchMonths.size} mês(es).
+                </p>
               </div>
             )}
           </div>

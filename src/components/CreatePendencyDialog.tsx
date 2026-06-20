@@ -325,8 +325,7 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId: clientIdPro
         <DialogHeader>
           <DialogTitle>Criar pendência</DialogTitle>
           <DialogDescription>
-            {clientName ? `${clientName.toLowerCase().replace(/(?:^|\s|-)\p{L}/gu, (m) => m.toUpperCase())} — ` : ""}
-            {finalCompetencia ? new Date(finalCompetencia).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) : ""}
+            {clientName ? `${clientName} — ` : ""}{finalCompetencia ? new Date(finalCompetencia).toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) : ""}
           </DialogDescription>
         </DialogHeader>
 

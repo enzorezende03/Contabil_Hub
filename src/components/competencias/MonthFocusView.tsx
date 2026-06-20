@@ -112,7 +112,7 @@ export function MonthFocusView({
                 <td className="px-2 py-2 text-[11px] text-muted-foreground">{trib}</td>
                 {TYPES.map((t) => {
                   const st = r[t.key === "lancamentos" ? "lanc" : t.key === "conciliacao_bancaria" ? "cb" : "cc"];
-                  const meta = STATUS_META[st];
+                  const meta = STATUS_META[st] ?? FALLBACK_META;
                   const Icon = meta.icon;
                   return (
                     <td key={t.key} className="px-2 py-2">

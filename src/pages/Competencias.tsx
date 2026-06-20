@@ -1462,9 +1462,24 @@ export default function CompetenciasPage() {
                           {MONTHS.map((m) => {
                             const monthDate = new Date(parseInt(year, 10), parseInt(m, 10) - 1, 15);
                             const p = arr.find((x) => new Date(x.periodo_inicio) <= monthDate && new Date(x.periodo_fim) >= monthDate);
+                            const cid = clientIdByName[client];
+                            const trib = clientsMap[client]?.tributacao || "";
+                            const ready = p?.periodo_status === "pronto" && !!cid;
                             return (
                               <td key={m} className="p-0 align-top">
-                                <div className={`h-[5px] mx-1 rounded-full ${p ? bandColor(p.periodo_status) : "bg-transparent"}`} title={p ? `${p.periodo_label} · ${p.periodo_status.replace("_", " ")}` : ""} />
+                                <div
+                                  className={`h-[5px] mx-1 rounded-full ${p ? bandColor(p.periodo_status) : "bg-transparent"} ${ready ? "cursor-pointer hover:h-[7px] transition-all" : ""}`}
+                                  title={p ? `${p.periodo_label} · ${p.periodo_status.replace("_", " ")}${ready ? " · clique para fechar" : ""}` : ""}
+                                  onClick={ready ? () => setFecharPeriodoDialog({
+                                    clientId: cid!,
+                                    clientName: client,
+                                    tributacao: trib,
+                                    cadencia: p!.cadencia,
+                                    periodoLabel: p!.periodo_label,
+                                    periodoInicio: p!.periodo_inicio,
+                                    periodoFim: p!.periodo_fim,
+                                  }) : undefined}
+                                />
                               </td>
                             );
                           })}

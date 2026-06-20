@@ -312,6 +312,12 @@ export default function CompetenciasPage() {
   const canCreatePendency = canPerformAction("gerenciar_pendencias", profile?.role);
 
   const { data: pendenciesByCell } = useActivePendenciesByCell(year);
+  const { members: teamMembers } = useTeamMembers();
+  const teamNameById = useMemo(() => {
+    const m: Record<string, string> = {};
+    teamMembers.forEach((t) => { m[t.id] = t.name; });
+    return m;
+  }, [teamMembers]);
 
   // Fetch active review submissions for the current year
   const { data: yearSubmissions = [] } = useQuery({

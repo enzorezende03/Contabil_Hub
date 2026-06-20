@@ -915,8 +915,8 @@ export default function CompetenciasPage() {
         <div>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">Fechamento Contábil {year}</h1>
-              <p className="text-sm text-muted-foreground mt-1">Evolução contábil por empresa e mês</p>
+              <h1 className="text-2xl font-bold tracking-tight">Fechamento contábil {year}</h1>
+              <p className="text-sm text-muted-foreground mt-1">Evolução por empresa e mês</p>
             </div>
             <button
               onClick={exportToExcel}

@@ -346,7 +346,7 @@ export default function CompetenciasPage() {
         .lte("periodo_inicio", end)
         .gte("periodo_fim", start);
       if (error) { console.error(error); return [] as any[]; }
-      return (data || []) as Array<{
+      return ((data as any[]) || []) as Array<{
         client_id: string; client_name: string; cadencia: string;
         periodo_label: string; periodo_inicio: string; periodo_fim: string;
         meses_esperados: number; meses_completos: number;

@@ -1215,17 +1215,26 @@ export default function CompetenciasPage() {
                           : `${MONTH_FULL[m]}/${year}\nLançamentos: ${statusLabel[demandStatuses[`${client}|${m}|lancamentos`]] || "Não Iniciada"}\nConc. Bancária: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_bancaria`]] || "Não Iniciada"}\nConc. Contábil: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_contabil`]] || "Não Iniciada"}`;
                         const cellClientId = clientIdByName[client];
                         const cellPendencies = cellClientId && pendenciesByCell ? (pendenciesByCell.get(`${cellClientId}|${m}`) || []) : [];
+                        const triMode: "disabled" | "sem_movimento" | "normal" =
+                          isDisabled ? "disabled" : level === "sem_movimento" ? "sem_movimento" : "normal";
                         return (
                           <td key={m} className="text-center px-1 py-2">
-                            <div className="relative mx-auto w-8 h-8">
+                            <div className="relative mx-auto w-7 h-[22px]">
                               <div
-                                className={`w-full h-full rounded flex items-center justify-center ${cfg.bg} ${
-                                  isDisabled ? "cursor-not-allowed opacity-40" : canToggle ? "cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all" : ""
+                                className={`w-full h-full rounded-sm ${
+                                  isDisabled ? "cursor-not-allowed" : canToggle ? "cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all" : "cursor-pointer"
                                 }`}
                                 onClick={canToggle ? () => toggleSemMovimento(client, m) : undefined}
                                 title={cellPendencies.length ? `${tooltip}\n\n⚠ ${cellPendencies.length} pendência(s) aberta(s)` : tooltip}
                               >
-                                <span className={`font-semibold text-[10px] ${cfg.text}`}>{cfg.label}</span>
+                                <CellTriBar
+                                  mode={triMode}
+                                  statuses={{
+                                    lancamentos: demandStatuses[`${client}|${m}|lancamentos`],
+                                    conciliacao_bancaria: demandStatuses[`${client}|${m}|conciliacao_bancaria`],
+                                    conciliacao_contabil: demandStatuses[`${client}|${m}|conciliacao_contabil`],
+                                  }}
+                                />
                               </div>
                               <CellPendencyIndicator pendencies={cellPendencies} />
                             </div>

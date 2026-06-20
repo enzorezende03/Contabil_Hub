@@ -1113,6 +1113,8 @@ export default function CompetenciasPage() {
             <span>·</span>
             <span>{clients.filter(c => isClientFinalized(c)).length} finalizadas</span>
             <span>·</span>
+            <span className="text-info font-medium">{periodsReadyCount} períodos prontos p/ fechar</span>
+            <span>·</span>
             <span>{totalClients} total · {pctDone}% conciliado</span>
           </div>
         </div>

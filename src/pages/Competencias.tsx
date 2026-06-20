@@ -562,12 +562,34 @@ export default function CompetenciasPage() {
 
   // Build client list and tributação map from DB
   const clientsMap = useMemo(() => {
-    const map: Record<string, { tributacao: string; competencia_inicio: string; unidade: string; perfil: string; obrigatoriedade_ecd: boolean; data_fim_contrato: string | null }> = {};
+    const map: Record<string, { tributacao: string; competencia_inicio: string; unidade: string; perfil: string; obrigatoriedade_ecd: boolean; data_fim_contrato: string | null; apelido: string | null; cadencia_fechamento: string }> = {};
     dbClients.forEach((c: any) => {
-      map[c.razao_social] = { tributacao: c.tributacao, competencia_inicio: c.competencia_inicio, unidade: c.unidade || "2m_contabilidade", perfil: c.perfil || "standard", obrigatoriedade_ecd: !!c.obrigatoriedade_ecd, data_fim_contrato: c.data_fim_contrato || null };
+      map[c.razao_social] = {
+        tributacao: c.tributacao,
+        competencia_inicio: c.competencia_inicio,
+        unidade: c.unidade || "2m_contabilidade",
+        perfil: c.perfil || "standard",
+        obrigatoriedade_ecd: !!c.obrigatoriedade_ecd,
+        data_fim_contrato: c.data_fim_contrato || null,
+        apelido: c.apelido || null,
+        cadencia_fechamento: c.cadencia_fechamento || "mensal",
+      };
     });
     return map;
   }, [dbClients]);
+
+  // Deriva apelido a partir da razão social: primeira palavra significativa (>=3 chars), sentence case.
+  const deriveApelido = useCallback((razao: string): string => {
+    if (!razao) return "";
+    const cleaned = razao.replace(/[^\p{L}\p{N}\s\-]/gu, " ");
+    const match = cleaned.match(/([\p{L}\p{N}]{3,})/u);
+    const word = (match?.[1] || razao.split(/\s+/)[0] || razao).toLowerCase();
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  }, []);
+
+  const displayName = useCallback((client: string): string => {
+    return clientsMap[client]?.apelido || deriveApelido(client);
+  }, [clientsMap, deriveApelido]);
 
   const allClientNames = useMemo(() => Object.keys(clientsMap).sort(), [clientsMap]);
   const allTributacoes = useMemo(() => {

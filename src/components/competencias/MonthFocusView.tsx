@@ -29,11 +29,11 @@ export interface MonthFocusViewProps {
   demandStatuses: Record<string, DemandStatus>;
   isMonthEnabledFor: (client: string, month: string) => boolean;
   filter: "all" | "pendentes" | "atrasados";
-  onChangeStatus: (client: string, month: string, type: TypeKey, status: DemandStatus) => void;
   onOpenClient: (client: string) => void;
   displayName: (client: string) => string;
   isCurrentOrPast: boolean;
 }
+
 
 function statusFor(map: Record<string, DemandStatus>, client: string, month: string, type: string): DemandStatus {
   return (map[`${client}|${month}|${type}`] || "not_started") as DemandStatus;
@@ -45,8 +45,9 @@ function rowIsPendente(map: Record<string, DemandStatus>, client: string, month:
 
 export function MonthFocusView({
   clients, clientsMap, month, monthLabel, year, demandStatuses,
-  isMonthEnabledFor, filter, onChangeStatus, onOpenClient, displayName, isCurrentOrPast,
+  isMonthEnabledFor, filter, onOpenClient, displayName, isCurrentOrPast,
 }: MonthFocusViewProps) {
+
   const tribShort: Record<string, string> = {
     simples_nacional: "SN", lucro_presumido: "LP", lucro_real: "LR", isenta_imune: "II",
   };
@@ -116,24 +117,12 @@ export function MonthFocusView({
                   const Icon = meta.icon;
                   return (
                     <td key={t.key} className="px-2 py-2">
-                      <div className="flex items-center gap-2">
-                        <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium", meta.cls)}>
-                          <Icon className={cn("w-3 h-3", st === "in_progress" && "animate-spin")} />
-                          {meta.label}
-                        </span>
-                        <select
-                          value={st}
-                          onChange={(e) => onChangeStatus(r.client, month, t.key, e.target.value as DemandStatus)}
-                          className="h-6 text-[10px] border rounded bg-card px-1 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                          aria-label={`Alterar ${t.label}`}
-                        >
-                          <option value="not_started">Não iniciada</option>
-                          <option value="in_progress">Em andamento</option>
-                          <option value="waiting_info">Aguard. doc.</option>
-                          <option value="completed">Concluída</option>
-                        </select>
-                      </div>
+                      <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium", meta.cls)}>
+                        <Icon className={cn("w-3 h-3", st === "in_progress" && "animate-spin")} />
+                        {meta.label}
+                      </span>
                     </td>
+
                   );
                 })}
                 <td className="px-2 py-2 text-center">

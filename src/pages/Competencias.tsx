@@ -1180,8 +1180,15 @@ export default function CompetenciasPage() {
                   const perfilLabels: Record<string, string> = { vip: "VIP", premium: "Premium", standard: "Standard", basico: "Básico" };
                   const perfilColors: Record<string, string> = { vip: "bg-yellow-500/15 text-yellow-600", premium: "bg-purple-500/15 text-purple-600", standard: "bg-blue-500/15 text-blue-600", basico: "bg-gray-500/15 text-gray-600" };
                   const finalized = isClientFinalized(client);
+                  const eligibleMonths = MONTHS.filter((m) => {
+                    const lvl = matrix[client][m];
+                    return lvl !== "disabled" && lvl !== "sem_movimento";
+                  });
+                  const doneMonths = eligibleMonths.filter((m) => matrix[client][m] === "conc_contabil");
+                  const rowPct = eligibleMonths.length > 0 ? Math.round((doneMonths.length / eligibleMonths.length) * 100) : 0;
+                  const rowPctColor = rowPct >= 80 ? "text-success" : rowPct >= 50 ? "text-warning" : "text-destructive";
                   return (
-                    <tr key={client} className={`${finalized ? "bg-muted/40 text-muted-foreground opacity-60 grayscale" : selectedClients.has(client) ? "bg-primary/5" : "hover:bg-muted/20"}`}>
+                    <tr key={client} className={`group transition-colors ${finalized ? "bg-muted/40 text-muted-foreground opacity-60 grayscale" : selectedClients.has(client) ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted/30"}`}>
                       <td className="px-2 py-2 w-8">
                         <input
                           type="checkbox"

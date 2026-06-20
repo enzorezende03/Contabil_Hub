@@ -578,18 +578,17 @@ export default function CompetenciasPage() {
     return map;
   }, [dbClients]);
 
-  // Deriva apelido a partir da razão social: primeira palavra significativa (>=3 chars), sentence case.
-  const deriveApelido = useCallback((razao: string): string => {
+  // Converte razão social para sentence case (preserva acentos, hífens e espaços).
+  const toSentenceCase = useCallback((razao: string): string => {
     if (!razao) return "";
-    const cleaned = razao.replace(/[^\p{L}\p{N}\s\-]/gu, " ");
-    const match = cleaned.match(/([\p{L}\p{N}]{3,})/u);
-    const word = (match?.[1] || razao.split(/\s+/)[0] || razao).toLowerCase();
-    return word.charAt(0).toUpperCase() + word.slice(1);
+    return razao
+      .toLowerCase()
+      .replace(/(?:^|\s|-)\p{L}/gu, (match) => match.toUpperCase());
   }, []);
 
   const displayName = useCallback((client: string): string => {
-    return clientsMap[client]?.apelido || deriveApelido(client);
-  }, [clientsMap, deriveApelido]);
+    return toSentenceCase(client);
+  }, [toSentenceCase]);
 
   const allClientNames = useMemo(() => Object.keys(clientsMap).sort(), [clientsMap]);
   const allTributacoes = useMemo(() => {

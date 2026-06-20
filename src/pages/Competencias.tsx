@@ -751,6 +751,14 @@ export default function CompetenciasPage() {
   );
   const pctDone = totalCells > 0 ? Math.round((doneCells / totalCells) * 100) : 0;
 
+  // Current real-world month/year for highlighting
+  const nowYear = new Date().getFullYear();
+  const nowMonth = new Date().getMonth() + 1;
+  const isDisplayedYearCurrent = currentYear === nowYear;
+  const isCurrentMonth = (m: string) => isDisplayedYearCurrent && parseInt(m, 10) === nowMonth;
+  const isFutureMonth = (m: string) =>
+    currentYear > nowYear || (currentYear === nowYear && parseInt(m, 10) > nowMonth);
+
   // Manual override: marks client as finalized regardless of step completion
   const isManuallyFinalized = useCallback((client: string) => {
     return demandStatuses[`${client}|closing|manual_finalized`] === "completed";

@@ -160,6 +160,7 @@ import { AlertOctagon } from "lucide-react";
 import { CellTriBar } from "@/components/competencias/CellTriBar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useTeamMembers } from "@/hooks/use-team-members";
+import { FecharPeriodoDialog } from "@/components/competencias/FecharPeriodoDialog";
 
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
@@ -306,6 +307,10 @@ export default function CompetenciasPage() {
   const [uploading, setUploading] = useState(false);
   const [liberarDialog, setLiberarDialog] = useState<{ clientName: string; clientId: string; tributacao: string; month: string } | null>(null);
   const [pendencyDialog, setPendencyDialog] = useState<{ clientId: string; clientName: string; month: string } | null>(null);
+  const [fecharPeriodoDialog, setFecharPeriodoDialog] = useState<{
+    clientId: string; clientName: string; tributacao: string; cadencia: string;
+    periodoLabel: string; periodoInicio: string; periodoFim: string;
+  } | null>(null);
 
   useActionPermissions();
   const canLiberar = canPerformAction("liberar_para_revisao", profile?.role);
@@ -1457,9 +1462,24 @@ export default function CompetenciasPage() {
                           {MONTHS.map((m) => {
                             const monthDate = new Date(parseInt(year, 10), parseInt(m, 10) - 1, 15);
                             const p = arr.find((x) => new Date(x.periodo_inicio) <= monthDate && new Date(x.periodo_fim) >= monthDate);
+                            const cid = clientIdByName[client];
+                            const trib = clientsMap[client]?.tributacao || "";
+                            const ready = p?.periodo_status === "pronto" && !!cid;
                             return (
                               <td key={m} className="p-0 align-top">
-                                <div className={`h-[5px] mx-1 rounded-full ${p ? bandColor(p.periodo_status) : "bg-transparent"}`} title={p ? `${p.periodo_label} · ${p.periodo_status.replace("_", " ")}` : ""} />
+                                <div
+                                  className={`h-[5px] mx-1 rounded-full ${p ? bandColor(p.periodo_status) : "bg-transparent"} ${ready ? "cursor-pointer hover:h-[7px] transition-all" : ""}`}
+                                  title={p ? `${p.periodo_label} · ${p.periodo_status.replace("_", " ")}${ready ? " · clique para fechar" : ""}` : ""}
+                                  onClick={ready ? () => setFecharPeriodoDialog({
+                                    clientId: cid!,
+                                    clientName: client,
+                                    tributacao: trib,
+                                    cadencia: p!.cadencia,
+                                    periodoLabel: p!.periodo_label,
+                                    periodoInicio: p!.periodo_inicio,
+                                    periodoFim: p!.periodo_fim,
+                                  }) : undefined}
+                                />
                               </td>
                             );
                           })}
@@ -1524,11 +1544,26 @@ export default function CompetenciasPage() {
             </div>
             <button
               type="button"
-              disabled
-              title="Disponível no próximo passo (PR 7)"
-              className="h-9 px-4 rounded-md bg-info text-info-foreground text-sm font-semibold opacity-60 cursor-not-allowed"
+              onClick={() => {
+                const ready = [...closingPeriods]
+                  .filter((p) => p.periodo_status === "pronto")
+                  .sort((a, b) => (a.periodo_fim < b.periodo_fim ? -1 : 1));
+                const p = ready[0];
+                if (!p) return;
+                const trib = clientsMap[p.client_name]?.tributacao || "";
+                setFecharPeriodoDialog({
+                  clientId: p.client_id,
+                  clientName: p.client_name,
+                  tributacao: trib,
+                  cadencia: p.cadencia,
+                  periodoLabel: p.periodo_label,
+                  periodoInicio: p.periodo_inicio,
+                  periodoFim: p.periodo_fim,
+                });
+              }}
+              className="h-9 px-4 rounded-md bg-info text-info-foreground text-sm font-semibold hover:bg-info/90 transition-colors"
             >
-              Fechar período
+              Fechar período mais antigo
             </button>
           </div>
         )}
@@ -1880,6 +1915,21 @@ export default function CompetenciasPage() {
           tributacao={liberarDialog.tributacao}
           year={year}
           defaultMonth={liberarDialog.month}
+        />
+      )}
+
+      {fecharPeriodoDialog && (
+        <FecharPeriodoDialog
+          open={!!fecharPeriodoDialog}
+          onOpenChange={(o) => { if (!o) setFecharPeriodoDialog(null); }}
+          clientId={fecharPeriodoDialog.clientId}
+          clientName={fecharPeriodoDialog.clientName}
+          tributacao={fecharPeriodoDialog.tributacao}
+          cadencia={fecharPeriodoDialog.cadencia}
+          periodoLabel={fecharPeriodoDialog.periodoLabel}
+          periodoInicio={fecharPeriodoDialog.periodoInicio}
+          periodoFim={fecharPeriodoDialog.periodoFim}
+          demandStatuses={demandStatuses}
         />
       )}
 

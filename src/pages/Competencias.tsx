@@ -1183,7 +1183,7 @@ export default function CompetenciasPage() {
                       >
                         <span className="flex items-center gap-1">
                           {finalized && <Lock className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
-                          <span className="truncate">{client}</span>
+                          <span className="truncate">{displayName(client)}</span>
                         </span>
                       </td>
                       <td className="px-1 py-2 whitespace-nowrap">

@@ -77,4 +77,4 @@ Cada PR é mergeável sozinho. Confirmação entre PRs antes de seguir.
 
 ## Próximo passo
 
-Próximo passo: PR 4 — Tooltip estruturado + drawer de detalhe.
+Próximo passo: PR 5 — Cadência + view `v_closing_periods`.

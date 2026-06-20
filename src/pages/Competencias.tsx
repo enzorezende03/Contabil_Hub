@@ -158,6 +158,8 @@ import { CreatePendencyDialog } from "@/components/CreatePendencyDialog";
 import { useActivePendenciesByCell } from "@/hooks/use-pendencies";
 import { AlertOctagon } from "lucide-react";
 import { CellTriBar } from "@/components/competencias/CellTriBar";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { useTeamMembers } from "@/hooks/use-team-members";
 
 
 const MONTHS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
@@ -294,6 +296,7 @@ export default function CompetenciasPage() {
   const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set());
   const [panelClient, setPanelClient] = useState<string | null>(null);
   const [demandStatuses, setDemandStatuses] = useState<Record<string, DemandStatus>>({});
+  const [cellMeta, setCellMeta] = useState<Record<string, { filledBy?: string; updatedAt?: string }>>({});
   const [filledByMap, setFilledByMap] = useState<Record<string, string>>({});
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
   
@@ -309,6 +312,12 @@ export default function CompetenciasPage() {
   const canCreatePendency = canPerformAction("gerenciar_pendencias", profile?.role);
 
   const { data: pendenciesByCell } = useActivePendenciesByCell(year);
+  const { members: teamMembers } = useTeamMembers();
+  const teamNameById = useMemo(() => {
+    const m: Record<string, string> = {};
+    teamMembers.forEach((t) => { m[t.id] = t.name; });
+    return m;
+  }, [teamMembers]);
 
   // Fetch active review submissions for the current year
   const { data: yearSubmissions = [] } = useQuery({
@@ -404,22 +413,25 @@ export default function CompetenciasPage() {
       const pageSize = 1000;
       let from = 0;
       const statuses: Record<string, DemandStatus> = {};
+      const metas: Record<string, { filledBy?: string; updatedAt?: string }> = {};
       // eslint-disable-next-line no-constant-condition
       while (true) {
         const { data, error } = await supabase
           .from("demand_status_entries")
-          .select("client_name, month, year, demand_type, status")
+          .select("client_name, month, year, demand_type, status, filled_by, updated_at")
           .eq("year", year)
           .range(from, from + pageSize - 1);
         if (error || !data) break;
         data.forEach((d: any) => {
           const key = `${d.client_name}|${d.month}|${d.demand_type}`;
           statuses[key] = d.status as DemandStatus;
+          metas[key] = { filledBy: d.filled_by, updatedAt: d.updated_at };
         });
         if (data.length < pageSize) break;
         from += pageSize;
       }
       setDemandStatuses(statuses);
+      setCellMeta(metas);
     };
     loadStatuses();
   }, [year]);
@@ -428,6 +440,7 @@ export default function CompetenciasPage() {
     if (!user) return;
     const key = `${client}|${month}|${type}`;
     setDemandStatuses((prev) => ({ ...prev, [key]: status }));
+    setCellMeta((prev) => ({ ...prev, [key]: { filledBy: user.id, updatedAt: new Date().toISOString() } }));
 
     const { error } = await supabase
       .from("demand_status_entries")
@@ -454,6 +467,12 @@ export default function CompetenciasPage() {
     setDemandStatuses((prev) => {
       const next = { ...prev };
       months.forEach((m) => { next[`${client}|${m}|${type}`] = status; });
+      return next;
+    });
+    setCellMeta((prev) => {
+      const next = { ...prev };
+      const now = new Date().toISOString();
+      months.forEach((m) => { next[`${client}|${m}|${type}`] = { filledBy: user.id, updatedAt: now }; });
       return next;
     });
 
@@ -1225,41 +1244,103 @@ export default function CompetenciasPage() {
                         const cfg = LEVEL_CONFIG[level];
                         const isDisabled = level === "disabled";
                         const canToggle = !isDisabled && (level === "none" || level === "sem_movimento");
-                        
+
                         const statusLabel: Record<string, string> = {
-                          not_started: "Não Iniciada", in_progress: "Em Andamento",
-                          waiting_info: "Aguardando Doc.", completed: "Concluída",
-                          blocked: "Bloqueada", late: "Em Atraso", in_review: "Em Revisão",
+                          not_started: "Não iniciada", in_progress: "Em andamento",
+                          waiting_info: "Aguardando doc.", completed: "Concluída",
+                          blocked: "Bloqueada", late: "Em atraso", in_review: "Em revisão",
                         };
-                        const tooltip = isDisabled
-                          ? "Fora da responsabilidade"
-                          : `${MONTH_FULL[m]}/${year}\nLançamentos: ${statusLabel[demandStatuses[`${client}|${m}|lancamentos`]] || "Não Iniciada"}\nConc. Bancária: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_bancaria`]] || "Não Iniciada"}\nConc. Contábil: ${statusLabel[demandStatuses[`${client}|${m}|conciliacao_contabil`]] || "Não Iniciada"}`;
                         const cellClientId = clientIdByName[client];
                         const cellPendencies = cellClientId && pendenciesByCell ? (pendenciesByCell.get(`${cellClientId}|${m}`) || []) : [];
                         const triMode: "disabled" | "sem_movimento" | "normal" =
                           isDisabled ? "disabled" : level === "sem_movimento" ? "sem_movimento" : "normal";
+
+                        const tipoRows = [
+                          { type: "lancamentos", label: "Lançamento" },
+                          { type: "conciliacao_bancaria", label: "Conc. bancária" },
+                          { type: "conciliacao_contabil", label: "Conc. contábil" },
+                        ] as const;
+
+                        const fmtWhen = (iso?: string) => {
+                          if (!iso) return "";
+                          try {
+                            const d = new Date(iso);
+                            return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+                          } catch { return ""; }
+                        };
+
                         return (
                           <td
                             key={m}
                             className={`text-center px-1 py-2 ${isCurrentMonth(m) ? "bg-primary/[0.06]" : ""}`}
                           >
                             <div className="relative mx-auto w-7 h-[22px]">
-                              <div
-                                className={`w-full h-full rounded-sm ${
-                                  isDisabled ? "cursor-not-allowed" : canToggle ? "cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all" : "cursor-pointer"
-                                }`}
-                                onClick={canToggle ? () => toggleSemMovimento(client, m) : undefined}
-                                title={cellPendencies.length ? `${tooltip}\n\n⚠ ${cellPendencies.length} pendência(s) aberta(s)` : tooltip}
-                              >
-                                <CellTriBar
-                                  mode={triMode}
-                                  statuses={{
-                                    lancamentos: demandStatuses[`${client}|${m}|lancamentos`],
-                                    conciliacao_bancaria: demandStatuses[`${client}|${m}|conciliacao_bancaria`],
-                                    conciliacao_contabil: demandStatuses[`${client}|${m}|conciliacao_contabil`],
-                                  }}
-                                />
-                              </div>
+                              <Tooltip delayDuration={400}>
+                                <TooltipTrigger asChild>
+                                  <div
+                                    className={`w-full h-full rounded-sm ${
+                                      isDisabled ? "cursor-not-allowed" : canToggle ? "cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all" : "cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all"
+                                    }`}
+                                    onClick={
+                                      isDisabled
+                                        ? undefined
+                                        : canToggle
+                                        ? () => toggleSemMovimento(client, m)
+                                        : () => setPanelClient(client)
+                                    }
+                                  >
+                                    <CellTriBar
+                                      mode={triMode}
+                                      statuses={{
+                                        lancamentos: demandStatuses[`${client}|${m}|lancamentos`],
+                                        conciliacao_bancaria: demandStatuses[`${client}|${m}|conciliacao_bancaria`],
+                                        conciliacao_contabil: demandStatuses[`${client}|${m}|conciliacao_contabil`],
+                                      }}
+                                    />
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="p-0 max-w-[260px]">
+                                  {isDisabled ? (
+                                    <div className="px-3 py-2 text-xs">Fora da responsabilidade</div>
+                                  ) : (
+                                    <div className="text-xs">
+                                      <div className="px-3 py-1.5 border-b border-border/60 font-semibold">
+                                        {MONTH_FULL[m]}/{year}
+                                      </div>
+                                      <div className="px-3 py-2 space-y-1.5">
+                                        {tipoRows.map((row) => {
+                                          const k = `${client}|${m}|${row.type}`;
+                                          const st = demandStatuses[k];
+                                          const meta = cellMeta[k];
+                                          const who = meta?.filledBy ? teamNameById[meta.filledBy] : undefined;
+                                          const when = fmtWhen(meta?.updatedAt);
+                                          return (
+                                            <div key={row.type} className="flex flex-col gap-0.5">
+                                              <div className="flex justify-between gap-3">
+                                                <span className="text-muted-foreground">{row.label}</span>
+                                                <span className="font-medium">{statusLabel[st] || "Não iniciada"}</span>
+                                              </div>
+                                              {(who || when) && (
+                                                <div className="text-[10px] text-muted-foreground">
+                                                  {who || "—"}{when ? ` · ${when}` : ""}
+                                                </div>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                      {cellPendencies.length > 0 && (
+                                        <div className="px-3 py-1.5 border-t border-border/60 text-destructive font-medium">
+                                          ⚠ {cellPendencies.length} pendência(s) aberta(s)
+                                        </div>
+                                      )}
+                                      <div className="px-3 py-1.5 border-t border-border/60 text-[10px] text-muted-foreground">
+                                        {canToggle ? "Clique para alternar sem movimento" : "Clique para ver detalhes"}
+                                      </div>
+                                    </div>
+                                  )}
+                                </TooltipContent>
+                              </Tooltip>
                               <CellPendencyIndicator pendencies={cellPendencies} />
                             </div>
                           </td>

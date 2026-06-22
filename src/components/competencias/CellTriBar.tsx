@@ -3,30 +3,10 @@ import type { DemandStatus } from "@/lib/types";
 export type TriBarMode = "normal" | "sem_movimento" | "disabled";
 
 export const TRI_BAR_TYPES = [
-  { type: "lancamentos" as const, short: "L", label: "Lançamento" },
-  { type: "conciliacao_bancaria" as const, short: "B", label: "Conc. Bancária" },
-  { type: "conciliacao_contabil" as const, short: "C", label: "Conc. Contábil" },
+  { type: "lancamentos" as const, short: "L", label: "Lançamento", colorClass: "bg-purple-500" },
+  { type: "conciliacao_bancaria" as const, short: "B", label: "Conc. Bancária", colorClass: "bg-blue-500" },
+  { type: "conciliacao_contabil" as const, short: "C", label: "Conc. Contábil", colorClass: "bg-green-500" },
 ];
-
-function statusClass(status: DemandStatus | undefined): string {
-  switch (status) {
-    case "completed":
-      return "bg-success";
-    case "in_progress":
-      return "bg-warning/70";
-    case "waiting_info":
-      return "bg-destructive/70";
-    case "blocked":
-      return "bg-destructive";
-    case "late":
-      return "bg-destructive/90";
-    case "in_review":
-      return "bg-info/80";
-    case "not_started":
-    default:
-      return "bg-muted/50";
-  }
-}
 
 interface CellTriBarProps {
   mode?: TriBarMode;
@@ -59,9 +39,9 @@ export function CellTriBar({ mode = "normal", statuses }: CellTriBarProps) {
 
   // Find the last completed demand following the workflow order
   const order = [
-    { key: "lancamentos", short: "L", status: statuses.lancamentos },
-    { key: "conciliacao_bancaria", short: "B", status: statuses.conciliacao_bancaria },
-    { key: "conciliacao_contabil", short: "C", status: statuses.conciliacao_contabil },
+    { key: "lancamentos" as const, short: "L", status: statuses.lancamentos, colorClass: "bg-purple-500" as const },
+    { key: "conciliacao_bancaria" as const, short: "B", status: statuses.conciliacao_bancaria, colorClass: "bg-blue-500" as const },
+    { key: "conciliacao_contabil" as const, short: "C", status: statuses.conciliacao_contabil, colorClass: "bg-green-500" as const },
   ] as const;
 
   const lastCompleted = [...order].reverse().find((s) => s.status === "completed");
@@ -69,16 +49,11 @@ export function CellTriBar({ mode = "normal", statuses }: CellTriBarProps) {
   const fallback = [...order].reverse().find((s) => s.status && s.status !== "not_started");
   const display = lastCompleted ?? fallback;
 
-  const bg = statusClass(display?.status);
+  const bg = display?.colorClass ?? "bg-muted/50";
   const label = display?.short ?? "";
-  const textColor = display?.status === "completed" || display?.status === "blocked" || display?.status === "late"
-    ? "text-white"
-    : display?.status
-    ? "text-foreground"
-    : "text-muted-foreground";
 
   return (
-    <div className={`w-7 h-[22px] mx-auto rounded-sm flex items-center justify-center text-[10px] font-semibold ${bg} ${textColor}`}>
+    <div className={`w-7 h-[22px] mx-auto rounded-sm flex items-center justify-center text-[10px] font-semibold text-white ${bg}`}>
       {label}
     </div>
   );

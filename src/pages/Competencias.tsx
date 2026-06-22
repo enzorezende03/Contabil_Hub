@@ -1134,11 +1134,11 @@ export default function CompetenciasPage() {
         <div className="flex items-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground overflow-x-auto md:flex-wrap whitespace-nowrap md:whitespace-normal pb-1 md:pb-0">
           <div className="flex items-center gap-1.5">
             <span className="font-medium text-foreground">Demanda:</span>
-            <span className="inline-flex items-center justify-center w-5 h-[16px] rounded-sm bg-purple-500 text-[10px] font-semibold text-white">L</span>
+            <span className="inline-flex items-center justify-center w-6 h-[16px] rounded-sm bg-purple-500 text-[10px] font-semibold text-white">L</span>
             <span>Lançamentos ·</span>
-            <span className="inline-flex items-center justify-center w-5 h-[16px] rounded-sm bg-blue-500 text-[10px] font-semibold text-white">B</span>
+            <span className="inline-flex items-center justify-center w-6 h-[16px] rounded-sm bg-blue-500 text-[10px] font-semibold text-white">CB</span>
             <span>Conc. Bancária ·</span>
-            <span className="inline-flex items-center justify-center w-5 h-[16px] rounded-sm bg-green-500 text-[10px] font-semibold text-white">C</span>
+            <span className="inline-flex items-center justify-center w-6 h-[16px] rounded-sm bg-green-500 text-[10px] font-semibold text-white">CC</span>
             <span>Conc. Contábil</span>
           </div>
 

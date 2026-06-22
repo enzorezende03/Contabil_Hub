@@ -42,7 +42,7 @@ export default function PendenciasPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterPrioridade, setFilterPrioridade] = useState<string>("all");
-  const [filterResponsavel, setFilterResponsavel] = useState<string>("mine");
+  const [filterResponsavel, setFilterResponsavel] = useState<string>("all");
   const [filterSetor, setFilterSetor] = useState<string>("all");
   const [filterCobrarHoje, setFilterCobrarHoje] = useState(false);
   const [kpiFilter, setKpiFilter] = useState<"abertas" | "criticas" | "semContato7d" | "resolvidasMes" | null>(null);

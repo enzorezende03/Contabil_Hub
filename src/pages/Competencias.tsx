@@ -1133,12 +1133,15 @@ export default function CompetenciasPage() {
         {/* Legenda compacta */}
         <div className="flex items-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground overflow-x-auto md:flex-wrap whitespace-nowrap md:whitespace-normal pb-1 md:pb-0">
           <div className="flex items-center gap-1.5">
-            <span className="font-medium text-foreground">Posições:</span>
-            <div className="grid grid-cols-3 gap-px w-7 h-[14px] rounded-sm overflow-hidden">
-              <div className="bg-muted/60" /><div className="bg-muted/60" /><div className="bg-muted/60" />
-            </div>
-            <span>Lançamento · Conc. Banc. · Conc. Cont.</span>
+            <span className="font-medium text-foreground">Letra:</span>
+            <span className="inline-flex items-center justify-center w-5 h-[16px] rounded-sm bg-muted/60 text-[10px] font-semibold">L</span>
+            <span>Lançamento ·</span>
+            <span className="inline-flex items-center justify-center w-5 h-[16px] rounded-sm bg-muted/60 text-[10px] font-semibold">B</span>
+            <span>Conc. Bancária ·</span>
+            <span className="inline-flex items-center justify-center w-5 h-[16px] rounded-sm bg-muted/60 text-[10px] font-semibold">C</span>
+            <span>Conc. Contábil</span>
           </div>
+
           <span className="opacity-40">|</span>
           <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-success" /> Concluído</div>
           <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-warning/70" /> Em andamento</div>

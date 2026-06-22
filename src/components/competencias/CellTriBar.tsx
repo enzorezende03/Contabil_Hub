@@ -20,14 +20,14 @@ interface CellTriBarProps {
 export function CellTriBar({ mode = "normal", statuses }: CellTriBarProps) {
   if (mode === "disabled") {
     return (
-      <div className="w-7 h-[22px] mx-auto rounded-sm bg-muted/30 opacity-30" />
+      <div className="w-9 h-[22px] mx-auto rounded-sm bg-muted/30 opacity-30" />
     );
   }
 
   if (mode === "sem_movimento") {
     return (
       <div
-        className="w-7 h-[22px] mx-auto rounded-sm"
+        className="w-9 h-[22px] mx-auto rounded-sm"
         style={{
           backgroundImage:
             "repeating-linear-gradient(45deg, hsl(var(--warning) / 0.35) 0 3px, hsl(var(--warning) / 0.15) 3px 6px)",

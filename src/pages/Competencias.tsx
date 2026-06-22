@@ -1133,12 +1133,12 @@ export default function CompetenciasPage() {
         {/* Legenda compacta */}
         <div className="flex items-center gap-x-4 gap-y-2 text-[11px] text-muted-foreground overflow-x-auto md:flex-wrap whitespace-nowrap md:whitespace-normal pb-1 md:pb-0">
           <div className="flex items-center gap-1.5">
-            <span className="font-medium text-foreground">Letra:</span>
-            <span className="inline-flex items-center justify-center w-5 h-[16px] rounded-sm bg-muted/60 text-[10px] font-semibold">L</span>
-            <span>Lançamento ·</span>
-            <span className="inline-flex items-center justify-center w-5 h-[16px] rounded-sm bg-muted/60 text-[10px] font-semibold">B</span>
+            <span className="font-medium text-foreground">Demanda:</span>
+            <span className="inline-flex items-center justify-center w-5 h-[16px] rounded-sm bg-purple-500 text-[10px] font-semibold text-white">L</span>
+            <span>Lançamentos ·</span>
+            <span className="inline-flex items-center justify-center w-5 h-[16px] rounded-sm bg-blue-500 text-[10px] font-semibold text-white">B</span>
             <span>Conc. Bancária ·</span>
-            <span className="inline-flex items-center justify-center w-5 h-[16px] rounded-sm bg-muted/60 text-[10px] font-semibold">C</span>
+            <span className="inline-flex items-center justify-center w-5 h-[16px] rounded-sm bg-green-500 text-[10px] font-semibold text-white">C</span>
             <span>Conc. Contábil</span>
           </div>
 

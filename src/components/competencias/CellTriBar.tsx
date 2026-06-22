@@ -40,36 +40,46 @@ interface CellTriBarProps {
 export function CellTriBar({ mode = "normal", statuses }: CellTriBarProps) {
   if (mode === "disabled") {
     return (
-      <div className="grid grid-cols-3 gap-px w-7 h-[22px] mx-auto rounded-sm overflow-hidden opacity-30">
-        <div className="bg-muted/30" />
-        <div className="bg-muted/30" />
-        <div className="bg-muted/30" />
-      </div>
+      <div className="w-7 h-[22px] mx-auto rounded-sm bg-muted/30 opacity-30" />
     );
   }
 
   if (mode === "sem_movimento") {
     return (
       <div
-        className="grid grid-cols-3 gap-px w-7 h-[22px] mx-auto rounded-sm overflow-hidden"
+        className="w-7 h-[22px] mx-auto rounded-sm"
         style={{
           backgroundImage:
             "repeating-linear-gradient(45deg, hsl(var(--warning) / 0.35) 0 3px, hsl(var(--warning) / 0.15) 3px 6px)",
         }}
         aria-label="Sem movimento"
-      >
-        <div />
-        <div />
-        <div />
-      </div>
+      />
     );
   }
 
+  // Find the last completed demand following the workflow order
+  const order = [
+    { key: "lancamentos", short: "L", status: statuses.lancamentos },
+    { key: "conciliacao_bancaria", short: "B", status: statuses.conciliacao_bancaria },
+    { key: "conciliacao_contabil", short: "C", status: statuses.conciliacao_contabil },
+  ] as const;
+
+  const lastCompleted = [...order].reverse().find((s) => s.status === "completed");
+  // If nothing completed, fall back to the most "advanced" non-not_started status
+  const fallback = [...order].reverse().find((s) => s.status && s.status !== "not_started");
+  const display = lastCompleted ?? fallback;
+
+  const bg = statusClass(display?.status);
+  const label = display?.short ?? "";
+  const textColor = display?.status === "completed" || display?.status === "blocked" || display?.status === "late"
+    ? "text-white"
+    : display?.status
+    ? "text-foreground"
+    : "text-muted-foreground";
+
   return (
-    <div className="grid grid-cols-3 gap-px w-7 h-[22px] mx-auto rounded-sm overflow-hidden">
-      <div className={statusClass(statuses.lancamentos)} />
-      <div className={statusClass(statuses.conciliacao_bancaria)} />
-      <div className={statusClass(statuses.conciliacao_contabil)} />
+    <div className={`w-7 h-[22px] mx-auto rounded-sm flex items-center justify-center text-[10px] font-semibold ${bg} ${textColor}`}>
+      {label}
     </div>
   );
 }

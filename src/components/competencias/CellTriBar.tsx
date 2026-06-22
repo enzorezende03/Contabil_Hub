@@ -53,7 +53,7 @@ export function CellTriBar({ mode = "normal", statuses }: CellTriBarProps) {
   const label = display?.short ?? "";
 
   return (
-    <div className={`w-7 h-[22px] mx-auto rounded-sm flex items-center justify-center text-[10px] font-semibold text-white ${bg}`}>
+    <div className={`w-9 h-[22px] mx-auto rounded-sm flex items-center justify-center text-[10px] font-semibold text-white ${bg}`}>
       {label}
     </div>
   );

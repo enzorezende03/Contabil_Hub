@@ -185,17 +185,15 @@ export default function PlanejamentoPage() {
     return out;
   };
 
-  const filtered = useMemo(() => {
+  // Base list ignoring the status filter — used so the "concluídas" drawer always
+  // reflects completions in the selected period regardless of the kanban status filter.
+  const filteredIgnoringStatus = useMemo(() => {
     return planningsWithDerivedStatus
       .filter((d) => {
         if (!canSeeAll && user && d.assignee !== user.id) return false;
         if (search && !d.client.toLowerCase().includes(search.toLowerCase()) && !d.description.toLowerCase().includes(search.toLowerCase())) return false;
         if (filterType !== "all" && !d.types.includes(filterType as DemandType)) return false;
         if (filterAssignee !== "all" && d.assignee !== filterAssignee) return false;
-        if (filterStatus === "overdue") {
-          if (d.status === "completed") return false;
-          if (getDeadlineUrgency(d.internalDeadline) !== "overdue") return false;
-        } else if (filterStatus !== "all" && d.status !== filterStatus) return false;
         if (filterDateFrom && d.internalDeadline < filterDateFrom) return false;
         if (filterDateTo && d.internalDeadline > filterDateTo) return false;
         if (filterWithPendency !== "all") {
@@ -207,7 +205,17 @@ export default function PlanejamentoPage() {
         return true;
       })
       .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
-  }, [search, filterType, filterAssignee, filterStatus, filterDateFrom, filterDateTo, filterWithPendency, planningsWithDerivedStatus, canSeeAll, user, pendenciesByPlanning]);
+  }, [search, filterType, filterAssignee, filterDateFrom, filterDateTo, filterWithPendency, planningsWithDerivedStatus, canSeeAll, user, pendenciesByPlanning]);
+
+  const filtered = useMemo(() => {
+    return filteredIgnoringStatus.filter((d) => {
+      if (filterStatus === "overdue") {
+        if (d.status === "completed") return false;
+        if (getDeadlineUrgency(d.internalDeadline) !== "overdue") return false;
+      } else if (filterStatus !== "all" && d.status !== filterStatus) return false;
+      return true;
+    });
+  }, [filteredIgnoringStatus, filterStatus]);
 
   const getMember = (id: string) => teamMembers.find((m) => m.id === id);
 
@@ -222,13 +230,14 @@ export default function PlanejamentoPage() {
 
   // Active vs completed for kanban
   const completedInPeriod = useMemo(
-    () => filtered.filter((d) => d.status === "completed"),
-    [filtered]
+    () => filteredIgnoringStatus.filter((d) => d.status === "completed"),
+    [filteredIgnoringStatus]
   );
   const activeOnly = useMemo(
     () => filtered.filter((d) => d.status !== "completed"),
     [filtered]
   );
+
 
   const columnsData = useMemo(() => {
     const cols: Record<ActiveCol, Demand[]> = { not_started: [], in_progress: [], paused_pendency: [] };

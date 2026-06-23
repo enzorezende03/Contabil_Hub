@@ -441,7 +441,15 @@ export default function CompetenciasPage() {
     if (!user) return;
     setUploading(true);
     try {
-      const filePath = `${year}/${clientName}/${Date.now()}_${file.name}`;
+      const sanitize = (s: string) =>
+        s
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-zA-Z0-9._-]+/g, "_")
+          .replace(/^_+|_+$/g, "");
+      const safeClient = sanitize(clientName);
+      const safeName = sanitize(file.name);
+      const filePath = `${year}/${safeClient}/${Date.now()}_${safeName}`;
       const { error: uploadError } = await supabase.storage
         .from("demonstracoes-contabeis")
         .upload(filePath, file);

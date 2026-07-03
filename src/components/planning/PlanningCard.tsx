@@ -33,6 +33,7 @@ interface Props {
   canReassign?: boolean;
   reassignMembers?: ReassignMember[];
   onReassigned?: () => void;
+  showOriginTag?: boolean;
 }
 
 export function PlanningCard({
@@ -43,6 +44,7 @@ export function PlanningCard({
   canReassign,
   reassignMembers = [],
   onReassigned,
+  showOriginTag = true,
 }: Props) {
   const [reassignOpen, setReassignOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -139,17 +141,19 @@ export function PlanningCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <span
-              className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${
-                isClientRequest
-                  ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
-                  : "bg-primary/10 text-primary"
-              }`}
-            >
-              {isClientRequest ? "Cliente" : "Interno"}
-            </span>
-          </div>
+          {showOriginTag && (
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span
+                className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                  isClientRequest
+                    ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                    : "bg-primary/10 text-primary"
+                }`}
+              >
+                {isClientRequest ? "Cliente" : "Interno"}
+              </span>
+            </div>
+          )}
           <p className="text-[12px] font-medium leading-snug truncate" title={demand.client}>
             {sentenceCase(demand.client)}
           </p>

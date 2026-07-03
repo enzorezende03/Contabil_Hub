@@ -286,12 +286,13 @@ export default function DemandsPage() {
         </div>
         <div className="space-y-2">
           {visible.map((d) => (
-            <PlanningCard
+          <PlanningCard
               key={d.id}
               demand={d}
               pendencies={[]}
               memberName={getMember(d.assignee)?.name}
               onClick={() => setSelectedDemand(d)}
+              showOriginTag={false}
             />
           ))}
           {items.length === 0 && (
@@ -446,6 +447,7 @@ export default function DemandsPage() {
                         pendencies={[]}
                         memberName={getMember(d.assignee)?.name}
                         onClick={() => setSelectedDemand(d)}
+                        showOriginTag={false}
                       />
                     ))}
                   </div>

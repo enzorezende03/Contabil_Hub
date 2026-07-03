@@ -424,7 +424,20 @@ export default function PlanejamentoPage() {
               <option key={m.id} value={m.id}>{m.name}</option>
             ))}
           </select>
-          <span className="text-xs text-muted-foreground hidden sm:inline">Prazo: {periodLabel}</span>
+          <div className="hidden sm:flex items-center gap-2 bg-muted/50 rounded-full px-3 py-1">
+            <span className={`text-[10px] font-medium ${periodMode === "week" ? "text-foreground" : "text-muted-foreground"}`}>
+              Semana
+            </span>
+            <Switch
+              checked={periodMode === "month"}
+              onCheckedChange={(checked) => setPeriodMode(checked ? "month" : "week")}
+              className="scale-75"
+              aria-label="Alternar entre semana e mês"
+            />
+            <span className={`text-[10px] font-medium ${periodMode === "month" ? "text-foreground" : "text-muted-foreground"}`}>
+              Mês
+            </span>
+          </div>
 
           <Popover>
             <PopoverTrigger asChild>

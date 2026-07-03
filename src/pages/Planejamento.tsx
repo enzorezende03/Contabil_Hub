@@ -204,7 +204,7 @@ export default function PlanejamentoPage() {
   }, [refetchStatuses]);
 
   const planningsWithDerivedStatus = useMemo(() => {
-    return dbPlannings.map((d) => {
+    const derived = dbPlannings.map((d) => {
       const closingTypes = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"];
       const relevantTypes = d.types.filter((t) => closingTypes.includes(t));
       if (relevantTypes.length === 0 || d.competencias.length === 0) return d;
@@ -221,10 +221,13 @@ export default function PlanejamentoPage() {
       else derivedStatus = "not_started";
       return { ...d, status: derivedStatus };
     });
-  }, [dbPlannings, statusEntries]);
+    // Merge with client-requested demands so both appear in the same board
+    return [...derived, ...dbClientDemands];
+  }, [dbPlannings, statusEntries, dbClientDemands]);
 
   useEffect(() => {
     const toSync = planningsWithDerivedStatus.filter((d) => {
+      if (d.origem === "solicitacao") return false;
       const original = dbPlannings.find((o) => o.id === d.id);
       return original && original.status !== d.status;
     });
@@ -236,6 +239,7 @@ export default function PlanejamentoPage() {
       refetch();
     })();
   }, [planningsWithDerivedStatus, dbPlannings, refetch]);
+
 
   const { data: pendenciesByPlanning } = useActivePendenciesByPlanning();
 

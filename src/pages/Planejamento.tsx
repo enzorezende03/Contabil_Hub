@@ -48,13 +48,36 @@ export default function PlanejamentoPage() {
   const [filterStatus, setFilterStatus] = usePersistedFilter<string>("planejamento", "status", "all");
   const [filterWithPendency, setFilterWithPendency] = usePersistedFilter<string>("planejamento", "withPendency", "all");
   const _now = new Date();
+
+  // Semana atual (segunda → domingo)
+  const _weekStart = (() => {
+    const d = new Date(_now);
+    const day = d.getDay(); // 0=dom, 1=seg...
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // segunda
+    d.setDate(diff);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const _weekEnd = (() => {
+    const d = new Date(_now);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? 0 : 7); // domingo
+    d.setDate(diff);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+
   const _monthStart = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, "0")}-01`;
   const _monthEnd = (() => {
     const d = new Date(_now.getFullYear(), _now.getMonth() + 1, 0);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();
-  const [filterDateFrom, setFilterDateFrom] = usePersistedFilter<string>("planejamento", "dateFromV2", _monthStart);
-  const [filterDateTo, setFilterDateTo] = usePersistedFilter<string>("planejamento", "dateToV2", _monthEnd);
+
+  const [periodMode, setPeriodMode] = usePersistedFilter<"week" | "month">("planejamento", "periodMode", "week");
+
+  const defaultFrom = periodMode === "month" ? _monthStart : _weekStart;
+  const defaultTo = periodMode === "month" ? _monthEnd : _weekEnd;
+
+  const [filterDateFrom, setFilterDateFrom] = usePersistedFilter<string>("planejamento", "dateFromV2", defaultFrom);
+  const [filterDateTo, setFilterDateTo] = usePersistedFilter<string>("planejamento", "dateToV2", defaultTo);
   const [draftDateFrom, setDraftDateFrom] = useState<string>(filterDateFrom);
   const [draftDateTo, setDraftDateTo] = useState<string>(filterDateTo);
   const [createOpen, setCreateOpen] = useState(false);

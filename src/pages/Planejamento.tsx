@@ -80,6 +80,15 @@ export default function PlanejamentoPage() {
   const [filterDateTo, setFilterDateTo] = usePersistedFilter<string>("planejamento", "dateToV2", defaultTo);
   const [draftDateFrom, setDraftDateFrom] = useState<string>(filterDateFrom);
   const [draftDateTo, setDraftDateTo] = useState<string>(filterDateTo);
+
+  useEffect(() => {
+    const from = periodMode === "month" ? _monthStart : _weekStart;
+    const to = periodMode === "month" ? _monthEnd : _weekEnd;
+    setFilterDateFrom(from);
+    setFilterDateTo(to);
+    setDraftDateFrom(from);
+    setDraftDateTo(to);
+  }, [periodMode]);
   const [createOpen, setCreateOpen] = useState(false);
   const [editPlanning, setEditPlanning] = useState<Demand | null>(null);
   const [expandedCols, setExpandedCols] = useState<Record<string, boolean>>({});

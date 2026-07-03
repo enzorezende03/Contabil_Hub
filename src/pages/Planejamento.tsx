@@ -92,6 +92,7 @@ export default function PlanejamentoPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editPlanning, setEditPlanning] = useState<Demand | null>(null);
   const [expandedCols, setExpandedCols] = useState<Record<string, boolean>>({});
+  const [completedOpen, setCompletedOpen] = useState(false);
   const isMobile = useIsMobile();
 
   const { members: teamMembers } = useTeamMembers({ excludeCoordenacao: true });

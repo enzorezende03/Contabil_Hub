@@ -165,12 +165,25 @@ export default function DemandsPage() {
         if (filterType !== "all" && !d.types.includes(filterType as DemandType)) return false;
         if (filterPriority !== "all" && d.priority !== filterPriority) return false;
         if (filterAssignee !== "all" && d.assignee !== filterAssignee) return false;
+        if (filterDateFrom && d.internalDeadline < filterDateFrom) return false;
+        if (filterDateTo && d.internalDeadline > filterDateTo) return false;
         return true;
       })
       .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
-  }, [search, filterType, filterPriority, filterAssignee, demandsWithDerivedStatus, canSeeAll, user]);
+  }, [search, filterType, filterPriority, filterAssignee, filterDateFrom, filterDateTo, demandsWithDerivedStatus, canSeeAll, user]);
 
   const getMember = (id: string) => teamMembers.find((m) => m.id === id);
+
+  const periodLabel = useMemo(() => {
+    if (!filterDateFrom && !filterDateTo) return "todos os prazos";
+    try {
+      if (periodMode === "week") {
+        return `semana atual (${new Date(filterDateFrom).toLocaleDateString("pt-BR")} – ${new Date(filterDateTo).toLocaleDateString("pt-BR")})`;
+      }
+      const d = new Date(filterDateFrom || filterDateTo);
+      return `${MONTH_LABELS[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`;
+    } catch { return ""; }
+  }, [filterDateFrom, filterDateTo, periodMode]);
 
   const completedDemands = useMemo(
     () => filtered.filter((d) => d.status === "completed"),
@@ -267,7 +280,7 @@ export default function DemandsPage() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Solicitação de Clientes</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {filtered.length} demanda{filtered.length !== 1 ? "s" : ""}
+              {filtered.length} demanda{filtered.length !== 1 ? "s" : ""} · prazo {periodLabel}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -315,6 +328,20 @@ export default function DemandsPage() {
               <option key={m.id} value={m.id}>{m.name}</option>
             ))}
           </select>
+          <div className="hidden sm:flex items-center gap-2 bg-muted/50 rounded-full px-3 py-1">
+            <span className={`text-[10px] font-medium ${periodMode === "week" ? "text-foreground" : "text-muted-foreground"}`}>
+              Semana
+            </span>
+            <Switch
+              checked={periodMode === "month"}
+              onCheckedChange={(checked) => setPeriodMode(checked ? "month" : "week")}
+              className="scale-75"
+              aria-label="Alternar entre semana e mês"
+            />
+            <span className={`text-[10px] font-medium ${periodMode === "month" ? "text-foreground" : "text-muted-foreground"}`}>
+              Mês
+            </span>
+          </div>
         </div>
 
         {/* KANBAN */}
@@ -354,6 +381,7 @@ export default function DemandsPage() {
                     <span className="text-xs font-semibold bg-success/15 text-success px-1.5 py-0.5 rounded-full">
                       {completedDemands.length}
                     </span>
+                    <span className="text-xs text-muted-foreground hidden sm:inline">em {periodLabel}</span>
                   </div>
                   <ChevronDown
                     className={`w-4 h-4 text-muted-foreground transition-transform ${completedOpen ? "rotate-180" : ""}`}

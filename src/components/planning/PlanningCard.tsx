@@ -115,8 +115,9 @@ export function PlanningCard({
       return;
     }
     setSavingDate(true);
+    const table = demand.origem === "solicitacao" ? "demands" : "plannings";
     const { error } = await supabase
-      .from("plannings")
+      .from(table)
       .update({ internal_deadline: iso })
       .eq("id", demand.id);
     setSavingDate(false);
@@ -128,6 +129,7 @@ export function PlanningCard({
     setDateOpen(false);
     onReassigned?.();
   };
+
 
 
   const isClientRequest = demand.origem === "solicitacao";

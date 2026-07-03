@@ -16,11 +16,12 @@ import {
   type Demand,
 } from "@/lib/types";
 import { getDeadlineUrgency } from "@/lib/demand-utils";
-import { Search, LayoutGrid, List, Plus, CalendarRange, AlertTriangle, SlidersHorizontal } from "lucide-react";
+import { Search, LayoutGrid, List, Plus, CalendarRange, AlertTriangle, SlidersHorizontal, ChevronDown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { CreatePlanningDialog } from "@/components/CreatePlanningDialog";
 import { EditPlanningDialog } from "@/components/EditPlanningDialog";
 import { PlanningTimeline } from "@/components/PlanningTimeline";
@@ -28,7 +29,6 @@ import { useActivePendenciesByPlanning, type CellPendencyInfo } from "@/hooks/us
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PlanningCard } from "@/components/planning/PlanningCard";
 import { PlanningWorkloadBar } from "@/components/planning/PlanningWorkloadBar";
-import { CompletedPlanningsDrawer } from "@/components/planning/CompletedPlanningsDrawer";
 import { toast } from "sonner";
 
 type ViewMode = "list" | "kanban" | "timeline";
@@ -92,6 +92,7 @@ export default function PlanejamentoPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editPlanning, setEditPlanning] = useState<Demand | null>(null);
   const [expandedCols, setExpandedCols] = useState<Record<string, boolean>>({});
+  const [completedOpen, setCompletedOpen] = useState(false);
   const isMobile = useIsMobile();
 
   const { members: teamMembers } = useTeamMembers({ excludeCoordenacao: true });
@@ -540,14 +541,6 @@ export default function PlanejamentoPage() {
         {/* KANBAN */}
         {view === "kanban" && (
           <>
-            <div className="flex justify-end">
-              <CompletedPlanningsDrawer
-                completed={completedInPeriod}
-                onOpenDemand={(d) => setEditPlanning(d)}
-                periodLabel={periodLabel}
-              />
-            </div>
-
             {isMobile ? (
               <Tabs defaultValue="paused_pendency" className="w-full">
                 <TabsList className="grid grid-cols-3 w-full">
@@ -568,6 +561,50 @@ export default function PlanejamentoPage() {
                 {ACTIVE_COLS.map(renderColumn)}
               </div>
             )}
+
+            {/* Completed section */}
+            <Collapsible open={completedOpen} onOpenChange={setCompletedOpen} className="mt-4">
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="w-full flex items-center justify-between gap-2 rounded-lg border bg-card px-3 py-2.5 hover:bg-muted/40 transition"
+                >
+                  <div className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-success" />
+                    <span className="text-sm font-medium">Concluídas</span>
+                    <span className="text-xs font-semibold bg-success/15 text-success px-1.5 py-0.5 rounded-full">
+                      {completedInPeriod.length}
+                    </span>
+                    <span className="text-xs text-muted-foreground hidden sm:inline">em {periodLabel}</span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 text-muted-foreground transition-transform ${completedOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                {completedInPeriod.length === 0 ? (
+                  <div className="rounded-lg border border-dashed p-6 text-center text-xs text-muted-foreground mt-2">
+                    Nenhuma demanda concluída no período.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
+                    {completedInPeriod.map((d) => (
+                      <PlanningCard
+                        key={d.id}
+                        demand={d}
+                        pendencies={getPendenciesFor(d)}
+                        memberName={getMember(d.assignee)?.name}
+                        onClick={() => setEditPlanning(d)}
+                        canReassign={canReassign}
+                        reassignMembers={teamMembers.map((m) => ({ id: m.id, name: m.name }))}
+                        onReassigned={() => refetch()}
+                      />
+                    ))}
+                  </div>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
           </>
         )}
 

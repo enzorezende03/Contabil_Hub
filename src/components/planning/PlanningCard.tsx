@@ -91,8 +91,9 @@ export function PlanningCard({
       return;
     }
     setSaving(true);
+    const table = demand.origem === "solicitacao" ? "demands" : "plannings";
     const { error } = await supabase
-      .from("plannings")
+      .from(table)
       .update({ assignee: newAssigneeId })
       .eq("id", demand.id);
     setSaving(false);
@@ -107,6 +108,7 @@ export function PlanningCard({
     onReassigned?.();
   };
 
+
   const handleDateChange = async (newDate: Date | undefined) => {
     if (!newDate) return;
     const iso = `${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, "0")}-${String(newDate.getDate()).padStart(2, "0")}`;
@@ -115,8 +117,9 @@ export function PlanningCard({
       return;
     }
     setSavingDate(true);
+    const table = demand.origem === "solicitacao" ? "demands" : "plannings";
     const { error } = await supabase
-      .from("plannings")
+      .from(table)
       .update({ internal_deadline: iso })
       .eq("id", demand.id);
     setSavingDate(false);
@@ -128,6 +131,7 @@ export function PlanningCard({
     setDateOpen(false);
     onReassigned?.();
   };
+
 
 
   const isClientRequest = demand.origem === "solicitacao";

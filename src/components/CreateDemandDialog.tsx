@@ -14,7 +14,7 @@ import {
   type Priority,
   type Demand,
 } from "@/lib/types";
-import { TEAM_MEMBERS } from "@/lib/mock-data";
+import { useTeamMembers } from "@/hooks/use-team-members";
 import { getWeightForType } from "@/lib/demand-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";

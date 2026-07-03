@@ -246,7 +246,36 @@ export function PlanningCard({
       )}
 
       <div className="flex items-center justify-between pt-0.5">
-        <span className={`text-[10px] ${deadlineClass(tone)}`}>{deadlineLabel(demand.internalDeadline)} {deadlineFmt}</span>
+        {canReassign ? (
+          <Popover open={dateOpen} onOpenChange={setDateOpen}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                disabled={savingDate}
+                onClick={(e) => e.stopPropagation()}
+                className={`text-[10px] rounded px-1 -mx-1 hover:bg-muted transition disabled:opacity-50 ${deadlineClass(tone)}`}
+                title="Clique para remanejar a data"
+              >
+                {deadlineLabel(demand.internalDeadline)} {deadlineFmt}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="start"
+              className="w-auto p-0"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Calendar
+                mode="single"
+                selected={demand.internalDeadline ? new Date(demand.internalDeadline + "T00:00:00") : undefined}
+                onSelect={handleDateChange}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <span className={`text-[10px] ${deadlineClass(tone)}`}>{deadlineLabel(demand.internalDeadline)} {deadlineFmt}</span>
+        )}
         {memberName && (
           <TooltipProvider delayDuration={150}>
             <Tooltip>

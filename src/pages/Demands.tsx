@@ -20,6 +20,7 @@ import { Search, LayoutGrid, List, Plus, AlertTriangle, ChevronDown, Check } fro
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { Switch } from "@/components/ui/switch";
 import { CreateDemandDialog } from "@/components/CreateDemandDialog";
 import { DemandDetailsDialog } from "@/components/DemandDetailsDialog";
 import { PlanningCard } from "@/components/planning/PlanningCard";

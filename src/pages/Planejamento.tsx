@@ -561,6 +561,50 @@ export default function PlanejamentoPage() {
                 {ACTIVE_COLS.map(renderColumn)}
               </div>
             )}
+
+            {/* Completed section */}
+            <Collapsible open={completedOpen} onOpenChange={setCompletedOpen} className="mt-4">
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="w-full flex items-center justify-between gap-2 rounded-lg border bg-card px-3 py-2.5 hover:bg-muted/40 transition"
+                >
+                  <div className="flex items-center gap-2">
+                    <Check className="w-4 h-4 text-success" />
+                    <span className="text-sm font-medium">Concluídas</span>
+                    <span className="text-xs font-semibold bg-success/15 text-success px-1.5 py-0.5 rounded-full">
+                      {completedInPeriod.length}
+                    </span>
+                    <span className="text-xs text-muted-foreground hidden sm:inline">em {periodLabel}</span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 text-muted-foreground transition-transform ${completedOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                {completedInPeriod.length === 0 ? (
+                  <div className="rounded-lg border border-dashed p-6 text-center text-xs text-muted-foreground mt-2">
+                    Nenhuma demanda concluída no período.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
+                    {completedInPeriod.map((d) => (
+                      <PlanningCard
+                        key={d.id}
+                        demand={d}
+                        pendencies={getPendenciesFor(d)}
+                        memberName={getMember(d.assignee)?.name}
+                        onClick={() => setEditPlanning(d)}
+                        canReassign={canReassign}
+                        reassignMembers={teamMembers.map((m) => ({ id: m.id, name: m.name }))}
+                        onReassigned={() => refetch()}
+                      />
+                    ))}
+                  </div>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
           </>
         )}
 

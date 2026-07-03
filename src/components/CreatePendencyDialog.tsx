@@ -199,8 +199,8 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId: clientIdPro
       );
     }
 
-    // Faz upload dos anexos para pendências internas
-    if (tipo === "interna" && newPendencyId && attachments.length > 0) {
+    // Faz upload dos anexos (internas e externas)
+    if (newPendencyId && attachments.length > 0) {
       for (const file of attachments) {
         const safeName = file.name.replace(/[^\w.\-]+/g, "_");
         const path = `${newPendencyId}/${Date.now()}_${safeName}`;

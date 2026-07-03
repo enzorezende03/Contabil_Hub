@@ -709,8 +709,8 @@ export default function PlanejamentoPage() {
         open={!!viewClientDemand}
         onOpenChange={(o) => !o && setViewClientDemand(null)}
         demand={viewClientDemand}
-        memberName={viewClientDemand ? getMember(viewClientDemand.assignee)?.name : undefined}
       />
+
 
 
       <CreatePlanningDialog

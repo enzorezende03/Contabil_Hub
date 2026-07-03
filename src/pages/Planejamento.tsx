@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { CreatePlanningDialog } from "@/components/CreatePlanningDialog";
 import { EditPlanningDialog } from "@/components/EditPlanningDialog";
+import { DemandDetailsDialog } from "@/components/DemandDetailsDialog";
 import { PlanningTimeline } from "@/components/PlanningTimeline";
 import { useActivePendenciesByPlanning, type CellPendencyInfo } from "@/hooks/use-pendencies";
 import { useIsMobile } from "@/hooks/use-mobile";

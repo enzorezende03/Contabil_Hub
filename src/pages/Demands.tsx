@@ -20,6 +20,7 @@ import { Search, LayoutGrid, List, Plus, AlertTriangle, ChevronDown, Check } fro
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { Switch } from "@/components/ui/switch";
 import { CreateDemandDialog } from "@/components/CreateDemandDialog";
 import { DemandDetailsDialog } from "@/components/DemandDetailsDialog";
 import { PlanningCard } from "@/components/planning/PlanningCard";
@@ -33,6 +34,7 @@ type ActiveCol = "not_started" | "in_progress" | "paused";
 const ACTIVE_COLS: ActiveCol[] = ["not_started", "in_progress", "paused"];
 const PRIORITY_ORDER: Record<Priority, number> = { urgente: 0, alta: 1, media: 2, baixa: 3 };
 const COL_INITIAL_LIMIT = 20;
+const MONTH_LABELS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 export default function DemandsPage() {
   const [view, setView] = usePersistedFilter<ViewMode>("demandas", "view", "kanban");
@@ -45,6 +47,40 @@ export default function DemandsPage() {
   const [expandedCols, setExpandedCols] = useState<Record<string, boolean>>({});
   const [completedOpen, setCompletedOpen] = useState(false);
   const isMobile = useIsMobile();
+
+  const _now = new Date();
+  const _weekStart = (() => {
+    const d = new Date(_now);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    d.setDate(diff);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const _weekEnd = (() => {
+    const d = new Date(_now);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? 0 : 7);
+    d.setDate(diff);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const _monthStart = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, "0")}-01`;
+  const _monthEnd = (() => {
+    const d = new Date(_now.getFullYear(), _now.getMonth() + 1, 0);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+
+  const [periodMode, setPeriodMode] = usePersistedFilter<"week" | "month">("demandas", "periodMode", "week");
+  const defaultFrom = periodMode === "month" ? _monthStart : _weekStart;
+  const defaultTo = periodMode === "month" ? _monthEnd : _weekEnd;
+  const [filterDateFrom, setFilterDateFrom] = usePersistedFilter<string>("demandas", "dateFrom", defaultFrom);
+  const [filterDateTo, setFilterDateTo] = usePersistedFilter<string>("demandas", "dateTo", defaultTo);
+
+  useEffect(() => {
+    const from = periodMode === "month" ? _monthStart : _weekStart;
+    const to = periodMode === "month" ? _monthEnd : _weekEnd;
+    setFilterDateFrom(from);
+    setFilterDateTo(to);
+  }, [periodMode]);
 
   const { members: teamMembers } = useTeamMembers({ excludeCoordenacao: true });
   const { user, profile } = useAuth();
@@ -129,12 +165,25 @@ export default function DemandsPage() {
         if (filterType !== "all" && !d.types.includes(filterType as DemandType)) return false;
         if (filterPriority !== "all" && d.priority !== filterPriority) return false;
         if (filterAssignee !== "all" && d.assignee !== filterAssignee) return false;
+        if (filterDateFrom && d.internalDeadline < filterDateFrom) return false;
+        if (filterDateTo && d.internalDeadline > filterDateTo) return false;
         return true;
       })
       .sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
-  }, [search, filterType, filterPriority, filterAssignee, demandsWithDerivedStatus, canSeeAll, user]);
+  }, [search, filterType, filterPriority, filterAssignee, filterDateFrom, filterDateTo, demandsWithDerivedStatus, canSeeAll, user]);
 
   const getMember = (id: string) => teamMembers.find((m) => m.id === id);
+
+  const periodLabel = useMemo(() => {
+    if (!filterDateFrom && !filterDateTo) return "todos os prazos";
+    try {
+      if (periodMode === "week") {
+        return `semana atual (${new Date(filterDateFrom).toLocaleDateString("pt-BR")} – ${new Date(filterDateTo).toLocaleDateString("pt-BR")})`;
+      }
+      const d = new Date(filterDateFrom || filterDateTo);
+      return `${MONTH_LABELS[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`;
+    } catch { return ""; }
+  }, [filterDateFrom, filterDateTo, periodMode]);
 
   const completedDemands = useMemo(
     () => filtered.filter((d) => d.status === "completed"),
@@ -231,7 +280,7 @@ export default function DemandsPage() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Solicitação de Clientes</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {filtered.length} demanda{filtered.length !== 1 ? "s" : ""}
+              {filtered.length} demanda{filtered.length !== 1 ? "s" : ""} · prazo {periodLabel}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -279,6 +328,20 @@ export default function DemandsPage() {
               <option key={m.id} value={m.id}>{m.name}</option>
             ))}
           </select>
+          <div className="hidden sm:flex items-center gap-2 bg-muted/50 rounded-full px-3 py-1">
+            <span className={`text-[10px] font-medium ${periodMode === "week" ? "text-foreground" : "text-muted-foreground"}`}>
+              Semana
+            </span>
+            <Switch
+              checked={periodMode === "month"}
+              onCheckedChange={(checked) => setPeriodMode(checked ? "month" : "week")}
+              className="scale-75"
+              aria-label="Alternar entre semana e mês"
+            />
+            <span className={`text-[10px] font-medium ${periodMode === "month" ? "text-foreground" : "text-muted-foreground"}`}>
+              Mês
+            </span>
+          </div>
         </div>
 
         {/* KANBAN */}
@@ -318,6 +381,7 @@ export default function DemandsPage() {
                     <span className="text-xs font-semibold bg-success/15 text-success px-1.5 py-0.5 rounded-full">
                       {completedDemands.length}
                     </span>
+                    <span className="text-xs text-muted-foreground hidden sm:inline">em {periodLabel}</span>
                   </div>
                   <ChevronDown
                     className={`w-4 h-4 text-muted-foreground transition-transform ${completedOpen ? "rotate-180" : ""}`}

@@ -20,6 +20,7 @@ import { Search, LayoutGrid, List, Plus, CalendarRange, AlertTriangle, SlidersHo
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { CreatePlanningDialog } from "@/components/CreatePlanningDialog";
 import { EditPlanningDialog } from "@/components/EditPlanningDialog";
 import { PlanningTimeline } from "@/components/PlanningTimeline";
@@ -47,15 +48,47 @@ export default function PlanejamentoPage() {
   const [filterStatus, setFilterStatus] = usePersistedFilter<string>("planejamento", "status", "all");
   const [filterWithPendency, setFilterWithPendency] = usePersistedFilter<string>("planejamento", "withPendency", "all");
   const _now = new Date();
+
+  // Semana atual (segunda → domingo)
+  const _weekStart = (() => {
+    const d = new Date(_now);
+    const day = d.getDay(); // 0=dom, 1=seg...
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // segunda
+    d.setDate(diff);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const _weekEnd = (() => {
+    const d = new Date(_now);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? 0 : 7); // domingo
+    d.setDate(diff);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+
   const _monthStart = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, "0")}-01`;
   const _monthEnd = (() => {
     const d = new Date(_now.getFullYear(), _now.getMonth() + 1, 0);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();
-  const [filterDateFrom, setFilterDateFrom] = usePersistedFilter<string>("planejamento", "dateFromV2", _monthStart);
-  const [filterDateTo, setFilterDateTo] = usePersistedFilter<string>("planejamento", "dateToV2", _monthEnd);
+
+  const [periodMode, setPeriodMode] = usePersistedFilter<"week" | "month">("planejamento", "periodMode", "week");
+
+  const defaultFrom = periodMode === "month" ? _monthStart : _weekStart;
+  const defaultTo = periodMode === "month" ? _monthEnd : _weekEnd;
+
+  const [filterDateFrom, setFilterDateFrom] = usePersistedFilter<string>("planejamento", "dateFromV2", defaultFrom);
+  const [filterDateTo, setFilterDateTo] = usePersistedFilter<string>("planejamento", "dateToV2", defaultTo);
   const [draftDateFrom, setDraftDateFrom] = useState<string>(filterDateFrom);
   const [draftDateTo, setDraftDateTo] = useState<string>(filterDateTo);
+
+  useEffect(() => {
+    const from = periodMode === "month" ? _monthStart : _weekStart;
+    const to = periodMode === "month" ? _monthEnd : _weekEnd;
+    setFilterDateFrom(from);
+    setFilterDateTo(to);
+    setDraftDateFrom(from);
+    setDraftDateTo(to);
+  }, [periodMode]);
   const [createOpen, setCreateOpen] = useState(false);
   const [editPlanning, setEditPlanning] = useState<Demand | null>(null);
   const [expandedCols, setExpandedCols] = useState<Record<string, boolean>>({});
@@ -223,10 +256,13 @@ export default function PlanejamentoPage() {
   const periodLabel = useMemo(() => {
     if (!filterDateFrom && !filterDateTo) return "todos os prazos";
     try {
+      if (periodMode === "week") {
+        return `semana atual (${new Date(filterDateFrom).toLocaleDateString("pt-BR")} – ${new Date(filterDateTo).toLocaleDateString("pt-BR")})`;
+      }
       const d = new Date(filterDateFrom || filterDateTo);
       return `${MONTH_LABELS[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`;
     } catch { return ""; }
-  }, [filterDateFrom, filterDateTo]);
+  }, [filterDateFrom, filterDateTo, periodMode]);
 
   // Active vs completed for kanban
   const completedInPeriod = useMemo(
@@ -253,7 +289,7 @@ export default function PlanejamentoPage() {
   const activeFilterCount =
     (filterType !== "all" ? 1 : 0) +
     (filterWithPendency !== "all" ? 1 : 0) +
-    (filterDateFrom !== _monthStart || filterDateTo !== _monthEnd ? 1 : 0);
+    (filterDateFrom !== _weekStart || filterDateTo !== _weekEnd ? 1 : 0);
 
   const renderColumn = (col: ActiveCol) => {
     const items = columnsData[col];
@@ -388,7 +424,20 @@ export default function PlanejamentoPage() {
               <option key={m.id} value={m.id}>{m.name}</option>
             ))}
           </select>
-          <span className="text-xs text-muted-foreground hidden sm:inline">Prazo: {periodLabel}</span>
+          <div className="hidden sm:flex items-center gap-2 bg-muted/50 rounded-full px-3 py-1">
+            <span className={`text-[10px] font-medium ${periodMode === "week" ? "text-foreground" : "text-muted-foreground"}`}>
+              Semana
+            </span>
+            <Switch
+              checked={periodMode === "month"}
+              onCheckedChange={(checked) => setPeriodMode(checked ? "month" : "week")}
+              className="scale-75"
+              aria-label="Alternar entre semana e mês"
+            />
+            <span className={`text-[10px] font-medium ${periodMode === "month" ? "text-foreground" : "text-muted-foreground"}`}>
+              Mês
+            </span>
+          </div>
 
           <Popover>
             <PopoverTrigger asChild>
@@ -464,10 +513,11 @@ export default function PlanejamentoPage() {
                       setFilterAssignee("all");
                       setFilterStatus("all");
                       setFilterWithPendency("all");
-                      setDraftDateFrom(_monthStart);
-                      setDraftDateTo(_monthEnd);
-                      setFilterDateFrom(_monthStart);
-                      setFilterDateTo(_monthEnd);
+                      setPeriodMode("week");
+                      setDraftDateFrom(_weekStart);
+                      setDraftDateTo(_weekEnd);
+                      setFilterDateFrom(_weekStart);
+                      setFilterDateTo(_weekEnd);
                     }}
                   >
                     Limpar

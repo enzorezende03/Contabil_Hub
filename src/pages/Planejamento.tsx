@@ -91,6 +91,12 @@ export default function PlanejamentoPage() {
   }, [periodMode]);
   const [createOpen, setCreateOpen] = useState(false);
   const [editPlanning, setEditPlanning] = useState<Demand | null>(null);
+  const [viewClientDemand, setViewClientDemand] = useState<Demand | null>(null);
+
+  const openCard = (d: Demand) => {
+    if (d.origem === "solicitacao") setViewClientDemand(d);
+    else setEditPlanning(d);
+  };
   const [expandedCols, setExpandedCols] = useState<Record<string, boolean>>({});
   const [completedOpen, setCompletedOpen] = useState(false);
   const isMobile = useIsMobile();

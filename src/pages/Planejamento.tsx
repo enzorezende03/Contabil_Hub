@@ -500,10 +500,11 @@ export default function PlanejamentoPage() {
                       setFilterAssignee("all");
                       setFilterStatus("all");
                       setFilterWithPendency("all");
-                      setDraftDateFrom(_monthStart);
-                      setDraftDateTo(_monthEnd);
-                      setFilterDateFrom(_monthStart);
-                      setFilterDateTo(_monthEnd);
+                      setPeriodMode("week");
+                      setDraftDateFrom(_weekStart);
+                      setDraftDateTo(_weekEnd);
+                      setFilterDateFrom(_weekStart);
+                      setFilterDateTo(_weekEnd);
                     }}
                   >
                     Limpar

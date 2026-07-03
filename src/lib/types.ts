@@ -64,6 +64,8 @@ export interface Demand {
   // Legacy compat
   competencia?: string;
   type?: DemandType;
+  // Origin marker (used in unified panels)
+  origem?: "planejamento" | "solicitacao";
 }
 
 export interface TaskWeight {

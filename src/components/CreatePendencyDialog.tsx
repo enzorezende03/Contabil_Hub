@@ -526,6 +526,36 @@ export function CreatePendencyDialog({ open, onOpenChange, clientId: clientIdPro
                   + Adicionar item
                 </button>
               </div>
+              <div className="space-y-2 pt-2 border-t">
+                <Label>Anexos (opcional)</Label>
+                <p className="text-[10px] text-muted-foreground">Ex.: planilha de pendências enviada ao cliente</p>
+                <label className="flex items-center gap-2 px-3 py-2 rounded-md border border-dashed cursor-pointer hover:bg-muted/40 text-sm text-muted-foreground">
+                  <Paperclip className="w-4 h-4" />
+                  <span>Clique para selecionar arquivos</span>
+                  <input
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      if (files.length) setAttachments((prev) => [...prev, ...files]);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                {attachments.length > 0 && (
+                  <ul className="space-y-1">
+                    {attachments.map((f, i) => (
+                      <li key={i} className="flex items-center justify-between text-xs px-2 py-1 rounded border bg-muted/20">
+                        <span className="truncate mr-2">{f.name} <span className="text-muted-foreground">({(f.size / 1024).toFixed(0)} KB)</span></span>
+                        <button type="button" onClick={() => setAttachments(attachments.filter((_, idx) => idx !== i))} className="text-muted-foreground hover:text-destructive">
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           ) : (
             <div className="space-y-2">

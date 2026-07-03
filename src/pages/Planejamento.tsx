@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { CreatePlanningDialog } from "@/components/CreatePlanningDialog";
 import { EditPlanningDialog } from "@/components/EditPlanningDialog";
 import { PlanningTimeline } from "@/components/PlanningTimeline";
@@ -28,7 +29,6 @@ import { useActivePendenciesByPlanning, type CellPendencyInfo } from "@/hooks/us
 import { useIsMobile } from "@/hooks/use-mobile";
 import { PlanningCard } from "@/components/planning/PlanningCard";
 import { PlanningWorkloadBar } from "@/components/planning/PlanningWorkloadBar";
-import { CompletedPlanningsDrawer } from "@/components/planning/CompletedPlanningsDrawer";
 import { toast } from "sonner";
 
 type ViewMode = "list" | "kanban" | "timeline";

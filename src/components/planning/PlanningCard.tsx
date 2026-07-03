@@ -47,6 +47,8 @@ export function PlanningCard({
   const [reassignOpen, setReassignOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const [dateOpen, setDateOpen] = useState(false);
+  const [savingDate, setSavingDate] = useState(false);
 
   const tone = deadlineTone(demand.internalDeadline);
   const kind = pendencyAlertKind(pendencies);

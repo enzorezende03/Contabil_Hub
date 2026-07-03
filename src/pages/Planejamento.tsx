@@ -377,7 +377,7 @@ export default function PlanejamentoPage() {
               demand={d}
               pendencies={getPendenciesFor(d)}
               memberName={getMember(d.assignee)?.name}
-              onClick={() => setEditPlanning(d)}
+              onClick={() => openCard(d)}
               canReassign={canReassign}
               reassignMembers={teamMembers.map((m) => ({ id: m.id, name: m.name }))}
               onReassigned={() => refetch()}
@@ -637,7 +637,7 @@ export default function PlanejamentoPage() {
                         demand={d}
                         pendencies={getPendenciesFor(d)}
                         memberName={getMember(d.assignee)?.name}
-                        onClick={() => setEditPlanning(d)}
+                        onClick={() => openCard(d)}
                         canReassign={canReassign}
                         reassignMembers={teamMembers.map((m) => ({ id: m.id, name: m.name }))}
                         onReassigned={() => refetch()}
@@ -667,7 +667,7 @@ export default function PlanejamentoPage() {
                 {filtered.map((d) => {
                   const pend = getPendenciesFor(d);
                   return (
-                    <tr key={d.id} onClick={() => setEditPlanning(d)} className="hover:bg-muted/30 transition-colors cursor-pointer">
+                    <tr key={d.id} onClick={() => openCard(d)} className="hover:bg-muted/30 transition-colors cursor-pointer">
                       <td className="px-3 py-2.5 font-medium">{d.client}</td>
                       <td className="px-3 py-2.5 text-xs max-w-40">
                         {d.types.length > 1 ? `${d.types.length} tarefas` : d.types[0]}

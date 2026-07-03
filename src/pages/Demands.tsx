@@ -452,6 +452,9 @@ export default function DemandsPage() {
                         memberName={getMember(d.assignee)?.name}
                         onClick={() => setSelectedDemand(d)}
                         showOriginTag={false}
+                        canReassign={canReassign}
+                        reassignMembers={teamMembers.map((m) => ({ id: m.id, name: m.name }))}
+                        onReassigned={() => refetchDemands()}
                       />
                     ))}
                   </div>

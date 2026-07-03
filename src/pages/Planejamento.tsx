@@ -705,6 +705,14 @@ export default function PlanejamentoPage() {
         onSaved={() => refetch()}
       />
 
+      <DemandDetailsDialog
+        open={!!viewClientDemand}
+        onOpenChange={(o) => !o && setViewClientDemand(null)}
+        demand={viewClientDemand}
+        memberName={viewClientDemand ? getMember(viewClientDemand.assignee)?.name : undefined}
+      />
+
+
       <CreatePlanningDialog
         open={createOpen}
         onOpenChange={setCreateOpen}

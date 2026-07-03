@@ -34,6 +34,7 @@ type ActiveCol = "not_started" | "in_progress" | "paused";
 const ACTIVE_COLS: ActiveCol[] = ["not_started", "in_progress", "paused"];
 const PRIORITY_ORDER: Record<Priority, number> = { urgente: 0, alta: 1, media: 2, baixa: 3 };
 const COL_INITIAL_LIMIT = 20;
+const MONTH_LABELS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 export default function DemandsPage() {
   const [view, setView] = usePersistedFilter<ViewMode>("demandas", "view", "kanban");

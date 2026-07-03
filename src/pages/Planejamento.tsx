@@ -378,7 +378,7 @@ export default function PlanejamentoPage() {
               pendencies={getPendenciesFor(d)}
               memberName={getMember(d.assignee)?.name}
               onClick={() => openCard(d)}
-              canReassign={canReassign}
+              canReassign={canReassign && d.origem !== "solicitacao"}
               reassignMembers={teamMembers.map((m) => ({ id: m.id, name: m.name }))}
               onReassigned={() => refetch()}
             />
@@ -638,7 +638,7 @@ export default function PlanejamentoPage() {
                         pendencies={getPendenciesFor(d)}
                         memberName={getMember(d.assignee)?.name}
                         onClick={() => openCard(d)}
-                        canReassign={canReassign}
+                        canReassign={canReassign && d.origem !== "solicitacao"}
                         reassignMembers={teamMembers.map((m) => ({ id: m.id, name: m.name }))}
                         onReassigned={() => refetch()}
                       />

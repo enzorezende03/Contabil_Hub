@@ -16,7 +16,7 @@ import {
   type Demand,
 } from "@/lib/types";
 import { getDeadlineUrgency } from "@/lib/demand-utils";
-import { Search, LayoutGrid, List, Plus, CalendarRange, AlertTriangle, SlidersHorizontal } from "lucide-react";
+import { Search, LayoutGrid, List, Plus, CalendarRange, AlertTriangle, SlidersHorizontal, ChevronDown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";

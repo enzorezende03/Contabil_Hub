@@ -91,8 +91,9 @@ export function PlanningCard({
       return;
     }
     setSaving(true);
+    const table = demand.origem === "solicitacao" ? "demands" : "plannings";
     const { error } = await supabase
-      .from("plannings")
+      .from(table)
       .update({ assignee: newAssigneeId })
       .eq("id", demand.id);
     setSaving(false);
@@ -106,6 +107,7 @@ export function PlanningCard({
     setSearch("");
     onReassigned?.();
   };
+
 
   const handleDateChange = async (newDate: Date | undefined) => {
     if (!newDate) return;

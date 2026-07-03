@@ -277,7 +277,7 @@ export default function PlanejamentoPage() {
   const activeFilterCount =
     (filterType !== "all" ? 1 : 0) +
     (filterWithPendency !== "all" ? 1 : 0) +
-    (filterDateFrom !== _monthStart || filterDateTo !== _monthEnd ? 1 : 0);
+    (filterDateFrom !== _weekStart || filterDateTo !== _weekEnd ? 1 : 0);
 
   const renderColumn = (col: ActiveCol) => {
     const items = columnsData[col];

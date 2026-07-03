@@ -95,7 +95,7 @@ export default function PlanejamentoPage() {
   const [viewClientDemand, setViewClientDemand] = useState<Demand | null>(null);
 
   const openCard = (d: Demand) => {
-    if (d.origem === "solicitacao") setViewClientDemand(d);
+    if (d.origem === "solicitacao" || !canReassign) setViewClientDemand(d);
     else setEditPlanning(d);
   };
   const [expandedCols, setExpandedCols] = useState<Record<string, boolean>>({});

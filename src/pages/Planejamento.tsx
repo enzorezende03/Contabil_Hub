@@ -256,10 +256,13 @@ export default function PlanejamentoPage() {
   const periodLabel = useMemo(() => {
     if (!filterDateFrom && !filterDateTo) return "todos os prazos";
     try {
+      if (periodMode === "week") {
+        return `semana atual (${new Date(filterDateFrom).toLocaleDateString("pt-BR")} – ${new Date(filterDateTo).toLocaleDateString("pt-BR")})`;
+      }
       const d = new Date(filterDateFrom || filterDateTo);
       return `${MONTH_LABELS[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`;
     } catch { return ""; }
-  }, [filterDateFrom, filterDateTo]);
+  }, [filterDateFrom, filterDateTo, periodMode]);
 
   // Active vs completed for kanban
   const completedInPeriod = useMemo(

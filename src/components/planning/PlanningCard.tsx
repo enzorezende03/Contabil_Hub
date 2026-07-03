@@ -105,6 +105,29 @@ export function PlanningCard({
     onReassigned?.();
   };
 
+  const handleDateChange = async (newDate: Date | undefined) => {
+    if (!newDate) return;
+    const iso = `${newDate.getFullYear()}-${String(newDate.getMonth() + 1).padStart(2, "0")}-${String(newDate.getDate()).padStart(2, "0")}`;
+    if (iso === demand.internalDeadline) {
+      setDateOpen(false);
+      return;
+    }
+    setSavingDate(true);
+    const { error } = await supabase
+      .from("plannings")
+      .update({ internal_deadline: iso })
+      .eq("id", demand.id);
+    setSavingDate(false);
+    if (error) {
+      toast.error("Erro ao remanejar data: " + error.message);
+      return;
+    }
+    toast.success("Prazo remanejado");
+    setDateOpen(false);
+    onReassigned?.();
+  };
+
+
   return (
     <div
       onClick={onClick}

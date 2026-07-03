@@ -33,6 +33,7 @@ interface Props {
   canReassign?: boolean;
   reassignMembers?: ReassignMember[];
   onReassigned?: () => void;
+  showOriginTag?: boolean;
 }
 
 export function PlanningCard({
@@ -43,6 +44,7 @@ export function PlanningCard({
   canReassign,
   reassignMembers = [],
   onReassigned,
+  showOriginTag = true,
 }: Props) {
   const [reassignOpen, setReassignOpen] = useState(false);
   const [saving, setSaving] = useState(false);

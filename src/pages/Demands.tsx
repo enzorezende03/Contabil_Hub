@@ -48,6 +48,40 @@ export default function DemandsPage() {
   const [completedOpen, setCompletedOpen] = useState(false);
   const isMobile = useIsMobile();
 
+  const _now = new Date();
+  const _weekStart = (() => {
+    const d = new Date(_now);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    d.setDate(diff);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const _weekEnd = (() => {
+    const d = new Date(_now);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? 0 : 7);
+    d.setDate(diff);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const _monthStart = `${_now.getFullYear()}-${String(_now.getMonth() + 1).padStart(2, "0")}-01`;
+  const _monthEnd = (() => {
+    const d = new Date(_now.getFullYear(), _now.getMonth() + 1, 0);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+
+  const [periodMode, setPeriodMode] = usePersistedFilter<"week" | "month">("demandas", "periodMode", "week");
+  const defaultFrom = periodMode === "month" ? _monthStart : _weekStart;
+  const defaultTo = periodMode === "month" ? _monthEnd : _weekEnd;
+  const [filterDateFrom, setFilterDateFrom] = usePersistedFilter<string>("demandas", "dateFrom", defaultFrom);
+  const [filterDateTo, setFilterDateTo] = usePersistedFilter<string>("demandas", "dateTo", defaultTo);
+
+  useEffect(() => {
+    const from = periodMode === "month" ? _monthStart : _weekStart;
+    const to = periodMode === "month" ? _monthEnd : _weekEnd;
+    setFilterDateFrom(from);
+    setFilterDateTo(to);
+  }, [periodMode]);
+
   const { members: teamMembers } = useTeamMembers({ excludeCoordenacao: true });
   const { user, profile } = useAuth();
   useActionPermissions();

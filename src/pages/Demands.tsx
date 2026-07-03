@@ -86,6 +86,7 @@ export default function DemandsPage() {
   const { user, profile } = useAuth();
   useActionPermissions();
   const canSeeAll = canPerformAction("ver_todas_demandas", profile?.role);
+  const canReassign = canPerformAction("gerenciar_ausencias_equipe", profile?.role);
 
   const { data: dbDemands = [], refetch: refetchDemands } = useQuery({
     queryKey: ["demands"],
@@ -293,6 +294,9 @@ export default function DemandsPage() {
               memberName={getMember(d.assignee)?.name}
               onClick={() => setSelectedDemand(d)}
               showOriginTag={false}
+              canReassign={canReassign}
+              reassignMembers={teamMembers.map((m) => ({ id: m.id, name: m.name }))}
+              onReassigned={() => refetchDemands()}
             />
           ))}
           {items.length === 0 && (
@@ -448,6 +452,9 @@ export default function DemandsPage() {
                         memberName={getMember(d.assignee)?.name}
                         onClick={() => setSelectedDemand(d)}
                         showOriginTag={false}
+                        canReassign={canReassign}
+                        reassignMembers={teamMembers.map((m) => ({ id: m.id, name: m.name }))}
+                        onReassigned={() => refetchDemands()}
                       />
                     ))}
                   </div>

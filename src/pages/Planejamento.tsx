@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { CreatePlanningDialog } from "@/components/CreatePlanningDialog";
 import { EditPlanningDialog } from "@/components/EditPlanningDialog";
+import { DemandDetailsDialog } from "@/components/DemandDetailsDialog";
 import { PlanningTimeline } from "@/components/PlanningTimeline";
 import { useActivePendenciesByPlanning, type CellPendencyInfo } from "@/hooks/use-pendencies";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -91,6 +92,12 @@ export default function PlanejamentoPage() {
   }, [periodMode]);
   const [createOpen, setCreateOpen] = useState(false);
   const [editPlanning, setEditPlanning] = useState<Demand | null>(null);
+  const [viewClientDemand, setViewClientDemand] = useState<Demand | null>(null);
+
+  const openCard = (d: Demand) => {
+    if (d.origem === "solicitacao") setViewClientDemand(d);
+    else setEditPlanning(d);
+  };
   const [expandedCols, setExpandedCols] = useState<Record<string, boolean>>({});
   const [completedOpen, setCompletedOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -134,9 +141,40 @@ export default function PlanejamentoPage() {
         notes: d.notes,
         isLegacy: false,
         createdAt: d.created_at,
+        origem: "planejamento",
       }));
     },
   });
+
+  // Also fetch client requests (demandas) so the operational team sees everything
+  // planned for the week/month in a single page, tagged as "cliente".
+  const { data: dbClientDemands = [], refetch: refetchClientDemands } = useQuery({
+    queryKey: ["plannings-client-demands"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("demands").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []).map((d: any): Demand => ({
+        id: `demand-${d.id}`,
+        client: d.client,
+        competencias: d.competencias,
+        types: d.types,
+        description: d.description,
+        assignee: d.assignee,
+        complexity: d.complexity ?? "media",
+        weight: d.weight ?? 1,
+        priority: d.priority,
+        internalDeadline: d.internal_deadline,
+        clientDeadline: d.client_deadline,
+        status: d.status,
+        timeSpentMinutes: d.time_spent_minutes ?? 0,
+        notes: d.notes,
+        isLegacy: !!d.is_legacy,
+        createdAt: d.created_at,
+        origem: "solicitacao",
+      }));
+    },
+  });
+
 
   const { data: statusEntries = {}, refetch: refetchStatuses } = useQuery({
     queryKey: ["demand_status_entries_map"],
@@ -173,7 +211,7 @@ export default function PlanejamentoPage() {
   }, [refetchStatuses]);
 
   const planningsWithDerivedStatus = useMemo(() => {
-    return dbPlannings.map((d) => {
+    const derived = dbPlannings.map((d) => {
       const closingTypes = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"];
       const relevantTypes = d.types.filter((t) => closingTypes.includes(t));
       if (relevantTypes.length === 0 || d.competencias.length === 0) return d;
@@ -190,10 +228,13 @@ export default function PlanejamentoPage() {
       else derivedStatus = "not_started";
       return { ...d, status: derivedStatus };
     });
-  }, [dbPlannings, statusEntries]);
+    // Merge with client-requested demands so both appear in the same board
+    return [...derived, ...dbClientDemands];
+  }, [dbPlannings, statusEntries, dbClientDemands]);
 
   useEffect(() => {
     const toSync = planningsWithDerivedStatus.filter((d) => {
+      if (d.origem === "solicitacao") return false;
       const original = dbPlannings.find((o) => o.id === d.id);
       return original && original.status !== d.status;
     });
@@ -205,6 +246,7 @@ export default function PlanejamentoPage() {
       refetch();
     })();
   }, [planningsWithDerivedStatus, dbPlannings, refetch]);
+
 
   const { data: pendenciesByPlanning } = useActivePendenciesByPlanning();
 
@@ -335,8 +377,8 @@ export default function PlanejamentoPage() {
               demand={d}
               pendencies={getPendenciesFor(d)}
               memberName={getMember(d.assignee)?.name}
-              onClick={() => setEditPlanning(d)}
-              canReassign={canReassign}
+              onClick={() => openCard(d)}
+              canReassign={canReassign && d.origem !== "solicitacao"}
               reassignMembers={teamMembers.map((m) => ({ id: m.id, name: m.name }))}
               onReassigned={() => refetch()}
             />
@@ -595,8 +637,8 @@ export default function PlanejamentoPage() {
                         demand={d}
                         pendencies={getPendenciesFor(d)}
                         memberName={getMember(d.assignee)?.name}
-                        onClick={() => setEditPlanning(d)}
-                        canReassign={canReassign}
+                        onClick={() => openCard(d)}
+                        canReassign={canReassign && d.origem !== "solicitacao"}
                         reassignMembers={teamMembers.map((m) => ({ id: m.id, name: m.name }))}
                         onReassigned={() => refetch()}
                       />
@@ -625,7 +667,7 @@ export default function PlanejamentoPage() {
                 {filtered.map((d) => {
                   const pend = getPendenciesFor(d);
                   return (
-                    <tr key={d.id} onClick={() => setEditPlanning(d)} className="hover:bg-muted/30 transition-colors cursor-pointer">
+                    <tr key={d.id} onClick={() => openCard(d)} className="hover:bg-muted/30 transition-colors cursor-pointer">
                       <td className="px-3 py-2.5 font-medium">{d.client}</td>
                       <td className="px-3 py-2.5 text-xs max-w-40">
                         {d.types.length > 1 ? `${d.types.length} tarefas` : d.types[0]}
@@ -662,6 +704,14 @@ export default function PlanejamentoPage() {
         planning={editPlanning}
         onSaved={() => refetch()}
       />
+
+      <DemandDetailsDialog
+        open={!!viewClientDemand}
+        onOpenChange={(o) => !o && setViewClientDemand(null)}
+        demand={viewClientDemand}
+      />
+
+
 
       <CreatePlanningDialog
         open={createOpen}

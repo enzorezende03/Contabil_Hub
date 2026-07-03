@@ -128,15 +128,32 @@ export function PlanningCard({
   };
 
 
+  const isClientRequest = demand.origem === "solicitacao";
+
   return (
     <div
       onClick={onClick}
-      className="rounded-lg border bg-card hover:border-primary/40 transition-colors cursor-pointer p-2.5 space-y-1.5"
+      className={`rounded-lg border bg-card hover:border-primary/40 transition-colors cursor-pointer p-2.5 space-y-1.5 ${
+        isClientRequest ? "border-l-4 border-l-amber-500" : ""
+      }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[12px] font-medium leading-snug truncate" title={demand.client}>
-          {sentenceCase(demand.client)}
-        </p>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <span
+              className={`text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                isClientRequest
+                  ? "bg-amber-500/15 text-amber-700 dark:text-amber-400"
+                  : "bg-primary/10 text-primary"
+              }`}
+            >
+              {isClientRequest ? "Cliente" : "Interno"}
+            </span>
+          </div>
+          <p className="text-[12px] font-medium leading-snug truncate" title={demand.client}>
+            {sentenceCase(demand.client)}
+          </p>
+        </div>
         <div className="flex items-center gap-1 shrink-0">
           {showPriority && (
             <span

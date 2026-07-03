@@ -115,33 +115,60 @@ export default function DemandsPage() {
 
   const [statusEntries, setStatusEntries] = useState<Record<string, DemandStatus>>({});
 
-  useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase
+  const loadStatusEntries = async () => {
+    const map: Record<string, DemandStatus> = {};
+    const pageSize = 1000;
+    let from = 0;
+    while (true) {
+      const { data, error } = await supabase
         .from("demand_status_entries")
-        .select("client_name, month, year, demand_type, status");
-      if (data) {
-        const map: Record<string, DemandStatus> = {};
-        data.forEach((d: any) => {
-          const key = `${d.client_name}|${d.month}/${d.year}|${d.demand_type}`;
-          map[key] = d.status as DemandStatus;
-        });
-        setStatusEntries(map);
-      }
-    };
-    load();
+        .select("client_name, month, year, demand_type, status")
+        .range(from, from + pageSize - 1);
+      if (error) break;
+      (data || []).forEach((d: any) => {
+        const key = `${d.client_name}|${d.month}/${d.year}|${d.demand_type}`;
+        map[key] = d.status as DemandStatus;
+      });
+      if (!data || data.length < pageSize) break;
+      from += pageSize;
+    }
+    setStatusEntries(map);
+  };
+
+  useEffect(() => {
+    loadStatusEntries();
+    const channel = supabase
+      .channel("demands-status-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "demand_status_entries" }, () => {
+        loadStatusEntries();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const demandsWithDerivedStatus = useMemo(() => {
     return dbDemands.map((d) => {
-      const closingTypes = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"];
-      const relevantTypes = d.types.filter((t) => closingTypes.includes(t));
-      if (relevantTypes.length === 0 || d.competencias.length === 0) return d;
+      const monthlyTypes = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"];
+      const closingTypes = ["fechamento", "revisao"];
+      const monthly = d.types.filter((t) => monthlyTypes.includes(t));
+      const closing = d.types.filter((t) => closingTypes.includes(t));
+      if ((monthly.length === 0 && closing.length === 0) || d.competencias.length === 0) return d;
 
       const allStatuses: DemandStatus[] = [];
       d.competencias.forEach((comp) => {
-        relevantTypes.forEach((type) => {
+        monthly.forEach((type) => {
           const key = `${d.client}|${comp}|${type}`;
+          allStatuses.push(statusEntries[key] || "not_started");
+        });
+      });
+      // For fechamento/revisao, entries are stored with month="closing" per year
+      const yearsSeen = new Set<string>();
+      d.competencias.forEach((comp) => {
+        const y = comp.split("/")[1];
+        if (!y || yearsSeen.has(y)) return;
+        yearsSeen.add(y);
+        closing.forEach((type) => {
+          const key = `${d.client}|closing/${y}|${type}`;
           allStatuses.push(statusEntries[key] || "not_started");
         });
       });
@@ -156,6 +183,23 @@ export default function DemandsPage() {
       return { ...d, status: derivedStatus };
     });
   }, [dbDemands, statusEntries]);
+
+  // Persist derived "completed" transition back to demands table so the request
+  // reflects the fact that all underlying cell statuses (including fechamento) are done.
+  useEffect(() => {
+    const toSync = demandsWithDerivedStatus.filter((d) => {
+      const original = dbDemands.find((o) => o.id === d.id);
+      return original && original.status !== "completed" && d.status === "completed";
+    });
+    if (toSync.length === 0) return;
+    (async () => {
+      await Promise.all(
+        toSync.map((d) => supabase.from("demands").update({ status: "completed" }).eq("id", d.id))
+      );
+      refetchDemands();
+    })();
+  }, [demandsWithDerivedStatus, dbDemands, refetchDemands]);
+
 
   const filtered = useMemo(() => {
     return demandsWithDerivedStatus

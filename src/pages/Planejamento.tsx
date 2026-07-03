@@ -134,9 +134,40 @@ export default function PlanejamentoPage() {
         notes: d.notes,
         isLegacy: false,
         createdAt: d.created_at,
+        origem: "planejamento",
       }));
     },
   });
+
+  // Also fetch client requests (demandas) so the operational team sees everything
+  // planned for the week/month in a single page, tagged as "cliente".
+  const { data: dbClientDemands = [], refetch: refetchClientDemands } = useQuery({
+    queryKey: ["plannings-client-demands"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("demands").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []).map((d: any): Demand => ({
+        id: `demand-${d.id}`,
+        client: d.client,
+        competencias: d.competencias,
+        types: d.types,
+        description: d.description,
+        assignee: d.assignee,
+        complexity: d.complexity ?? "media",
+        weight: d.weight ?? 1,
+        priority: d.priority,
+        internalDeadline: d.internal_deadline,
+        clientDeadline: d.client_deadline,
+        status: d.status,
+        timeSpentMinutes: d.time_spent_minutes ?? 0,
+        notes: d.notes,
+        isLegacy: !!d.is_legacy,
+        createdAt: d.created_at,
+        origem: "solicitacao",
+      }));
+    },
+  });
+
 
   const { data: statusEntries = {}, refetch: refetchStatuses } = useQuery({
     queryKey: ["demand_status_entries_map"],

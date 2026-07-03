@@ -210,7 +210,7 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
                 <Label>Responsável *</Label>
                 <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className={selectClass} required>
                   <option value="">Selecione...</option>
-                  {TEAM_MEMBERS.map((m) => (
+                  {teamMembers.map((m) => (
                     <option key={m.id} value={m.id}>{m.name}</option>
                   ))}
                 </select>

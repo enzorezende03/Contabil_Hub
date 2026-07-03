@@ -541,14 +541,6 @@ export default function PlanejamentoPage() {
         {/* KANBAN */}
         {view === "kanban" && (
           <>
-            <div className="flex justify-end">
-              <CompletedPlanningsDrawer
-                completed={completedInPeriod}
-                onOpenDemand={(d) => setEditPlanning(d)}
-                periodLabel={periodLabel}
-              />
-            </div>
-
             {isMobile ? (
               <Tabs defaultValue="paused_pendency" className="w-full">
                 <TabsList className="grid grid-cols-3 w-full">

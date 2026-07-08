@@ -550,6 +550,14 @@ export default function CompetenciasPage() {
   const setBulkStatus = useCallback(async (client: string, months: Set<string>, type: string, status: DemandStatus) => {
     if (!user) return;
     if (months.size === 0) { toast.error("Selecione ao menos um mês"); return; }
+    if (status === "completed") {
+      const blocked = [...months].filter((m) => isFutureCompetencia(m));
+      if (blocked.length > 0) {
+        toast.error(`Não é possível concluir competência(s) futura(s): ${blocked.join(", ")}/${year}`);
+        return;
+      }
+    }
+
 
     setDemandStatuses((prev) => {
       const next = { ...prev };

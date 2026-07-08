@@ -504,8 +504,27 @@ export default function CompetenciasPage() {
     loadStatuses();
   }, [year]);
 
+  // Blocks marking a cell as completed when its competência refers to a month/year
+  // that has not ended yet (e.g. tentando concluir agosto/2026 em julho/2026).
+  const isFutureCompetencia = useCallback((month: string, refYear: string = year): boolean => {
+    if (!month || month === "closing") return false;
+    const mm = parseInt(month, 10);
+    const yy = parseInt(refYear, 10);
+    if (!mm || !yy) return false;
+    const now = new Date();
+    const nowY = now.getFullYear();
+    const nowM = now.getMonth() + 1;
+    if (yy > nowY) return true;
+    if (yy < nowY) return false;
+    return mm >= nowM; // competência do mês corrente ou futuro ainda não pode ser concluída
+  }, [year]);
+
   const setDemandStatus = useCallback(async (client: string, month: string, type: string, status: DemandStatus) => {
     if (!user) return;
+    if (status === "completed" && isFutureCompetencia(month)) {
+      toast.error("Não é possível concluir uma competência que ainda não ocorreu");
+      return;
+    }
     const key = `${client}|${month}|${type}`;
     setDemandStatuses((prev) => ({ ...prev, [key]: status }));
     setCellMeta((prev) => ({ ...prev, [key]: { filledBy: user.id, updatedAt: new Date().toISOString() } }));

@@ -210,27 +210,42 @@ export default function PlanejamentoPage() {
     return () => { supabase.removeChannel(channel); };
   }, [refetchStatuses]);
 
-  const planningsWithDerivedStatus = useMemo(() => {
-    const derived = dbPlannings.map((d) => {
-      const closingTypes = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"];
-      const relevantTypes = d.types.filter((t) => closingTypes.includes(t));
-      if (relevantTypes.length === 0 || d.competencias.length === 0) return d;
-      const allStatuses: DemandStatus[] = [];
-      d.competencias.forEach((comp) => {
-        relevantTypes.forEach((type) => {
-          const key = `${d.client}|${comp}|${type}`;
-          allStatuses.push(statusEntries[key] || "not_started");
-        });
+  const deriveFromCells = (d: Demand): DemandStatus => {
+    const monthlyTypes = ["lancamentos", "conciliacao_bancaria", "conciliacao_contabil"];
+    const closingTypes = ["fechamento", "revisao"];
+    const monthly = d.types.filter((t) => monthlyTypes.includes(t));
+    const closing = d.types.filter((t) => closingTypes.includes(t));
+    if ((monthly.length === 0 && closing.length === 0) || d.competencias.length === 0) return d.status;
+    const allStatuses: DemandStatus[] = [];
+    d.competencias.forEach((comp) => {
+      monthly.forEach((type) => {
+        allStatuses.push(statusEntries[`${d.client}|${comp}|${type}`] || "not_started");
       });
-      let derivedStatus: DemandStatus;
-      if (allStatuses.every((s) => s === "completed")) derivedStatus = "completed";
-      else if (allStatuses.some((s) => s !== "not_started")) derivedStatus = "in_progress";
-      else derivedStatus = "not_started";
-      return { ...d, status: derivedStatus };
     });
-    // Merge with client-requested demands so both appear in the same board
-    return [...derived, ...dbClientDemands];
-  }, [dbPlannings, statusEntries, dbClientDemands]);
+    const yearsSeen = new Set<string>();
+    d.competencias.forEach((comp) => {
+      const y = comp.split("/")[1];
+      if (!y || yearsSeen.has(y)) return;
+      yearsSeen.add(y);
+      closing.forEach((type) => {
+        allStatuses.push(statusEntries[`${d.client}|closing/${y}|${type}`] || "not_started");
+      });
+    });
+    if (allStatuses.length === 0) return d.status;
+    if (allStatuses.every((s) => s === "completed")) return "completed";
+    if (allStatuses.some((s) => s === "waiting_info")) return "waiting_info";
+    if (allStatuses.some((s) => s === "blocked")) return "blocked";
+    if (allStatuses.some((s) => s !== "not_started")) return "in_progress";
+    return "not_started";
+  };
+
+  const planningsWithDerivedStatus = useMemo(() => {
+    const derivedInternal = dbPlannings.map((d) => ({ ...d, status: deriveFromCells(d) }));
+    const derivedClient = dbClientDemands.map((d) => ({ ...d, status: deriveFromCells(d) }));
+    return [...derivedInternal, ...derivedClient];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dbPlannings, dbClientDemands, statusEntries]);
+
 
   useEffect(() => {
     const toSync = planningsWithDerivedStatus.filter((d) => {

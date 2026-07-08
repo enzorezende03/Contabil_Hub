@@ -185,17 +185,17 @@ export default function DemandsPage() {
     });
   }, [dbDemands, statusEntries]);
 
-  // Persist derived "completed" transition back to demands table so the request
-  // reflects the fact that all underlying cell statuses (including fechamento) are done.
+  // Persist any derived status change back to demands table so kanban, planejamento
+  // and other views stay consistent with the underlying cells (Competências).
   useEffect(() => {
     const toSync = demandsWithDerivedStatus.filter((d) => {
       const original = dbDemands.find((o) => o.id === d.id);
-      return original && original.status !== "completed" && d.status === "completed";
+      return original && original.status !== d.status;
     });
     if (toSync.length === 0) return;
     (async () => {
       await Promise.all(
-        toSync.map((d) => supabase.from("demands").update({ status: "completed" }).eq("id", d.id))
+        toSync.map((d) => supabase.from("demands").update({ status: d.status }).eq("id", d.id))
       );
       refetchDemands();
     })();

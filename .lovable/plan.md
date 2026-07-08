@@ -1,87 +1,51 @@
-# Redesenho da página /competencias — Fechamento Contábil
 
-Reformular a matriz cliente × mês para refletir o trabalho contábil real: 3 tarefas mensais visíveis por célula (Lançamento, Conc. Bancária, Conc. Contábil), ciclo de fechamento + revisão por período (mensal/trimestral/semestral/anual/livre) como faixa horizontal, totais por linha/coluna, mês corrente destacado, ações em lote e fluxo "Fechar período" como ação central.
+## Diagnóstico
 
-## Entrega em 10 PRs incrementais
+Confirmei o problema no caso da **Camila Araujo Oliveira Medicina LTDA** consultando o banco:
 
-Cada PR é mergeável sozinho. Confirmação entre PRs antes de seguir.
+- A solicitação existe com `competencias = [02/2026, 03/2026, 04/2026, 05/2026]`, `types = [lancamentos, conciliacao_bancaria]` e `status = not_started` na tabela `demands`.
+- Na tabela `demand_status_entries` (a que alimenta a aba **Competências / Fechamento**) as células de Lançamentos e Conciliação Bancária estão `completed` — mas para os meses **03, 04, 05 e 06/2026**, e não para 02/2026.
 
-### PR 1 — Legibilidade base (modelagem + sentence case)
-- Migration: `clients.apelido text`, `clients.cadencia_fechamento text default 'mensal'`.
-- Coluna empresa na matriz: mantém razão social completa, apenas convertida de caixa alta para sentence case/title case; tooltip com razão social formatada; largura ~220px, peso 500, 12px.
-- Header em sentence case ("Fechamento contábil 2025"); subtítulo curto.
-- Nota: apelido fica disponível no banco para uso futuro, mas a exibição padrão usa o nome completo.
+Isso explica os três sintomas reportados:
 
-### PR 2 — Células com 3 mini-barras
-- Novo `CellTriBar`: grid 3 colunas × altura total, gap 1px, ~26×22px.
-- Posições fixas: Lançamento | Conc. Banc. | Conc. Cont., cor por status (5 cores semânticas via tokens HSL).
-- Substitui os códigos CC/CB/AD/L atuais. Hover/click mantêm comportamento antigo nesta etapa.
-- Legenda compacta sempre visível abaixo dos KPIs.
+1. **Planejamento mostra "não iniciada"** — a página `Planejamento.tsx` mescla as solicitações de cliente vindas da tabela `demands`, mas usa o `status` cru do registro (que nunca foi atualizado) em vez de derivar o status a partir das células, como já faz com os cards de planejamento interno.
+2. **Solicitação mostra "em andamento" e não conclui** — a página `Demands.tsx` já deriva o status localmente a partir das células, porém:
+   - só grava de volta em `demands.status` quando o derivado vira `completed`; estados intermediários (`in_progress`, `waiting_info`) nunca são persistidos;
+   - a Camila tem uma célula ausente (02/2026), então o derivado nunca chega a `completed` — o card fica preso em "em andamento".
+3. **Fechamento mostra Lançamentos + Conc. Contábil concluídos** — está correto, porque a página Competências lê direto de `demand_status_entries`; o problema é só a não-propagação para as outras telas.
 
-### PR 3 — Totais, mês corrente, hover row
-- Coluna "Total" à direita (% meses 100% concluídos + mini-barra 3px).
-- Linha "% conciliado por mês" embaixo, colorida por urgência (verde >80%, amarelo 50–80%, vermelho <50%, info para mês corrente, cinza futuros).
-- Mês corrente: fundo `rgba(61,90,128,0.06)` e header em peso 500.
-- Hover row highlight; cliente encerrado tachado + listrado nos meses pós-fim.
+Há também um descasamento de dados no caso da Camila: a solicitação pede 02–05/2026 e a equipe marcou 03–06/2026. Isso é um erro de preenchimento, não de código — vou sinalizar para o usuário corrigir manualmente após o fix.
 
-### PR 4 — Tooltip estruturado + drawer de detalhe
-- Tooltip por célula (delay 400ms) com 3 linhas: tipo · status · quem/quando.
-- Click → drawer lateral: status por tipo, comentários, pendências relacionadas, ações (marcar concluído, criar pendência, reatribuir).
+## O que vou construir
 
-### PR 5 — Cadência + view `v_closing_periods`
-- Migration: `review_submissions.periodo_inicio date`, `periodo_fim date` (coexistem com `competencia`).
-- View `v_closing_periods` gera períodos esperados por cadência e calcula `periodo_status` (aprovado | em_revisao | pronto | em_andamento | nao_iniciado).
-- Ainda sem UI; apenas dados consumíveis.
+### 1. Planejamento: derivar status das solicitações a partir das células
 
-### PR 6 — Faixa de fechamento + banner + sub-linha
-- Faixa horizontal 5px abaixo das células, contínua ao longo dos meses do mesmo período (teal pronto / amarelo em revisão / verde aprovado).
-- Sub-linha na coluna empresa: "fech. trimestral · Q1/25 aprovado" etc.
-- Banner teal no rodapé com período pronto + CTA "Fechar período".
-- KPI "Períodos prontos p/ fechar" substitui ou complementa "finalizadas".
+Em `src/pages/Planejamento.tsx`, aplicar a mesma lógica de derivação hoje usada só para `dbPlannings` também para `dbClientDemands` (`origem === "solicitacao"`), considerando os tipos relevantes de cada solicitação (`lancamentos`, `conciliacao_bancaria`, `conciliacao_contabil` e, quando fizer sentido, `fechamento`/`revisao` com chave `closing/<ano>`, igual à lógica já existente em `Demands.tsx`).
 
-### PR 7 — Modal "Fechar período" + integração com revisão
-- Seleção de range (pré-preenchido pela cadência; date pickers se `livre`).
-- Validação: todos meses do range com Lanç + Conc.Banc + Conc.Cont = completed. Mensagem clara do que falta.
-- Upload de demonstrativos conforme tributação (reaproveita `LiberarRevisaoDialog`).
-- Seleção de analista revisora (carga atual visível, default menos sobrecarregada).
-- Cria `review_submission` com `periodo_inicio`/`periodo_fim`; faixa passa de teal para amarelo.
+Resultado: o card de solicitação no Planejamento passa a refletir "em andamento" / "concluída" conforme as células de competência.
 
-### PR 8 — Bulk selection ✅
-- Checkbox por linha + checkbox "selecionar todos" no header.
-- Barra de ação em lote redesenhada: sticky no topo, fundo navy primary, contadores e ações com hierarquia visual clara.
-- Ações: marcar fechamento concluído, forçar finalizado, reabrir, e aplicar status (Lanç / Conc.Banc / Conc.Cont) por tipo × meses selecionados.
-- Reatribuição de responsável: deferida — o modelo atual não possui `responsavel` por cliente/célula; será endereçada quando o campo existir.
+### 2. Demandas: persistir todas as transições de status derivadas
 
-### PR 9 — Toggle "Matriz anual" / "Foco no mês" ✅
-- Toggle persistido entre "Matriz anual" (visão padrão) e "Foco no mês".
-- "Foco no mês": tabela Empresa · Tributação · Lançamento · Conc. Banc. · Conc. Cont. · Status (n/3).
-- Seletor de mês + filtros "Todas" / "Só pendentes" (default) / "Só atrasados" (apenas anos passados/corrente).
-- Status com chip colorido + select para alteração inline; clique no nome abre o drawer existente.
-- Ordenação default: pendentes primeiro, depois alfabética.
+Em `src/pages/Demands.tsx`, expandir o `useEffect` que hoje só sincroniza a transição para `completed`. Passar a gravar em `demands.status` qualquer mudança do derivado (`not_started` → `in_progress` → `waiting_info` → `blocked` → `completed`), para que:
 
-### PR 10 — Mobile (<768px) ✅
-- Default mobile = "Foco no mês" (aplicado uma vez por sessão; respeita escolha posterior do usuário).
-- Mês corrente pré-selecionado (já era default do `focoMonth`).
-- Legenda/KPIs com scroll horizontal em telas pequenas (whitespace-nowrap < md).
-- Filtros: barra com `overflow-x-auto` existente já cobre o caso.
-- Tabela "Foco no mês" usa overflow-x-auto e é navegável no toque; clique no nome → drawer (mesmo padrão da matriz).
+- a listagem/kanban da própria página fique consistente com o painel de Competências;
+- outras telas (Planejamento, relatórios) que leem `demands.status` cru também fiquem corretas mesmo sem passar pela aba de Solicitações.
+
+### 3. Rede de segurança no backend: trigger de sincronização
+
+Adicionar um trigger em `demand_status_entries` (AFTER INSERT/UPDATE/DELETE) que, para cada célula afetada, recalcule o status de todas as linhas de `demands` cuja `client = client_name`, que contenham a `competencia` (`MM/YYYY`) em `competencias` e o `demand_type` em `types`, e atualize `demands.status` com o valor derivado (mesma regra da UI: completed / waiting_info / blocked / in_progress / not_started, considerando também as células `closing/<ano>` quando o tipo for `fechamento`/`revisao`).
+
+Assim, a sincronização deixa de depender de alguém ter a aba de Solicitações aberta — funciona mesmo quando o preenchimento vier da tela de Competências ou de outra automação.
+
+### 4. Aviso ao usuário sobre o caso Camila
+
+Depois do deploy, avisar que a demanda da Camila continua em "em andamento" porque a competência **02/2026** não foi marcada em nenhuma célula — a equipe marcou 03–06/2026. Para concluir a solicitação, ou completar a célula 02/2026, ou ajustar as competências da solicitação para 03–06/2026.
 
 ## Detalhes técnicos
 
-**Modelagem**
-- `clients.apelido text null`, `clients.cadencia_fechamento text default 'mensal' check in ('mensal','trimestral','semestral','anual','livre')`.
-- `review_submissions.periodo_inicio date`, `periodo_fim date` (nullable inicialmente; preenchidos pelo novo fluxo).
-- `v_closing_periods(client_id, periodo_label, periodo_inicio, periodo_fim, status)` derivando de `clients.cadencia_fechamento`, `demand_status_entries` e `review_submissions`.
-- Sem mudanças destrutivas; `competencia` mantida em `review_submissions` para compatibilidade.
-
-**UI / tokens**
-- Todas cores via tokens HSL em `index.css` (success/warning/danger/info + teal de marca `#5B9EA6`).
-- Nada hardcoded em componentes.
-- Componentes novos: `CellTriBar`, `ClosingBandRow`, `PeriodReadyBanner`, `FecharPeriodoDialog`, `BulkActionBarMatrix`, `MonthFocusView`.
-
-**Sem regressão**
-- Filtros persistidos (`use-persisted-filter`), exportação Excel e permissões mantidos em todos os PRs.
-
-## Próximo passo
-
-Roadmap dos 10 PRs concluído. Hotfix aplicado: trigger `auto_complete_lancamentos_from_conciliacao` agora também conclui Conc. Bancária quando Conc. Contábil é marcada (chaining reverso); backfill aplicado nos dados existentes.
+- Arquivos alterados:
+  - `src/pages/Planejamento.tsx` — estender `planningsWithDerivedStatus` para também derivar sobre `dbClientDemands`.
+  - `src/pages/Demands.tsx` — remover o filtro `d.status === "completed"` do `useEffect` de sincronização; comparar `original.status !== derived.status` e persistir qualquer diferença.
+  - Nova migration SQL: função `public.recompute_demand_status(p_demand_id uuid)` + função trigger `public.sync_demands_from_status_entries()` + trigger em `demand_status_entries` chamando essa função com os `client_name/month/year/demand_type` afetados.
+- A função de recomputo replica exatamente a lógica de derivação da UI (inclui suporte a `closing/<ano>` para `fechamento`/`revisao`), para não introduzir divergência.
+- Sem mudanças em RLS/grants; apenas triggers e funções `SECURITY DEFINER` com `search_path = public`.

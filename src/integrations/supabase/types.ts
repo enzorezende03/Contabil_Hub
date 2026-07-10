@@ -1432,6 +1432,10 @@ export type Database = {
         Args: { p_ano: number; p_mes: number }
         Returns: number
       }
+      can_access_pendency: {
+        Args: { _pendency_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_view_submission: {
         Args: { p_submission_id: string }
         Returns: boolean
@@ -1465,6 +1469,7 @@ export type Database = {
         Returns: boolean
       }
       is_coordenacao: { Args: { _user_id: string }; Returns: boolean }
+      is_team_member: { Args: { _user_id: string }; Returns: boolean }
       recompute_demand_status: {
         Args: { p_demand_id: string }
         Returns: undefined

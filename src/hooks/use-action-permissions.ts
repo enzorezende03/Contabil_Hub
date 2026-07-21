@@ -46,6 +46,7 @@ const DEFAULTS: ActionPermissions = {
 };
 
 let cachedPerms: ActionPermissions = { ...DEFAULTS };
+let cachedIsAdmin = false;
 
 export function getActionPermissions(): ActionPermissions {
   return cachedPerms;
@@ -55,7 +56,12 @@ export function setActionPermissions(perms: Partial<ActionPermissions> | Record<
   cachedPerms = { ...cachedPerms, ...(perms as Partial<ActionPermissions>) };
 }
 
+export function setIsAdminFlag(v: boolean) {
+  cachedIsAdmin = v;
+}
+
 export function canPerformAction(action: keyof ActionPermissions, role: string | undefined): boolean {
+  if (cachedIsAdmin) return true;
   if (!role) return false;
   return cachedPerms[action]?.includes(role) ?? false;
 }

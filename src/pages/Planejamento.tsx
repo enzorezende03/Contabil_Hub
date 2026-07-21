@@ -103,11 +103,11 @@ export default function PlanejamentoPage() {
   const isMobile = useIsMobile();
 
   const { members: teamMembers } = useTeamMembers({ excludeCoordenacao: true });
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   useActionPermissions();
-  const canSeeAll = canPerformAction("ver_todas_demandas", profile?.role);
-  const canSeeWorkloadByRole = canPerformAction("ver_carga_equipe", profile?.role);
-  const canReassign = canPerformAction("gerenciar_ausencias_equipe", profile?.role);
+  const canSeeAll = isAdmin || canPerformAction("ver_todas_demandas", profile?.role);
+  const canSeeWorkloadByRole = isAdmin || canPerformAction("ver_carga_equipe", profile?.role);
+  const canReassign = isAdmin || canPerformAction("gerenciar_ausencias_equipe", profile?.role);
 
   const { data: workloadExtraUsers = [] } = useQuery({
     queryKey: ["ver_carga_equipe_users"],

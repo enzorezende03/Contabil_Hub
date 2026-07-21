@@ -39,7 +39,7 @@ const MONTH_NAMES: Record<string, string> = {
 };
 
 export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPlannings = [] }: Props) {
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin } = useAuth();
   const { members: teamMembers } = useTeamMembers();
   const now = new Date();
   const [selectedClients, setSelectedClients] = useState<Set<string>>(new Set());
@@ -355,8 +355,8 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
             </div>
             <div className="col-span-2">
               <Label>Prazo Interno *</Label>
-              <Input type="date" value={internalDeadline} onChange={(e) => setInternalDeadline(e.target.value)} required disabled={!canPerformAction("edit_dates", profile?.role)} />
-              {!canPerformAction("edit_dates", profile?.role) && (
+              <Input type="date" value={internalDeadline} onChange={(e) => setInternalDeadline(e.target.value)} required disabled={!isAdmin && !canPerformAction("edit_dates", profile?.role)} />
+              {!isAdmin && !canPerformAction("edit_dates", profile?.role) && (
                 <p className="text-[10px] text-muted-foreground mt-0.5">Seu cargo não tem permissão para definir datas</p>
               )}
             </div>

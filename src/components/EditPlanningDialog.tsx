@@ -30,7 +30,7 @@ const MONTH_NAMES: Record<string, string> = {
 export function EditPlanningDialog({ open, onOpenChange, planning, onSaved }: Props) {
   const { profile, isAdmin, user } = useAuth();
   const { members: teamMembers } = useTeamMembers();
-  const canEditDates = canPerformAction("edit_dates", profile?.role);
+  const canEditDates = isAdmin || canPerformAction("edit_dates", profile?.role);
   const canEdit = isAdmin || profile?.role === "coordenacao" || planning?.assignee === user?.id;
 
   const [types, setTypes] = useState<Set<DemandType>>(new Set());

@@ -181,6 +181,8 @@ export default function DemandsPage() {
       else if (allStatuses.some((s) => s !== "not_started")) derivedStatus = "in_progress";
       else derivedStatus = "not_started";
 
+      // Preserve manual completion: never downgrade a completed card.
+      if (d.status === "completed") return d;
       return { ...d, status: derivedStatus };
     });
   }, [dbDemands, statusEntries]);
@@ -190,7 +192,10 @@ export default function DemandsPage() {
   useEffect(() => {
     const toSync = demandsWithDerivedStatus.filter((d) => {
       const original = dbDemands.find((o) => o.id === d.id);
-      return original && original.status !== d.status;
+      if (!original || original.status === d.status) return false;
+      // Never overwrite a manual "completed".
+      if (original.status === "completed") return false;
+      return true;
     });
     if (toSync.length === 0) return;
     (async () => {

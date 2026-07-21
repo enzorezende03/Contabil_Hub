@@ -81,7 +81,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq("user_id", userId)
       .eq("role", "admin")
       .maybeSingle();
-    setIsAdmin(!!data);
+    const admin = !!data;
+    setIsAdmin(admin);
+    setIsAdminFlag(admin);
   };
 
   const loadPermissions = async () => {

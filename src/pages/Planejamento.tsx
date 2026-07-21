@@ -240,8 +240,13 @@ export default function PlanejamentoPage() {
   };
 
   const planningsWithDerivedStatus = useMemo(() => {
-    const derivedInternal = dbPlannings.map((d) => ({ ...d, status: deriveFromCells(d) }));
-    const derivedClient = dbClientDemands.map((d) => ({ ...d, status: deriveFromCells(d) }));
+    const resolve = (d: Demand) => {
+      // Preserve manual completion: never downgrade a completed card.
+      if (d.status === "completed") return { ...d, status: "completed" as DemandStatus };
+      return { ...d, status: deriveFromCells(d) };
+    };
+    const derivedInternal = dbPlannings.map(resolve);
+    const derivedClient = dbClientDemands.map(resolve);
     return [...derivedInternal, ...derivedClient];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dbPlannings, dbClientDemands, statusEntries]);
@@ -251,7 +256,10 @@ export default function PlanejamentoPage() {
     const toSync = planningsWithDerivedStatus.filter((d) => {
       if (d.origem === "solicitacao") return false;
       const original = dbPlannings.find((o) => o.id === d.id);
-      return original && original.status !== d.status;
+      if (!original || original.status === d.status) return false;
+      // Never overwrite a manual "completed" — only sync forward progress.
+      if (original.status === "completed") return false;
+      return true;
     });
     if (toSync.length === 0) return;
     (async () => {

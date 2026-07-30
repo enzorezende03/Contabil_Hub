@@ -123,7 +123,7 @@ export function PlanningCard({
     const { error } = await supabase
       .from(table)
       .update({ internal_deadline: iso })
-      .eq("id", demand.id);
+      .eq("id", rawId);
     setSavingDate(false);
     if (error) {
       toast.error("Erro ao remanejar data: " + error.message);

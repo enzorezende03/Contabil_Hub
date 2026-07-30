@@ -85,6 +85,8 @@ export function PlanningCard({
     m.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const rawId = demand.id.startsWith("demand-") ? demand.id.slice(7) : demand.id;
+
   const handleReassign = async (newAssigneeId: string) => {
     if (newAssigneeId === demand.assignee) {
       setReassignOpen(false);
@@ -95,7 +97,7 @@ export function PlanningCard({
     const { error } = await supabase
       .from(table)
       .update({ assignee: newAssigneeId })
-      .eq("id", demand.id);
+      .eq("id", rawId);
     setSaving(false);
     if (error) {
       toast.error("Erro ao remanejar: " + error.message);
@@ -121,7 +123,7 @@ export function PlanningCard({
     const { error } = await supabase
       .from(table)
       .update({ internal_deadline: iso })
-      .eq("id", demand.id);
+      .eq("id", rawId);
     setSavingDate(false);
     if (error) {
       toast.error("Erro ao remanejar data: " + error.message);

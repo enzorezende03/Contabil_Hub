@@ -437,6 +437,48 @@ export default function Clients() {
     return matchesSearch && matchesTrib && matchesUni && matchesPerfil && matchesContrato;
   });
 
+  const STATUS_LABEL: Record<string, string> = {
+    ativo: "Ativo",
+    encerrando: "Encerrando",
+    encerrado_ok: "Encerrado",
+    encerrado_pendente: "Encerrado com pendências",
+  };
+
+  const exportXlsx = () => {
+    if (filtered.length === 0) {
+      toast.error("Nenhum cliente para exportar");
+      return;
+    }
+    const rows = filtered.map((c) => {
+      const hasPending = (pendingByClient[c.razao_social] || 0) > 0;
+      const cstatus = getContractStatus((c as any).data_fim_contrato, hasPending);
+      return {
+        "Razão Social": c.razao_social || "",
+        "Apelido": (c as any).apelido || "",
+        "CNPJ": c.cnpj || "",
+        "Perfil": c.perfil || "",
+        "Unidade": c.unidade || "",
+        "Tributação": c.tributacao || "",
+        "Obrigatoriedade ECD": (c as any).obrigatoriedade_ecd ? "Sim" : "Não",
+        "Cadência de fechamento": (c as any).cadencia_fechamento || "",
+        "Responsabilidade desde": c.competencia_inicio || "",
+        "Status do contrato": STATUS_LABEL[cstatus] || cstatus,
+        "Fim do contrato": (c as any).data_fim_contrato || "",
+        "Motivo do distrato": (c as any).motivo_distrato || "",
+      };
+    });
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [
+      { wch: 40 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 20 }, { wch: 18 },
+      { wch: 20 }, { wch: 22 }, { wch: 22 }, { wch: 26 }, { wch: 16 }, { wch: 30 },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Clientes");
+    const today = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `clientes_${today}.xlsx`);
+    toast.success(`${rows.length} cliente(s) exportado(s)`);
+  };
+
   return (
     <AppLayout>
       <div className="p-6 space-y-6">

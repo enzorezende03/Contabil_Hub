@@ -491,6 +491,9 @@ export default function Clients() {
             <Button variant="outline" onClick={downloadTemplate} className="gap-2" size="sm">
               <Download className="w-4 h-4" /> Modelo
             </Button>
+            <Button variant="outline" onClick={exportXlsx} className="gap-2" size="sm">
+              <Download className="w-4 h-4" /> Exportar Excel
+            </Button>
             <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-2" size="sm">
               <Upload className="w-4 h-4" /> Importar
             </Button>

@@ -47,7 +47,7 @@ import {
   Cell,
 } from "recharts";
 import { RefreshCw, AlertTriangle, Download, ChevronRight } from "lucide-react";
-import WeeklyDeliverySection from "@/components/gerencial/WeeklyDeliverySection";
+
 import TeamPerformanceSection from "@/components/gerencial/TeamPerformanceSection";
 
 
@@ -175,8 +175,6 @@ export default function ControleGerencial() {
           </div>
         </header>
 
-        {/* Entregas da semana */}
-        <WeeklyDeliverySection unidade={unidade} tributacao={tributacao} />
 
         {/* Performance da equipe */}
         <TeamPerformanceSection />

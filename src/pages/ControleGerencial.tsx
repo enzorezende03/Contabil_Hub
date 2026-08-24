@@ -145,7 +145,7 @@ export default function ControleGerencial() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Controle gerencial</h1>
             <p className="text-sm text-muted-foreground">
-              Backlog total do escritório
+              Visão gerencial de entregas e aderência ao planejamento
               {overview?.computed_at && <> · atualizado em {fmtDateTime(overview.computed_at)}</>}
             </p>
           </div>

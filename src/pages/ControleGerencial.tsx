@@ -121,12 +121,10 @@ function fmtDateTime(iso: string) {
 }
 
 export default function ControleGerencial() {
-  const queryClient = useQueryClient();
   const [unidade, setUnidade] = useState<string>("all");
   const [tributacao, setTributacao] = useState<string>("all");
-  const [drilldown, setDrilldown] = useState<{ key: string; label: string } | null>(null);
 
-  const { data: overview, isLoading: overviewLoading } = useQuery({
+  const { data: overview } = useQuery({
     queryKey: ["backlog-overview", unidade, tributacao],
     queryFn: async (): Promise<Overview> => {
       const { data, error } = await supabase.rpc("backlog_overview" as any, {
@@ -138,77 +136,6 @@ export default function ControleGerencial() {
     },
   });
 
-  const { data: snapshots = [] } = useQuery({
-    queryKey: ["backlog-snapshots"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("backlog_snapshots" as any)
-        .select("*")
-        .order("snapshot_date", { ascending: true });
-      if (error) throw error;
-      return ((data || []) as unknown) as SnapshotRow[];
-    },
-  });
-
-  const refreshMutation = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("generate-backlog-snapshot", {
-        body: { force: true },
-      });
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      toast.success("Backlog atualizado");
-      queryClient.invalidateQueries({ queryKey: ["backlog-overview"] });
-      queryClient.invalidateQueries({ queryKey: ["backlog-snapshots"] });
-    },
-    onError: (e: any) => toast.error("Falha ao atualizar: " + (e?.message || "erro")),
-  });
-
-  const valorFor = (key: string): number => {
-    if (!overview) return 0;
-    if (key === "fechamento_anual_pendente") return overview.fechamento_anual;
-    if (key === "revisao_pendente") return overview.revisao_pendente;
-    const t = INDICATOR_TO_TYPE[key];
-    return overview.per_type?.[t] ?? 0;
-  };
-
-  // Snapshot filtered for burndown
-  const filtered = useMemo(() => {
-    const u = unidade === "all" ? null : unidade;
-    const t = tributacao === "all" ? null : tributacao;
-    return snapshots.filter((r) => r.unidade === u && r.tributacao === t);
-  }, [snapshots, unidade, tributacao]);
-
-  const snapshotDates = useMemo(() => Array.from(new Set(filtered.map((r) => r.snapshot_date))).sort(), [filtered]);
-  const hasTrend = snapshotDates.length >= 4;
-
-  const burndownData = useMemo(() => {
-    const keys = ["lancamentos_pendentes", "conciliacao_bancaria_pendente", "conciliacao_contabil_pendente", "fechamento_mensal_pendente"];
-    return snapshotDates.slice(-12).map((d) => {
-      const row: any = { date: d.slice(5) };
-      for (const k of keys) {
-        const r = filtered.find((x) => x.snapshot_date === d && x.indicador === k);
-        row[k] = r?.valor ?? 0;
-      }
-      return row;
-    });
-  }, [filtered, snapshotDates]);
-
-  const velocityData = useMemo(() => {
-    const keys = ["velocity_lancamentos", "velocity_conciliacao_bancaria", "velocity_conciliacao_contabil", "velocity_fechamento"];
-    return snapshotDates.slice(-8).map((d) => {
-      const row: any = { date: d.slice(5) };
-      for (const k of keys) {
-        const r = filtered.find((x) => x.snapshot_date === d && x.indicador === k);
-        row[k] = r?.valor ?? 0;
-      }
-      return row;
-    });
-  }, [filtered, snapshotDates]);
-
-  const latestSnapshotDate = snapshotDates[snapshotDates.length - 1];
 
   return (
     <AppLayout>
@@ -218,7 +145,7 @@ export default function ControleGerencial() {
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">Controle gerencial</h1>
             <p className="text-sm text-muted-foreground">
-              Backlog total do escritório
+              Visão gerencial de entregas e aderência ao planejamento
               {overview?.computed_at && <> · atualizado em {fmtDateTime(overview.computed_at)}</>}
             </p>
           </div>
@@ -246,81 +173,8 @@ export default function ControleGerencial() {
           </div>
         </header>
 
-        {/* KPIs */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {overviewLoading
-            ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-28" />)
-            : BACKLOG_INDICATORS.map((ind) => (
-                <KpiCard
-                  key={ind.key}
-                  label={ind.label}
-                  sub={ind.sub}
-                  value={valorFor(ind.key)}
-                  onClick={() => setDrilldown({ key: ind.key, label: ind.label })}
-                />
-              ))}
-        </section>
-
         {/* Entregas da semana */}
         <WeeklyDeliverySection unidade={unidade} tributacao={tributacao} />
-
-        {/* Distribuição do backlog */}
-        <DistribuicaoSection overview={overview} loading={overviewLoading} />
-
-
-        {/* Top 10 empresas */}
-        <TopEmpresasTable overview={overview} loading={overviewLoading} />
-
-        {/* Tendência semanal */}
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold">Tendência semanal — burndown</h2>
-            <span className="text-xs text-muted-foreground">{snapshotDates.length} sem. registrada(s)</span>
-          </div>
-          {!hasTrend ? (
-            <div className="h-32 flex flex-col items-center justify-center text-sm text-muted-foreground gap-1">
-              <span>Tendência ficará disponível após 4 semanas de snapshots.</span>
-              <span className="text-xs">Hoje temos: {snapshotDates.length} semana(s) registrada(s).</span>
-            </div>
-          ) : (
-            <div className="h-72">
-              <ResponsiveContainer>
-                <LineChart data={burndownData}>
-                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Line type="monotone" dataKey="lancamentos_pendentes" name="Lançamentos" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="conciliacao_bancaria_pendente" name="Concil. bancária" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="conciliacao_contabil_pendente" name="Concil. contábil" stroke="hsl(var(--chart-3, 200 70% 50%))" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="fechamento_mensal_pendente" name="Fechamento" stroke="hsl(var(--destructive))" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </Card>
-
-        {hasTrend && (
-          <Card className="p-4">
-            <h2 className="font-semibold mb-3">Velocity — entregas por semana</h2>
-            <div className="h-64">
-              <ResponsiveContainer>
-                <BarChart data={velocityData}>
-                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="velocity_lancamentos" stackId="a" name="Lançamentos" fill="hsl(var(--primary))" />
-                  <Bar dataKey="velocity_conciliacao_bancaria" stackId="a" name="Concil. banc." fill="hsl(var(--accent))" />
-                  <Bar dataKey="velocity_conciliacao_contabil" stackId="a" name="Concil. cont." fill="hsl(var(--chart-3, 200 70% 50%))" />
-                  <Bar dataKey="velocity_fechamento" stackId="a" name="Fechamento" fill="hsl(var(--destructive))" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-        )}
 
         <AdherenceBlock unidade={unidade} tributacao={tributacao} />
 
@@ -328,28 +182,8 @@ export default function ControleGerencial() {
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t text-xs text-muted-foreground">
           <span>
             Última atualização: {overview?.computed_at ? fmtDateTime(overview.computed_at) : "—"}
-            {latestSnapshotDate && (
-              <> · snapshot semanal: {new Date(latestSnapshotDate).toLocaleDateString("pt-BR")}</>
-            )}
           </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refreshMutation.mutate()}
-            disabled={refreshMutation.isPending}
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshMutation.isPending ? "animate-spin" : ""}`} />
-            Atualizar agora
-          </Button>
         </div>
-
-        <DrilldownSheet
-          open={!!drilldown}
-          onClose={() => setDrilldown(null)}
-          indicator={drilldown}
-          unidade={unidade}
-          tributacao={tributacao}
-        />
       </div>
     </AppLayout>
   );

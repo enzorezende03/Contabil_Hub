@@ -268,7 +268,42 @@ Deno.serve(async (req) => {
       y += 1.05;
     }
 
-    // Slide 5 — Próximos focos (placeholder, editado pela liderança)
+    // Slide 5 — Entregas da semana
+    if (deliveryRows.length > 0) {
+      const sd = pptx.addSlide();
+      titleBar(sd, "Entregas da semana");
+      const dRows: any[] = [
+        [
+          { text: "Base", options: { bold: true, fill: NAVY, color: "FFFFFF" } },
+          { text: "Solicitadas", options: { bold: true, fill: NAVY, color: "FFFFFF", align: "right" } },
+          { text: "Entregues", options: { bold: true, fill: NAVY, color: "FFFFFF", align: "right" } },
+          { text: "% no prazo", options: { bold: true, fill: NAVY, color: "FFFFFF", align: "right" } },
+          { text: "Saldo", options: { bold: true, fill: NAVY, color: "FFFFFF", align: "right" } },
+          { text: "Em atraso", options: { bold: true, fill: NAVY, color: "FFFFFF", align: "right" } },
+        ],
+        ...deliveryRows.map((r) => [
+          { text: r.label },
+          { text: String(r.solicitadas), options: { align: "right" } },
+          { text: String(r.entregues), options: { align: "right", bold: true } },
+          {
+            text: r.pct === null ? "—" : `${r.pct}%`,
+            options: { align: "right", color: r.pct !== null && r.pct < 80 ? RED : "059669" },
+          },
+          {
+            text: `${r.saldo > 0 ? "+" : ""}${r.saldo}`,
+            options: { align: "right", color: r.saldo > 0 ? RED : MUTED },
+          },
+          { text: String(r.atraso), options: { align: "right", color: r.atraso > 0 ? RED : MUTED } },
+        ]),
+      ];
+      sd.addTable(dRows, { x: 0.6, y: 1.2, w: 12.1, fontSize: 15, fontFace: "Calibri", border: { type: "solid", color: "E5E7EB", pt: 0.5 } });
+      sd.addText("Prazo base: prazo interno. Saldo = solicitadas − entregues na semana.", {
+        x: 0.6, y: 3.4, w: 12.1, h: 0.4, fontSize: 12, italic: true, color: MUTED, fontFace: "Calibri",
+      });
+    }
+
+    // Slide 6 — Próximos focos (placeholder, editado pela liderança)
+
     const s5 = pptx.addSlide();
     titleBar(s5, "Prioridades da próxima semana");
     s5.addText("Editar na tela de revisão do briefing.", {

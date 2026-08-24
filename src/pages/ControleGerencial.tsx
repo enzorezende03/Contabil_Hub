@@ -121,12 +121,10 @@ function fmtDateTime(iso: string) {
 }
 
 export default function ControleGerencial() {
-  const queryClient = useQueryClient();
   const [unidade, setUnidade] = useState<string>("all");
   const [tributacao, setTributacao] = useState<string>("all");
-  const [drilldown, setDrilldown] = useState<{ key: string; label: string } | null>(null);
 
-  const { data: overview, isLoading: overviewLoading } = useQuery({
+  const { data: overview } = useQuery({
     queryKey: ["backlog-overview", unidade, tributacao],
     queryFn: async (): Promise<Overview> => {
       const { data, error } = await supabase.rpc("backlog_overview" as any, {
@@ -138,77 +136,6 @@ export default function ControleGerencial() {
     },
   });
 
-  const { data: snapshots = [] } = useQuery({
-    queryKey: ["backlog-snapshots"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("backlog_snapshots" as any)
-        .select("*")
-        .order("snapshot_date", { ascending: true });
-      if (error) throw error;
-      return ((data || []) as unknown) as SnapshotRow[];
-    },
-  });
-
-  const refreshMutation = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("generate-backlog-snapshot", {
-        body: { force: true },
-      });
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      toast.success("Backlog atualizado");
-      queryClient.invalidateQueries({ queryKey: ["backlog-overview"] });
-      queryClient.invalidateQueries({ queryKey: ["backlog-snapshots"] });
-    },
-    onError: (e: any) => toast.error("Falha ao atualizar: " + (e?.message || "erro")),
-  });
-
-  const valorFor = (key: string): number => {
-    if (!overview) return 0;
-    if (key === "fechamento_anual_pendente") return overview.fechamento_anual;
-    if (key === "revisao_pendente") return overview.revisao_pendente;
-    const t = INDICATOR_TO_TYPE[key];
-    return overview.per_type?.[t] ?? 0;
-  };
-
-  // Snapshot filtered for burndown
-  const filtered = useMemo(() => {
-    const u = unidade === "all" ? null : unidade;
-    const t = tributacao === "all" ? null : tributacao;
-    return snapshots.filter((r) => r.unidade === u && r.tributacao === t);
-  }, [snapshots, unidade, tributacao]);
-
-  const snapshotDates = useMemo(() => Array.from(new Set(filtered.map((r) => r.snapshot_date))).sort(), [filtered]);
-  const hasTrend = snapshotDates.length >= 4;
-
-  const burndownData = useMemo(() => {
-    const keys = ["lancamentos_pendentes", "conciliacao_bancaria_pendente", "conciliacao_contabil_pendente", "fechamento_mensal_pendente"];
-    return snapshotDates.slice(-12).map((d) => {
-      const row: any = { date: d.slice(5) };
-      for (const k of keys) {
-        const r = filtered.find((x) => x.snapshot_date === d && x.indicador === k);
-        row[k] = r?.valor ?? 0;
-      }
-      return row;
-    });
-  }, [filtered, snapshotDates]);
-
-  const velocityData = useMemo(() => {
-    const keys = ["velocity_lancamentos", "velocity_conciliacao_bancaria", "velocity_conciliacao_contabil", "velocity_fechamento"];
-    return snapshotDates.slice(-8).map((d) => {
-      const row: any = { date: d.slice(5) };
-      for (const k of keys) {
-        const r = filtered.find((x) => x.snapshot_date === d && x.indicador === k);
-        row[k] = r?.valor ?? 0;
-      }
-      return row;
-    });
-  }, [filtered, snapshotDates]);
-
-  const latestSnapshotDate = snapshotDates[snapshotDates.length - 1];
 
   return (
     <AppLayout>

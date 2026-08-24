@@ -259,8 +259,12 @@ export default function ControleGerencial() {
               ))}
         </section>
 
+        {/* Entregas da semana */}
+        <WeeklyDeliverySection unidade={unidade} tributacao={tributacao} />
+
         {/* Distribuição do backlog */}
         <DistribuicaoSection overview={overview} loading={overviewLoading} />
+
 
         {/* Top 10 empresas */}
         <TopEmpresasTable overview={overview} loading={overviewLoading} />

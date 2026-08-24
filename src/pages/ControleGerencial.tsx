@@ -176,7 +176,11 @@ export default function ControleGerencial() {
         {/* Entregas da semana */}
         <WeeklyDeliverySection unidade={unidade} tributacao={tributacao} />
 
+        {/* Performance da equipe */}
+        <TeamPerformanceSection />
+
         <AdherenceBlock unidade={unidade} tributacao={tributacao} />
+
 
         {/* Footer */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t text-xs text-muted-foreground">

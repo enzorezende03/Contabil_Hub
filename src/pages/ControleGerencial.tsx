@@ -47,6 +47,8 @@ import {
   Cell,
 } from "recharts";
 import { RefreshCw, AlertTriangle, Download, ChevronRight } from "lucide-react";
+import WeeklyDeliverySection from "@/components/gerencial/WeeklyDeliverySection";
+
 import { toast } from "sonner";
 
 type SnapshotRow = {
@@ -259,8 +261,12 @@ export default function ControleGerencial() {
               ))}
         </section>
 
+        {/* Entregas da semana */}
+        <WeeklyDeliverySection unidade={unidade} tributacao={tributacao} />
+
         {/* Distribuição do backlog */}
         <DistribuicaoSection overview={overview} loading={overviewLoading} />
+
 
         {/* Top 10 empresas */}
         <TopEmpresasTable overview={overview} loading={overviewLoading} />

@@ -1027,6 +1027,7 @@ export type Database = {
           assignee: string
           client: string
           competencias: string[]
+          completed_at: string | null
           created_at: string
           created_by: string
           description: string
@@ -1045,6 +1046,7 @@ export type Database = {
           assignee: string
           client: string
           competencias: string[]
+          completed_at?: string | null
           created_at?: string
           created_by: string
           description?: string
@@ -1063,6 +1065,7 @@ export type Database = {
           assignee?: string
           client?: string
           competencias?: string[]
+          completed_at?: string | null
           created_at?: string
           created_by?: string
           description?: string
@@ -1473,6 +1476,10 @@ export type Database = {
       recompute_demand_status: {
         Args: { p_demand_id: string }
         Returns: undefined
+      }
+      weekly_delivery_overview: {
+        Args: { p_tributacao?: string; p_unidade?: string; p_weeks?: number }
+        Returns: Json
       }
     }
     Enums: {

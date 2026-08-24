@@ -184,15 +184,6 @@ export default function ControleGerencial() {
             Última atualização: {overview?.computed_at ? fmtDateTime(overview.computed_at) : "—"}
           </span>
         </div>
-
-
-        <DrilldownSheet
-          open={!!drilldown}
-          onClose={() => setDrilldown(null)}
-          indicator={drilldown}
-          unidade={unidade}
-          tributacao={tributacao}
-        />
       </div>
     </AppLayout>
   );

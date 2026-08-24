@@ -48,6 +48,8 @@ import {
 } from "recharts";
 import { RefreshCw, AlertTriangle, Download, ChevronRight } from "lucide-react";
 import WeeklyDeliverySection from "@/components/gerencial/WeeklyDeliverySection";
+import TeamPerformanceSection from "@/components/gerencial/TeamPerformanceSection";
+
 
 import { toast } from "sonner";
 

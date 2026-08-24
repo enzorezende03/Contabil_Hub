@@ -266,7 +266,33 @@ export default function BriefingReview() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Editor */}
             <div className="lg:col-span-2 space-y-4">
+              <Card className="p-4 space-y-2 bg-muted/30">
+                <h2 className="font-semibold text-sm">Como este briefing é montado</h2>
+                <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
+                  <li>
+                    <strong>Indicadores da semana</strong>: backlog pendente (lançamentos,
+                    conciliações, fechamentos e revisões) medido no snapshot de segunda-feira,
+                    comparado com a semana anterior.
+                  </li>
+                  <li>
+                    <strong>Entregas da semana</strong>: quantas demandas de Solicitações de
+                    clientes e de Planejamento foram abertas e concluídas na semana, e quanto
+                    disso ficou dentro do <strong>prazo interno</strong>.
+                  </li>
+                  <li>
+                    <strong>Saldo</strong>: solicitadas − entregues. Positivo por 3 semanas
+                    seguidas gera alerta automático de acúmulo.
+                  </li>
+                  <li>
+                    <strong>Alertas</strong>: gerados automaticamente (backlog crescendo 4
+                    semanas, prazo interno abaixo de 80%, itens vencidos) e podem ser
+                    editados ou removidos aqui antes do envio.
+                  </li>
+                </ul>
+              </Card>
+
               <Card className="p-4 space-y-2">
+
                 <div className="flex items-center justify-between">
                   <h2 className="font-semibold">Resumo executivo</h2>
                   {draft.auto_summary && (

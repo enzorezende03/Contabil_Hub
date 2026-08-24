@@ -48,6 +48,8 @@ import {
 } from "recharts";
 import { RefreshCw, AlertTriangle, Download, ChevronRight } from "lucide-react";
 import WeeklyDeliverySection from "@/components/gerencial/WeeklyDeliverySection";
+import TeamPerformanceSection from "@/components/gerencial/TeamPerformanceSection";
+
 
 import { toast } from "sonner";
 
@@ -176,7 +178,11 @@ export default function ControleGerencial() {
         {/* Entregas da semana */}
         <WeeklyDeliverySection unidade={unidade} tributacao={tributacao} />
 
+        {/* Performance da equipe */}
+        <TeamPerformanceSection />
+
         <AdherenceBlock unidade={unidade} tributacao={tributacao} />
+
 
         {/* Footer */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t text-xs text-muted-foreground">

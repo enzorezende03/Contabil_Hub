@@ -125,6 +125,87 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ---- Entregas da semana (solicitações de clientes + planejamento) ----
+    type WeekRow = {
+      week_start: string;
+      iso_week: string;
+      origem: "demands" | "plannings";
+      solicitadas: number;
+      entregues: number;
+      entregues_no_prazo: number;
+    };
+    const ORIGEM_LABEL: Record<string, string> = {
+      demands: "Solicitações de clientes",
+      plannings: "Planejamento",
+    };
+
+    let deliveryRows: { label: string; solicitadas: number; entregues: number; pct: number | null; saldo: number; atraso: number }[] = [];
+    try {
+      const { data: dv, error: dvErr } = await supabase.rpc("weekly_delivery_overview", {
+        p_weeks: 12,
+        p_unidade: null,
+        p_tributacao: null,
+      });
+      if (dvErr) throw dvErr;
+      const weeksRows = ((dv as any)?.weeks || []) as WeekRow[];
+      const late = ((dv as any)?.late || []) as { origem: string }[];
+      const starts = Array.from(new Set(weeksRows.map((w) => w.week_start))).sort();
+      const curStart = starts[starts.length - 1];
+      const prevStart = starts[starts.length - 2];
+      const pick = (start: string | undefined, origem: string) =>
+        weeksRows.find((w) => w.week_start === start && w.origem === origem);
+
+      for (const origem of ["demands", "plannings"] as const) {
+        const cur = pick(curStart, origem);
+        const prev = pick(prevStart, origem);
+        const entregues = cur?.entregues ?? 0;
+        const noPrazo = cur?.entregues_no_prazo ?? 0;
+        const pctPrazo = entregues > 0 ? Math.round((noPrazo / entregues) * 100) : null;
+        const solicitadas = cur?.solicitadas ?? 0;
+        const saldo = solicitadas - entregues;
+        const atraso = late.filter((l) => l.origem === origem).length;
+        deliveryRows.push({ label: ORIGEM_LABEL[origem], solicitadas, entregues, pct: pctPrazo, saldo, atraso });
+
+        const deltaEnt = prev ? entregues - (prev.entregues ?? 0) : null;
+        summaryLines.push(
+          `${ORIGEM_LABEL[origem]}: ${solicitadas} solicitadas / ${entregues} entregues` +
+            (pctPrazo !== null ? ` (${pctPrazo}% no prazo interno)` : "") +
+            (deltaEnt !== null ? ` — entregas ${deltaEnt >= 0 ? "+" : ""}${deltaEnt} vs. semana anterior` : "") +
+            ` · ${atraso} em atraso hoje`,
+        );
+
+        if (pctPrazo !== null && pctPrazo < 80) {
+          alerts.push({
+            severity: pctPrazo < 60 ? "critico" : "atencao",
+            title: `${ORIGEM_LABEL[origem]} — prazo interno abaixo da meta`,
+            detail: `Apenas ${pctPrazo}% das entregas da semana ficaram dentro do prazo interno (${noPrazo} de ${entregues}).`,
+          });
+        }
+        if (atraso > 0) {
+          alerts.push({
+            severity: "atencao",
+            title: `${ORIGEM_LABEL[origem]} — ${atraso} item(ns) em atraso`,
+            detail: "Prazo interno já vencido e tarefa ainda não concluída.",
+          });
+        }
+
+        // Saldo positivo 3 semanas seguidas = volume acumulando
+        const last3 = starts.slice(-3).map((s) => {
+          const r = pick(s, origem);
+          return (r?.solicitadas ?? 0) - (r?.entregues ?? 0);
+        });
+        if (last3.length === 3 && last3.every((v) => v > 0)) {
+          alerts.push({
+            severity: "critico",
+            title: `${ORIGEM_LABEL[origem]} — entrada maior que entrega há 3 semanas`,
+            detail: `Saldo semanal: ${last3.join(" → ")} (solicitadas − entregues).`,
+          });
+        }
+      }
+    } catch (e) {
+      console.error("[generate-weekly-briefing] weekly_delivery_overview", e);
+    }
+
     const autoSummary =
       `Resumo da semana ${isoWeek} (snapshot ${snapshotDate}):\n\n` +
       summaryLines.map((l) => "• " + l).join("\n");
@@ -133,9 +214,10 @@ Deno.serve(async (req) => {
       alerts.push({
         severity: "info",
         title: "Sem alertas críticos automáticos",
-        detail: "Nenhum indicador cresceu 4 semanas seguidas. Revisar manualmente.",
+        detail: "Nenhum indicador cresceu 4 semanas seguidas e o prazo interno ficou dentro da meta.",
       });
     }
+
 
     // Generate PPTX
     const pptx = new pptxgen();

@@ -246,81 +246,8 @@ export default function ControleGerencial() {
           </div>
         </header>
 
-        {/* KPIs */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {overviewLoading
-            ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-28" />)
-            : BACKLOG_INDICATORS.map((ind) => (
-                <KpiCard
-                  key={ind.key}
-                  label={ind.label}
-                  sub={ind.sub}
-                  value={valorFor(ind.key)}
-                  onClick={() => setDrilldown({ key: ind.key, label: ind.label })}
-                />
-              ))}
-        </section>
-
         {/* Entregas da semana */}
         <WeeklyDeliverySection unidade={unidade} tributacao={tributacao} />
-
-        {/* Distribuição do backlog */}
-        <DistribuicaoSection overview={overview} loading={overviewLoading} />
-
-
-        {/* Top 10 empresas */}
-        <TopEmpresasTable overview={overview} loading={overviewLoading} />
-
-        {/* Tendência semanal */}
-        <Card className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold">Tendência semanal — burndown</h2>
-            <span className="text-xs text-muted-foreground">{snapshotDates.length} sem. registrada(s)</span>
-          </div>
-          {!hasTrend ? (
-            <div className="h-32 flex flex-col items-center justify-center text-sm text-muted-foreground gap-1">
-              <span>Tendência ficará disponível após 4 semanas de snapshots.</span>
-              <span className="text-xs">Hoje temos: {snapshotDates.length} semana(s) registrada(s).</span>
-            </div>
-          ) : (
-            <div className="h-72">
-              <ResponsiveContainer>
-                <LineChart data={burndownData}>
-                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Line type="monotone" dataKey="lancamentos_pendentes" name="Lançamentos" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="conciliacao_bancaria_pendente" name="Concil. bancária" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="conciliacao_contabil_pendente" name="Concil. contábil" stroke="hsl(var(--chart-3, 200 70% 50%))" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="fechamento_mensal_pendente" name="Fechamento" stroke="hsl(var(--destructive))" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </Card>
-
-        {hasTrend && (
-          <Card className="p-4">
-            <h2 className="font-semibold mb-3">Velocity — entregas por semana</h2>
-            <div className="h-64">
-              <ResponsiveContainer>
-                <BarChart data={velocityData}>
-                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="velocity_lancamentos" stackId="a" name="Lançamentos" fill="hsl(var(--primary))" />
-                  <Bar dataKey="velocity_conciliacao_bancaria" stackId="a" name="Concil. banc." fill="hsl(var(--accent))" />
-                  <Bar dataKey="velocity_conciliacao_contabil" stackId="a" name="Concil. cont." fill="hsl(var(--chart-3, 200 70% 50%))" />
-                  <Bar dataKey="velocity_fechamento" stackId="a" name="Fechamento" fill="hsl(var(--destructive))" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-        )}
 
         <AdherenceBlock unidade={unidade} tributacao={tributacao} />
 
@@ -328,20 +255,9 @@ export default function ControleGerencial() {
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t text-xs text-muted-foreground">
           <span>
             Última atualização: {overview?.computed_at ? fmtDateTime(overview.computed_at) : "—"}
-            {latestSnapshotDate && (
-              <> · snapshot semanal: {new Date(latestSnapshotDate).toLocaleDateString("pt-BR")}</>
-            )}
           </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refreshMutation.mutate()}
-            disabled={refreshMutation.isPending}
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshMutation.isPending ? "animate-spin" : ""}`} />
-            Atualizar agora
-          </Button>
         </div>
+
 
         <DrilldownSheet
           open={!!drilldown}

@@ -47,6 +47,8 @@ import {
   Cell,
 } from "recharts";
 import { RefreshCw, AlertTriangle, Download, ChevronRight } from "lucide-react";
+import WeeklyDeliverySection from "@/components/gerencial/WeeklyDeliverySection";
+
 import { toast } from "sonner";
 
 type SnapshotRow = {

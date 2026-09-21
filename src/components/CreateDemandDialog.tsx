@@ -135,12 +135,35 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
           <div className="space-y-4">
             <div>
               <Label>Cliente *</Label>
-              <select value={client} onChange={(e) => setClient(e.target.value)} className={selectClass} required>
-                <option value="">Selecione...</option>
-                {dbClients.map((c: any) => (
-                  <option key={c.id} value={c.razao_social}>{c.razao_social}</option>
-                ))}
-              </select>
+              <Input
+                value={clientSearch}
+                onChange={(e) => { setClientSearch(e.target.value); setClient(""); }}
+                placeholder="Digite parte do nome ou CNPJ..."
+                autoComplete="off"
+              />
+              {clientSearch.trim().length > 0 && !client && (
+                <div className="mt-1 max-h-44 overflow-y-auto rounded-md border bg-card">
+                  {filteredClients.length === 0 && (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">Nenhuma empresa encontrada</div>
+                  )}
+                  {filteredClients.map((c: any) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => { setClient(c.razao_social); setClientSearch(c.razao_social); }}
+                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted"
+                    >
+                      <div className="truncate">{c.razao_social}</div>
+                      {c.cnpj && <div className="text-[10px] text-muted-foreground">{c.cnpj}</div>}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {client && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Selecionado: <span className="font-medium text-foreground">{client}</span>
+                </p>
+              )}
             </div>
 
             {/* Multi-select: Tipos de Demanda */}

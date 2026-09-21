@@ -37,6 +37,7 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
   const { members: teamMembers } = useTeamMembers({ excludeCoordenacao: true });
   const now = new Date();
   const [client, setClient] = useState("");
+  const [clientSearch, setClientSearch] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<Set<DemandType>>(new Set(["lancamentos"]));
   const [selectedMonths, setSelectedMonths] = useState<Set<string>>(new Set([String(now.getMonth() + 1).padStart(2, "0")]));
   const [compYear, setCompYear] = useState(String(now.getFullYear()));

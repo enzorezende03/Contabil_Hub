@@ -56,6 +56,15 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
     },
   });
 
+  const filteredClients = (() => {
+    const q = clientSearch.trim().toLowerCase();
+    if (!q) return [];
+    return (dbClients as any[]).filter(
+      (c) => c.razao_social.toLowerCase().includes(q) || (c.cnpj || "").toLowerCase().includes(q)
+    );
+  })();
+
+
   const toggleType = (type: DemandType) => {
     setSelectedTypes((prev) => {
       const next = new Set(prev);

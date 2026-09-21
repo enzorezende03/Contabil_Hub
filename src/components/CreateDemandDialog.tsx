@@ -86,6 +86,7 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
 
   const resetForm = () => {
     setClient("");
+    setClientSearch("");
     setSelectedTypes(new Set(["lancamentos"]));
     setSelectedMonths(new Set([String(now.getMonth() + 1).padStart(2, "0")]));
     setCompYear(String(now.getFullYear()));

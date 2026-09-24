@@ -204,7 +204,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <div className="flex items-center gap-5 min-w-0">
               <img src={logo2m} alt="2M Grupo" className="h-12 w-12 object-contain" />
               <div className="min-w-0">
-                <span className="font-bold text-sidebar-accent-foreground text-xl leading-tight block">CONTÁBIL HUB</span>
+                <span className="font-bold text-sidebar-accent-foreground text-base leading-tight block">CONTÁBIL HUB</span>
                 <span className="mt-1 text-[11px] leading-[15px] font-semibold text-sidebar-foreground/65 uppercase block">2M SAÚDE</span>
                 <span className="text-[11px] leading-[15px] font-semibold text-sidebar-foreground/65 uppercase block">2M CONTABILIDADE</span>
               </div>

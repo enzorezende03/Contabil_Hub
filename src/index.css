@@ -2,12 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
 @layer base {
   :root {
-    --background: 210 20% 97%;
-    --foreground: 213 35% 12%;
+    --background: 210 30% 97%;
+    --foreground: 211 49% 16%;
 
     --card: 0 0% 100%;
     --card-foreground: 213 35% 12%;
@@ -15,16 +13,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 213 35% 12%;
 
-    --primary: 213 45% 35%;
+    --primary: 203 67% 28%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 18% 93%;
+    --secondary: 207 30% 95%;
     --secondary-foreground: 213 35% 18%;
 
-    --muted: 210 18% 93%;
-    --muted-foreground: 213 12% 48%;
+    --muted: 207 25% 94%;
+    --muted-foreground: 210 18% 46%;
 
-    --accent: 185 35% 45%;
+    --accent: 191 68% 46%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
@@ -39,17 +37,17 @@
     --info: 185 40% 48%;
     --info-foreground: 0 0% 100%;
 
-    --border: 210 16% 89%;
-    --input: 210 16% 89%;
-    --ring: 213 45% 35%;
+    --border: 207 24% 87%;
+    --input: 207 24% 87%;
+    --ring: 191 68% 46%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 213 40% 14%;
-    --sidebar-foreground: 210 15% 75%;
-    --sidebar-primary: 185 40% 55%;
+    --sidebar-background: 210 62% 16%;
+    --sidebar-foreground: 207 26% 77%;
+    --sidebar-primary: 190 72% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 213 35% 20%;
+    --sidebar-accent: 201 61% 25%;
     --sidebar-accent-foreground: 210 15% 92%;
     --sidebar-border: 213 30% 22%;
     --sidebar-ring: 185 40% 55%;
@@ -113,7 +111,7 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', sans-serif;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
 }
 

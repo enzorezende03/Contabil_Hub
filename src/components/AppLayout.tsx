@@ -199,13 +199,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <aside
         className={`${collapsed ? "lg:w-16" : "lg:w-60"} ${mobileOpen ? "translate-x-0" : "-translate-x-full"} fixed inset-y-0 left-0 z-50 w-60 flex-shrink-0 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border transition-all duration-200 lg:static lg:translate-x-0`}
       >
-        <div className="h-[72px] flex items-center justify-between px-4 border-b border-sidebar-border">
+        <div className="h-[106px] flex items-center justify-between px-7 border-b border-sidebar-border">
           {!collapsed && (
-            <div className="flex items-center gap-3 min-w-0">
-              <img src={logo2m} alt="2M Grupo" className="h-9 w-9 object-contain" />
-              <div className="leading-tight min-w-0">
-                <span className="font-semibold text-sidebar-accent-foreground text-base block">CONTÁBIL HUB</span>
-                <span className="text-[9px] font-medium text-sidebar-foreground/60 uppercase block">2M Grupo</span>
+            <div className="flex items-center gap-5 min-w-0">
+              <img src={logo2m} alt="2M Grupo" className="h-12 w-12 object-contain" />
+              <div className="min-w-0">
+                <span className="font-bold text-sidebar-accent-foreground text-xl leading-tight block">CONTÁBIL HUB</span>
+                <span className="mt-1 text-[11px] leading-[15px] font-semibold text-sidebar-foreground/65 uppercase block">2M SAÚDE</span>
+                <span className="text-[11px] leading-[15px] font-semibold text-sidebar-foreground/65 uppercase block">2M CONTABILIDADE</span>
               </div>
             </div>
           )}

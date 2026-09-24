@@ -8,16 +8,13 @@ import { usePlanningAlerts } from "@/hooks/use-planning-alerts";
 import { PlanningNotifications } from "@/components/PlanningNotifications";
 import { useActionPermissions, canPerformAction } from "@/hooks/use-action-permissions";
 import type { Demand } from "@/lib/types";
+import logo2m from "@/assets/logo-2m-grupo.png";
+import { Button } from "@/components/ui/button";
 
 import {
-  LayoutDashboard,
   ListTodo,
-  Users,
   Calendar,
-  BarChart3,
-  Archive,
   Settings,
-  AlertTriangle,
   LogOut,
   UserCog,
   Building2,
@@ -27,21 +24,35 @@ import {
   ShieldCheck,
   AlertOctagon,
   Gauge,
+  Menu,
+  Clock3,
 } from "lucide-react";
 
 const NAV_ITEMS = [
   // Ocultos temporariamente até serem mais desenvolvidos:
   // Dashboard ("/"), Produtividade Equipe ("/equipe"), Ausências ("/ausencias"), Alertas ("/alertas")
-  { label: "Solicitação de Clientes", path: "/demandas" as AppPage, icon: ListTodo },
-  { label: "Planejamento", path: "/planejamento" as AppPage, icon: ClipboardList },
-  { label: "Fechamento Contábil", path: "/competencias" as AppPage, icon: Calendar },
-  { label: "Revisão", path: "/revisao" as AppPage, icon: ShieldCheck },
-  { label: "Pendências", path: "/pendencias" as AppPage, icon: AlertOctagon },
-  { label: "Controle Gerencial", path: "/controle-gerencial" as AppPage, icon: Gauge },
-  { label: "Clientes", path: "/clientes" as AppPage, icon: Building2 },
-  { label: "Configurações", path: "/configuracoes" as AppPage, icon: Settings },
-  { label: "Usuários", path: "/usuarios" as AppPage, icon: UserCog },
+  { label: "Solicitação de Clientes", path: "/demandas" as AppPage, icon: ListTodo, group: "OPERAÇÃO" },
+  { label: "Planejamento", path: "/planejamento" as AppPage, icon: ClipboardList, group: "OPERAÇÃO" },
+  { label: "Fechamento Contábil", path: "/competencias" as AppPage, icon: Calendar, group: "OPERAÇÃO" },
+  { label: "Revisão", path: "/revisao" as AppPage, icon: ShieldCheck, group: "OPERAÇÃO" },
+  { label: "Pendências", path: "/pendencias" as AppPage, icon: AlertOctagon, group: "OPERAÇÃO" },
+  { label: "Controle Gerencial", path: "/controle-gerencial" as AppPage, icon: Gauge, group: "GESTÃO" },
+  { label: "Clientes", path: "/clientes" as AppPage, icon: Building2, group: "GESTÃO" },
+  { label: "Configurações", path: "/configuracoes" as AppPage, icon: Settings, group: "ADMINISTRAÇÃO" },
+  { label: "Usuários", path: "/usuarios" as AppPage, icon: UserCog, group: "ADMINISTRAÇÃO" },
 ];
+
+const PAGE_TITLES: Record<string, string> = {
+  "/demandas": "Solicitação de Clientes",
+  "/planejamento": "Planejamento",
+  "/competencias": "Fechamento Contábil",
+  "/revisao": "Revisão",
+  "/pendencias": "Pendências",
+  "/controle-gerencial": "Controle Gerencial",
+  "/clientes": "Cadastro de Clientes",
+  "/configuracoes": "Configurações",
+  "/usuarios": "Usuários",
+};
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -51,6 +62,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const { profile, signOut, user, isAdmin } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const initials = profile?.display_name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "??";
   const userRole = profile?.role;
 
@@ -166,34 +178,48 @@ export default function AppLayout({ children }: AppLayoutProps) {
   }, [queryClient]);
 
   const navItems = NAV_ITEMS.filter((item) => isAdmin || canAccessPage(userRole, item.path));
+  const pageTitle = Object.entries(PAGE_TITLES).find(([path]) => location.pathname.startsWith(path))?.[1] || "Contábil Hub";
+  const navGroups = ["OPERAÇÃO", "GESTÃO", "ADMINISTRAÇÃO"];
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen overflow-hidden bg-background">
+      {mobileOpen && (
+        <button
+          type="button"
+          aria-label="Fechar menu"
+          className="fixed inset-0 z-40 bg-foreground/30 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
       {/* Sidebar */}
       <aside
-        className={`${collapsed ? "w-14" : "w-60"} flex-shrink-0 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border transition-all duration-200`}
+        className={`${collapsed ? "lg:w-16" : "lg:w-60"} ${mobileOpen ? "translate-x-0" : "-translate-x-full"} fixed inset-y-0 left-0 z-50 w-60 flex-shrink-0 bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border transition-all duration-200 lg:static lg:translate-x-0`}
       >
-        <div className="h-16 flex items-center justify-between px-3 border-b border-sidebar-border">
+        <div className="h-[72px] flex items-center justify-between px-4 border-b border-sidebar-border">
           {!collapsed && (
-            <div className="leading-tight">
-              <span className="font-semibold text-sidebar-accent-foreground tracking-tight text-base block">Contábil Hub</span>
-              <span className="text-[10px] text-sidebar-foreground/60">2M Grupo</span>
+            <div className="flex items-center gap-3 min-w-0">
+              <img src={logo2m} alt="2M Grupo" className="h-9 w-9 object-contain" />
+              <div className="leading-tight min-w-0">
+                <span className="font-semibold text-sidebar-accent-foreground text-base block">CONTÁBIL HUB</span>
+                <span className="text-[9px] font-medium text-sidebar-foreground/60 uppercase block">2M Grupo</span>
+              </div>
             </div>
           )}
-          <div className="flex items-center gap-1">
-            <PlanningNotifications {...alertData} />
-            <button
-              onClick={() => setCollapsed(!collapsed)}
-              className="p-1.5 rounded-md text-sidebar-foreground/60 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/50 transition-colors"
-              title={collapsed ? "Expandir menu" : "Recolher menu"}
-            >
-              {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
-            </button>
-          </div>
+          {collapsed && <img src={logo2m} alt="2M Grupo" className="hidden lg:block h-9 w-9 object-contain mx-auto" />}
         </div>
 
-        <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
-          {navItems.map((item) => {
+        <nav className="flex-1 py-5 px-2 space-y-5 overflow-y-auto">
+          {navGroups.map((group) => {
+            const groupItems = navItems.filter((item) => item.group === group);
+            if (groupItems.length === 0) return null;
+            return (
+              <div key={group} className="space-y-1">
+                {!collapsed && <p className="px-3 pb-1.5 text-[10px] font-semibold text-sidebar-foreground/45">{group}</p>}
+                {groupItems.map((item) => {
             const isActive = location.pathname === item.path;
             const showBadge = item.path === "/revisao" && reviewBadge.mine > 0;
             const showTotalBadge = item.path === "/revisao" && canSupervise && reviewBadge.total > reviewBadge.mine;
@@ -206,7 +232,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 title={collapsed ? item.label : undefined}
                 className={`flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors ${
                   isActive
-                    ? "bg-sidebar-accent text-sidebar-primary font-medium"
+                    ? "bg-sidebar-accent text-sidebar-primary font-medium shadow-sm"
                     : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                 } ${collapsed ? "justify-center px-0" : ""}`}
               >
@@ -246,6 +272,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 )}
               </Link>
             );
+                })}
+              </div>
+            );
           })}
         </nav>
 
@@ -277,9 +306,34 @@ export default function AppLayout({ children }: AppLayoutProps) {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
-        {children}
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="h-[72px] flex-shrink-0 border-b bg-card px-4 sm:px-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Abrir menu">
+              <Menu />
+            </Button>
+            <Button variant="ghost" size="icon" className="hidden lg:inline-flex" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? "Expandir menu" : "Recolher menu"}>
+              {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+            </Button>
+            <div className="min-w-0">
+              <h1 className="font-semibold text-base text-foreground truncate">{pageTitle}</h1>
+              <p className="text-xs text-muted-foreground truncate">Ambiente operacional Contábil Hub</p>
+            </div>
+          </div>
+          <div className="flex items-center rounded-lg border bg-secondary/40 p-1 shadow-sm">
+            <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground" title="Acompanhamento de prazos">
+              <Clock3 />
+            </Button>
+            <PlanningNotifications {...alertData} />
+            <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground" onClick={signOut} title="Sair">
+              <LogOut />
+            </Button>
+          </div>
+        </header>
+        <main className="flex-1 min-w-0 overflow-y-auto bg-background">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

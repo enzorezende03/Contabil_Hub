@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Bell, Clock, AlertTriangle, CalendarClock, CheckCheck } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { type PlanningAlert, getMemberName } from "@/hooks/use-planning-alerts";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   alerts: PlanningAlert[];
@@ -99,14 +100,14 @@ export function PlanningNotifications({ alerts, overdue, today, soon }: Props) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button className="relative p-1.5 rounded-md text-sidebar-foreground/60 hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/50 transition-colors">
+        <Button variant="ghost" size="icon" className="relative h-10 w-10 text-muted-foreground" aria-label="Notificações">
           <Bell className="w-4 h-4" />
           {total > 0 && (
             <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold">
               {total > 9 ? "9+" : total}
             </span>
           )}
-        </button>
+        </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-72 p-0">
         <div className="px-3 py-2 border-b flex items-center justify-between gap-2">

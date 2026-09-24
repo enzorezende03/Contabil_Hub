@@ -534,6 +534,7 @@ export default function DemandsPage() {
         open={!!selectedDemand}
         onOpenChange={(o) => !o && setSelectedDemand(null)}
         demand={selectedDemand}
+        onChanged={() => refetchDemands()}
       />
     </AppLayout>
   );

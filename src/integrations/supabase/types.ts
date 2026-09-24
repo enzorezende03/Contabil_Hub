@@ -314,6 +314,36 @@ export type Database = {
           },
         ]
       }
+      demand_deletions: {
+        Row: {
+          client: string
+          created_at: string
+          deleted_by: string
+          demand_id: string
+          id: string
+          justificativa: string
+          snapshot: Json
+        }
+        Insert: {
+          client: string
+          created_at?: string
+          deleted_by: string
+          demand_id: string
+          id?: string
+          justificativa: string
+          snapshot?: Json
+        }
+        Update: {
+          client?: string
+          created_at?: string
+          deleted_by?: string
+          demand_id?: string
+          id?: string
+          justificativa?: string
+          snapshot?: Json
+        }
+        Relationships: []
+      }
       demand_status_entries: {
         Row: {
           client_name: string

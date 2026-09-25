@@ -1,0 +1,1 @@
+GRANT SELECT, INSERT ON public.demand_deletions TO authenticated; GRANT ALL ON public.demand_deletions TO service_role;

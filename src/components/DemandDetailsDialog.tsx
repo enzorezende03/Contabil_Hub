@@ -15,6 +15,8 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useClientPortfolio } from "@/hooks/use-client-portfolio";
+import { ClientNotes } from "@/components/ClientNotes";
 import { Pencil, Trash2 } from "lucide-react";
 import { Calendar, Clock, User, Flag, FileText, Layers, CalendarDays, Hash } from "lucide-react";
 
@@ -38,6 +40,7 @@ export function DemandDetailsDialog({ open, onOpenChange, demand, onChanged }: P
   const [form, setForm] = useState<any>({});
   const [just, setJust] = useState("");
   const [busy, setBusy] = useState(false);
+  const { clients: portfolio, ownerOf } = useClientPortfolio();
 
   useEffect(() => {
     setMode("view"); setJust("");
@@ -89,6 +92,9 @@ export function DemandDetailsDialog({ open, onOpenChange, demand, onChanged }: P
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
   const sel = "h-9 w-full px-3 text-sm border rounded-md bg-card";
 
+  const carteiraId = ownerOf(demand.client);
+  const carteiraName = members.find((m) => m.id === carteiraId)?.name || "Sem responsável";
+  const clientRow = portfolio.find((c) => c.razao_social.trim().toLowerCase() === demand.client.trim().toLowerCase());
   const assigneeName = members.find((m) => m.id === demand.assignee)?.name || "—";
   const fmtDate = (d?: string) =>
     d ? new Date(d).toLocaleDateString("pt-BR") : "—";
@@ -228,6 +234,7 @@ export function DemandDetailsDialog({ open, onOpenChange, demand, onChanged }: P
           {/* Grid de metadados */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t">
             <Info icon={<User className="w-3.5 h-3.5" />} label="Responsável" value={assigneeName} />
+            <Info icon={<User className="w-3.5 h-3.5" />} label="Responsável pela carteira" value={carteiraName} />
             <Info icon={<Calendar className="w-3.5 h-3.5" />} label="Prazo interno" value={fmtDate(demand.internalDeadline)} />
             <Info icon={<Calendar className="w-3.5 h-3.5" />} label="Prazo cliente" value={fmtDate(demand.clientDeadline)} />
             <Info icon={<Clock className="w-3.5 h-3.5" />} label="Tempo gasto" value={formatMinutes(demand.timeSpentMinutes || 0)} />
@@ -236,6 +243,13 @@ export function DemandDetailsDialog({ open, onOpenChange, demand, onChanged }: P
             <Info icon={<Calendar className="w-3.5 h-3.5" />} label="Criada em" value={fmtDateTime(demand.createdAt)} />
             <Info icon={<Hash className="w-3.5 h-3.5" />} label="ID" value={demand.id.slice(0, 8)} mono />
           </div>
+
+          {clientRow && (
+            <div>
+              <div className="text-xs font-medium text-muted-foreground mb-1.5">Notas da empresa</div>
+              <ClientNotes clientId={clientRow.id} compact />
+            </div>
+          )}
 
           {demand.notes && (
             <div className="rounded-lg border bg-muted/20 p-3">

@@ -19,6 +19,8 @@ import {
   sentenceCase,
 } from "./planning-utils";
 import { DEMAND_TYPE_LABELS } from "@/lib/types";
+import { useClientPortfolio } from "@/hooks/use-client-portfolio";
+import { useTeamMembers } from "@/hooks/use-team-members";
 
 interface ReassignMember {
   id: string;
@@ -52,6 +54,10 @@ export function PlanningCard({
   const [dateOpen, setDateOpen] = useState(false);
   const [savingDate, setSavingDate] = useState(false);
 
+  const { ownerOf } = useClientPortfolio();
+  const { members: allMembers } = useTeamMembers();
+  const carteiraOwner = ownerOf(demand.client);
+  const carteiraName = carteiraOwner && carteiraOwner !== demand.assignee ? allMembers.find((m) => m.id === carteiraOwner)?.name : undefined;
   const tone = deadlineTone(demand.internalDeadline);
   const kind = pendencyAlertKind(pendencies);
   const showPriority = demand.priority === "alta" || demand.priority === "urgente";
@@ -163,6 +169,11 @@ export function PlanningCard({
           <p className="text-[12px] font-medium leading-snug truncate" title={demand.client}>
             {sentenceCase(demand.client)}
           </p>
+          {carteiraName && (
+            <span className="inline-block mt-0.5 text-[9px] font-medium px-1.5 py-0.5 rounded bg-accent/15 text-accent-foreground" title="Responsável pela carteira">
+              Carteira: {carteiraName}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {showPriority && (

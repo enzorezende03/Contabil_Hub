@@ -49,6 +49,7 @@ import {
 import { RefreshCw, AlertTriangle, Download, ChevronRight } from "lucide-react";
 
 import TeamPerformanceSection from "@/components/gerencial/TeamPerformanceSection";
+import PortfolioSection from "@/components/gerencial/PortfolioSection";
 
 
 import { toast } from "sonner";
@@ -178,6 +179,7 @@ export default function ControleGerencial() {
 
         {/* Performance da equipe */}
         <TeamPerformanceSection />
+        <PortfolioSection />
 
         <AdherenceBlock unidade={unidade} tributacao={tributacao} />
 

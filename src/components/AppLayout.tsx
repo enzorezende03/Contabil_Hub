@@ -26,11 +26,13 @@ import {
   Gauge,
   Menu,
   Clock3,
+  Briefcase,
 } from "lucide-react";
 
 const NAV_ITEMS = [
   // Ocultos temporariamente até serem mais desenvolvidos:
   // Dashboard ("/"), Produtividade Equipe ("/equipe"), Ausências ("/ausencias"), Alertas ("/alertas")
+  { label: "Minhas empresas", path: "/minhas-empresas" as AppPage, icon: Briefcase, group: "OPERAÇÃO" },
   { label: "Solicitação de Clientes", path: "/demandas" as AppPage, icon: ListTodo, group: "OPERAÇÃO" },
   { label: "Planejamento", path: "/planejamento" as AppPage, icon: ClipboardList, group: "OPERAÇÃO" },
   { label: "Fechamento Contábil", path: "/competencias" as AppPage, icon: Calendar, group: "OPERAÇÃO" },
@@ -43,6 +45,7 @@ const NAV_ITEMS = [
 ];
 
 const PAGE_TITLES: Record<string, string> = {
+  "/minhas-empresas": "Minhas empresas",
   "/demandas": "Solicitação de Clientes",
   "/planejamento": "Planejamento",
   "/competencias": "Fechamento Contábil",

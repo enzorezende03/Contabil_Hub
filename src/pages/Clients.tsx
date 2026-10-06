@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Pencil, Trash2, Building2, Search, Upload, Download, AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
+import { useTeamMembers } from "@/hooks/use-team-members";
 import { ClientContactsManager } from "@/components/ClientContactsManager";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -87,6 +88,7 @@ interface ClientForm {
   perfil: string;
   data_fim_contrato: string;
   motivo_distrato: string;
+  carteira_responsavel_id: string;
 }
 
 const emptyForm: ClientForm = {
@@ -99,6 +101,7 @@ const emptyForm: ClientForm = {
   perfil: "standard",
   data_fim_contrato: "",
   motivo_distrato: "",
+  carteira_responsavel_id: "",
 };
 
 function formatCnpj(value: string) {
@@ -164,8 +167,12 @@ export function normalizeCompetencia(input: unknown): string | null {
 }
 
 export default function Clients() {
-  const { session, profile } = useAuth();
+  const { session, profile, isAdmin } = useAuth();
   useActionPermissions();
+  const canManageCarteira = isAdmin || profile?.role === "coordenacao";
+  const { members: operational } = useTeamMembers({ excludeCoordenacao: true });
+  const ownerName = (id?: string | null) => operational.find((m) => m.id === id)?.name || "";
+  const [filterCarteira, setFilterCarteira] = useState<string>("all");
   const canEditFimContrato = canPerformAction("editar_fim_contrato", profile?.role);
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -227,6 +234,7 @@ export default function Clients() {
         perfil: payload.perfil,
         created_by: session!.user.id,
       };
+      if (canManageCarteira) record.carteira_responsavel_id = payload.carteira_responsavel_id || null;
       if (canEditFimContrato) {
         record.data_fim_contrato = payload.data_fim_contrato || null;
         record.motivo_distrato = payload.motivo_distrato.trim() || null;
@@ -291,6 +299,7 @@ export default function Clients() {
       perfil: client.perfil || "standard",
       data_fim_contrato: client.data_fim_contrato || "",
       motivo_distrato: client.motivo_distrato || "",
+      carteira_responsavel_id: client.carteira_responsavel_id || "",
     });
     setEncerramentoOpen(!!client.data_fim_contrato);
     setDialogOpen(true);
@@ -434,7 +443,9 @@ export default function Clients() {
       (filterContrato === "encerrando" && cstatus === "encerrando") ||
       (filterContrato === "encerrados_ok" && cstatus === "encerrado_ok") ||
       (filterContrato === "encerrados_pendente" && cstatus === "encerrado_pendente");
-    return matchesSearch && matchesTrib && matchesUni && matchesPerfil && matchesContrato;
+    const own = (c as any).carteira_responsavel_id;
+    const matchesCarteira = filterCarteira === "all" || (filterCarteira === "none" ? !own : own === filterCarteira);
+    return matchesCarteira && matchesSearch && matchesTrib && matchesUni && matchesPerfil && matchesContrato;
   });
 
   const STATUS_LABEL: Record<string, string> = {
@@ -462,6 +473,7 @@ export default function Clients() {
         "Obrigatoriedade ECD": (c as any).obrigatoriedade_ecd ? "Sim" : "Não",
         "Cadência de fechamento": (c as any).cadencia_fechamento || "",
         "Responsabilidade desde": c.competencia_inicio || "",
+        "Responsável pela carteira": ownerName((c as any).carteira_responsavel_id),
         "Status do contrato": STATUS_LABEL[cstatus] || cstatus,
         "Fim do contrato": (c as any).data_fim_contrato || "",
         "Motivo do distrato": (c as any).motivo_distrato || "",
@@ -470,7 +482,7 @@ export default function Clients() {
     const ws = XLSX.utils.json_to_sheet(rows);
     ws["!cols"] = [
       { wch: 40 }, { wch: 20 }, { wch: 20 }, { wch: 12 }, { wch: 20 }, { wch: 18 },
-      { wch: 20 }, { wch: 22 }, { wch: 22 }, { wch: 26 }, { wch: 16 }, { wch: 30 },
+      { wch: 20 }, { wch: 22 }, { wch: 22 }, { wch: 24 }, { wch: 26 }, { wch: 16 }, { wch: 30 },
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Clientes");
@@ -545,6 +557,14 @@ export default function Clients() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Select value={filterCarteira} onValueChange={setFilterCarteira}>
+                  <SelectTrigger className="w-[190px] h-9"><SelectValue placeholder="Carteira" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas carteiras</SelectItem>
+                    <SelectItem value="none">Sem responsável</SelectItem>
+                    {operational.map((m) => (<SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
                 <Select value={filterContrato} onValueChange={setFilterContrato}>
                   <SelectTrigger className="w-[200px] h-9"><SelectValue placeholder="Contrato" /></SelectTrigger>
                   <SelectContent>
@@ -583,6 +603,7 @@ export default function Clients() {
                       <TableHead>Unidade</TableHead>
                       <TableHead>Tributação</TableHead>
                       <TableHead>Responsabilidade desde</TableHead>
+                      <TableHead>Carteira</TableHead>
                       <TableHead>Status do contrato</TableHead>
                       <TableHead className="w-24 text-right">Ações</TableHead>
                     </TableRow>
@@ -625,6 +646,7 @@ export default function Clients() {
                           )}
                         </TableCell>
                         <TableCell>{c.competencia_inicio}</TableCell>
+                        <TableCell className="text-sm">{ownerName((c as any).carteira_responsavel_id) || <span className="text-muted-foreground">—</span>}</TableCell>
                         <TableCell>
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyles[cstatus]}`}>
                             {statusLabel}
@@ -743,6 +765,17 @@ export default function Clients() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Responsável pela carteira</Label>
+              <Select disabled={!canManageCarteira} value={form.carteira_responsavel_id || "none"} onValueChange={(v) => setForm({ ...form, carteira_responsavel_id: v === "none" ? "" : v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem responsável</SelectItem>
+                  {operational.map((m) => (<SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>))}
+                </SelectContent>
+              </Select>
+              {!canManageCarteira && <p className="text-[10px] text-muted-foreground">Somente a coordenação pode alterar a carteira.</p>}
             </div>
             <div className="space-y-2">
               <Label>Responsabilidade a partir de</Label>

@@ -161,7 +161,7 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
                     <button
                       key={c.id}
                       type="button"
-                      onClick={() => { setClient(c.razao_social); setClientSearch(c.razao_social); }}
+                      onClick={() => { setClient(c.razao_social); setClientSearch(c.razao_social); const o = c.carteira_responsavel_id; if (o && teamMembers.some((m) => m.id === o)) setAssignee(o); }}
                       className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted"
                     >
                       <div className="truncate">{c.razao_social}</div>

@@ -37,7 +37,8 @@ export type AppPage =
   | "/clientes"
   | "/controle-gerencial"
   | "/configuracoes"
-  | "/usuarios";
+  | "/usuarios"
+  | "/minhas-empresas";
 
 // Default permissions (fallback when DB not loaded yet)
 const DEFAULT_ROLE_PAGES: Record<ProfileRole, AppPage[]> = {
@@ -66,6 +67,7 @@ export function getDefaultRolePermissions(): Record<ProfileRole, AppPage[]> {
 
 export function canAccessPage(role: string | undefined, path: AppPage): boolean {
   if (!role) return false;
+  if (path === "/minhas-empresas") return true;
   const pages = ROLE_PAGES[role as ProfileRole];
   if (!pages) return false;
   return pages.includes(path);

@@ -155,10 +155,46 @@ export type Database = {
         }
         Relationships: []
       }
+      client_notes: {
+        Row: {
+          author_id: string
+          client_id: string
+          created_at: string
+          id: string
+          texto: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          client_id: string
+          created_at?: string
+          id?: string
+          texto: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          client_id?: string
+          created_at?: string
+          id?: string
+          texto?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_notes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           apelido: string | null
           cadencia_fechamento: string
+          carteira_responsavel_id: string | null
           cnpj: string
           competencia_inicio: string
           created_at: string
@@ -177,6 +213,7 @@ export type Database = {
         Insert: {
           apelido?: string | null
           cadencia_fechamento?: string
+          carteira_responsavel_id?: string | null
           cnpj: string
           competencia_inicio: string
           created_at?: string
@@ -195,6 +232,7 @@ export type Database = {
         Update: {
           apelido?: string | null
           cadencia_fechamento?: string
+          carteira_responsavel_id?: string | null
           cnpj?: string
           competencia_inicio?: string
           created_at?: string

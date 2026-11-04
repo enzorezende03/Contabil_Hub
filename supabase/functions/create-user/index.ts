@@ -9,7 +9,7 @@ const BodySchema = z.object({
   email: z.string().trim().email('E-mail inválido'),
   password: z.string().min(6, 'A senha precisa ter pelo menos 6 caracteres'),
   display_name: z.string().trim().min(1, 'Informe o nome'),
-  role: z.enum(['estagiario', 'assistente', 'analista', 'coordenacao']),
+  role: z.string().trim().regex(/^[a-z0-9_]{2,40}$/, 'Cargo inválido'),
   app_role: z.enum(['admin', 'user']).default('user'),
 })
 

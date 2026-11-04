@@ -106,8 +106,22 @@ export default function UsersPage() {
       body: { email, password, display_name: displayName, role, app_role: appRole },
     });
 
-    if (error || data?.error) {
-      toast.error(data?.error || error?.message || "Erro ao criar usuário");
+    let errMsg: string | null = null;
+    if (error) {
+      try {
+        const body = await (error as any).context?.json?.();
+        const e2 = body?.error;
+        errMsg = typeof e2 === "string" ? e2 : e2 ? Object.entries(e2).map(([k, v]) => `${k}: ${(v as string[]).join(", ")}`).join(" | ") : null;
+      } catch { /* ignore */ }
+      errMsg = errMsg || error.message;
+    } else if (data?.error) {
+      errMsg = typeof data.error === "string" ? data.error : JSON.stringify(data.error);
+    }
+    if (errMsg) {
+      const map: Record<string, string> = {
+        "A user with this email address has already been registered": "Já existe um usuário com este e-mail",
+      };
+      toast.error(map[errMsg] || errMsg || "Erro ao criar usuário");
     } else {
       toast.success("Usuário criado com sucesso!");
       setEmail("");

@@ -6,9 +6,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts'
 
 const BodySchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-  display_name: z.string().min(1),
+  email: z.string().trim().email('E-mail inválido'),
+  password: z.string().min(6, 'A senha precisa ter pelo menos 6 caracteres'),
+  display_name: z.string().trim().min(1, 'Informe o nome'),
   role: z.enum(['estagiario', 'assistente', 'analista', 'coordenacao']),
   app_role: z.enum(['admin', 'user']).default('user'),
 })
@@ -62,6 +62,7 @@ Deno.serve(async (req) => {
 
     const parsed = BodySchema.safeParse(await req.json())
     if (!parsed.success) {
+      console.error('validation error', JSON.stringify(parsed.error.flatten().fieldErrors))
       return new Response(JSON.stringify({ error: parsed.error.flatten().fieldErrors }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })

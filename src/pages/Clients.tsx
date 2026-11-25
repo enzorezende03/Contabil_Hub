@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import AppLayout from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -173,6 +174,9 @@ export default function Clients() {
   const { members: operational } = useTeamMembers();
   const ownerName = (id?: string | null) => operational.find((m) => m.id === id)?.name || "";
   const [filterCarteira, setFilterCarteira] = useState<string>("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkOwner, setBulkOwner] = useState<string>("none");
+  const [bulkBusy, setBulkBusy] = useState(false);
   const canEditFimContrato = canPerformAction("editar_fim_contrato", profile?.role);
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -588,6 +592,35 @@ export default function Clients() {
             </div>
           </CardHeader>
           <CardContent>
+            {canManageCarteira && filtered.length > 0 && (
+              <div className="flex flex-wrap items-center gap-3 mb-3 px-3 py-2 rounded-md border bg-muted/30">
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox
+                    checked={filtered.every((c) => selectedIds.has(c.id))}
+                    onCheckedChange={() => setSelectedIds(filtered.every((c) => selectedIds.has(c.id)) ? new Set() : new Set(filtered.map((c) => c.id)))}
+                  />
+                  Selecionar todos ({filtered.length})
+                </label>
+                <span className="text-sm text-muted-foreground">{selectedIds.size} selecionado(s) · Alterar carteira para:</span>
+                <Select value={bulkOwner} onValueChange={setBulkOwner}>
+                  <SelectTrigger className="w-[200px] h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem responsável</SelectItem>
+                    {operational.map((m) => (<SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" disabled={bulkBusy || selectedIds.size === 0} onClick={async () => {
+                  setBulkBusy(true);
+                  const ids = Array.from(selectedIds);
+                  const { error } = await supabase.from("clients").update({ carteira_responsavel_id: bulkOwner === "none" ? null : bulkOwner } as any).in("id", ids);
+                  setBulkBusy(false);
+                  if (error) { toast.error("Erro ao alterar em lote: " + error.message); return; }
+                  toast.success(`${ids.length} cliente(s) atualizado(s).`);
+                  setSelectedIds(new Set());
+                  queryClient.invalidateQueries({ queryKey: ["clients"] });
+                }}>{bulkBusy ? "Aplicando..." : "Aplicar"}</Button>
+              </div>
+            )}
             {isLoading ? (
               <p className="text-sm text-muted-foreground py-8 text-center">Carregando...</p>
             ) : filtered.length === 0 ? (
@@ -597,6 +630,7 @@ export default function Clients() {
                 <Table>
                   <TableHeader>
                      <TableRow>
+                      {canManageCarteira && <TableHead className="w-10" />}
                       <TableHead>Razão Social</TableHead>
                       <TableHead>CNPJ</TableHead>
                       <TableHead>Perfil</TableHead>
@@ -625,6 +659,11 @@ export default function Clients() {
                         `Encerrado em ${formatDateBR((c as any).data_fim_contrato)} • c/ pendências`;
                       return (
                       <TableRow key={c.id} onClick={() => openEdit(c)} className="cursor-pointer">
+                        {canManageCarteira && (
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Checkbox checked={selectedIds.has(c.id)} onCheckedChange={() => setSelectedIds((prev) => { const n = new Set(prev); n.has(c.id) ? n.delete(c.id) : n.add(c.id); return n; })} />
+                          </TableCell>
+                        )}
                         <TableCell className="font-medium">{c.razao_social}</TableCell>
                         <TableCell className="font-mono text-sm">{formatCnpj(c.cnpj)}</TableCell>
                         <TableCell>

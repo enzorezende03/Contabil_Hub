@@ -1,3 +1,4 @@
+import { CoAssigneePicker } from "@/components/shared/CoAssigneePicker";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { canPerformAction } from "@/hooks/use-action-permissions";
@@ -43,6 +44,7 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
   const [compYear, setCompYear] = useState(String(now.getFullYear()));
   const [priority, setPriority] = useState<Priority>("media");
   const [assignee, setAssignee] = useState("");
+  const [coAssignees, setCoAssignees] = useState<string[]>([]);
   const [description, setDescription] = useState("");
   const [internalDeadline, setInternalDeadline] = useState("");
   const [clientDeadline, setClientDeadline] = useState("");
@@ -92,6 +94,7 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
     setCompYear(String(now.getFullYear()));
     setPriority("media");
     setAssignee("");
+    setCoAssignees([]);
     setDescription("");
     setInternalDeadline("");
     setClientDeadline("");
@@ -111,6 +114,7 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
       types: typesArr,
       description: description || typesArr.map((t) => DEMAND_TYPE_LABELS[t]).join(", "),
       assignee,
+      co_assignees: coAssignees.filter((c) => c !== assignee),
       complexity: "media",
       weight: maxWeight,
       priority,
@@ -249,6 +253,7 @@ export function CreateDemandDialog({ open, onOpenChange, onCreated }: CreateDema
                   ))}
                 </select>
               </div>
+              <CoAssigneePicker members={teamMembers} value={coAssignees} onChange={setCoAssignees} excludeId={assignee} />
               <div>
                 <Label>Prazo Interno *</Label>
                 <Input type="date" value={internalDeadline} onChange={(e) => {

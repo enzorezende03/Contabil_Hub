@@ -131,6 +131,7 @@ export default function PlanejamentoPage() {
         types: d.types,
         description: d.description,
         assignee: d.assignee,
+        coAssignees: d.co_assignees ?? [],
         complexity: "media",
         weight: 1,
         priority: d.priority,
@@ -160,6 +161,7 @@ export default function PlanejamentoPage() {
         types: d.types,
         description: d.description,
         assignee: d.assignee,
+        coAssignees: d.co_assignees ?? [],
         complexity: d.complexity ?? "media",
         weight: d.weight ?? 1,
         priority: d.priority,
@@ -289,10 +291,10 @@ export default function PlanejamentoPage() {
   const filteredIgnoringStatus = useMemo(() => {
     return planningsWithDerivedStatus
       .filter((d) => {
-        if (!canSeeAll && user && d.assignee !== user.id) return false;
+        if (!canSeeAll && user && d.assignee !== user.id && !(d.coAssignees ?? []).includes(user.id)) return false;
         if (search && !d.client.toLowerCase().includes(search.toLowerCase()) && !d.description.toLowerCase().includes(search.toLowerCase())) return false;
         if (filterType !== "all" && !d.types.includes(filterType as DemandType)) return false;
-        if (filterAssignee !== "all" && d.assignee !== filterAssignee) return false;
+        if (filterAssignee !== "all" && d.assignee !== filterAssignee && !(d.coAssignees ?? []).includes(filterAssignee)) return false;
         if (filterDateFrom && d.internalDeadline < filterDateFrom) return false;
         if (filterDateTo && d.internalDeadline > filterDateTo) return false;
         if (filterWithPendency !== "all") {

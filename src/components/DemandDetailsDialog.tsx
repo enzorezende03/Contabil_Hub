@@ -1,3 +1,4 @@
+import { CoAssigneePicker } from "@/components/shared/CoAssigneePicker";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/StatusBadge";
 import {
@@ -45,7 +46,7 @@ export function DemandDetailsDialog({ open, onOpenChange, demand, onChanged }: P
   useEffect(() => {
     setMode("view"); setJust("");
     if (demand) setForm({
-      client: demand.client, description: demand.description || "", assignee: demand.assignee,
+      client: demand.client, description: demand.description || "", assignee: demand.assignee, co_assignees: demand.coAssignees ?? [],
       priority: demand.priority, complexity: demand.complexity, status: demand.status,
       internal_deadline: demand.internalDeadline?.slice(0, 10) || "",
       client_deadline: demand.clientDeadline?.slice(0, 10) || "",
@@ -63,7 +64,7 @@ export function DemandDetailsDialog({ open, onOpenChange, demand, onChanged }: P
     if (comps.some((c: string) => !/^\d{2}\/\d{4}$/.test(c))) return toast.error("Competências devem estar no formato MM/AAAA.");
     setBusy(true);
     const { error } = await supabase.from("demands").update({
-      client: form.client.trim(), description: form.description, assignee: form.assignee,
+      client: form.client.trim(), description: form.description, assignee: form.assignee, co_assignees: (form.co_assignees ?? []).filter((c: string) => c !== form.assignee),
       priority: form.priority, complexity: form.complexity, status: form.status,
       internal_deadline: form.internal_deadline, client_deadline: form.client_deadline,
       competencias: comps, types: form.types, notes: form.notes, weight: Number(form.weight) || 1,
@@ -96,6 +97,7 @@ export function DemandDetailsDialog({ open, onOpenChange, demand, onChanged }: P
   const carteiraName = members.find((m) => m.id === carteiraId)?.name || "Sem responsável";
   const clientRow = portfolio.find((c) => c.razao_social.trim().toLowerCase() === demand.client.trim().toLowerCase());
   const assigneeName = members.find((m) => m.id === demand.assignee)?.name || "—";
+  const coNames = (demand.coAssignees ?? []).map((id) => members.find((m) => m.id === id)?.name).filter(Boolean).join(", ");
   const fmtDate = (d?: string) =>
     d ? new Date(d).toLocaleDateString("pt-BR") : "—";
   const fmtDateTime = (d?: string) =>
@@ -156,6 +158,7 @@ export function DemandDetailsDialog({ open, onOpenChange, demand, onChanged }: P
                   {!members.some((m) => m.id === form.assignee) && <option value={form.assignee}>—</option>}
                   {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select></div>
+              <CoAssigneePicker members={members.filter((m) => m.role !== "coordenacao")} value={form.co_assignees ?? []} onChange={(v) => set("co_assignees", v)} excludeId={form.assignee} />
               <div><Label className="text-xs">Status</Label>
                 <select className={sel} value={form.status} onChange={(e) => set("status", e.target.value)}>
                   {STATUS_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -234,6 +237,7 @@ export function DemandDetailsDialog({ open, onOpenChange, demand, onChanged }: P
           {/* Grid de metadados */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t">
             <Info icon={<User className="w-3.5 h-3.5" />} label="Responsável" value={assigneeName} />
+            {coNames && <Info icon={<User className="w-3.5 h-3.5" />} label="Trabalho colaborativo" value={coNames} />}
             <Info icon={<User className="w-3.5 h-3.5" />} label="Responsável pela carteira" value={carteiraName} />
             <Info icon={<Calendar className="w-3.5 h-3.5" />} label="Prazo interno" value={fmtDate(demand.internalDeadline)} />
             <Info icon={<Calendar className="w-3.5 h-3.5" />} label="Prazo cliente" value={fmtDate(demand.clientDeadline)} />

@@ -1,3 +1,4 @@
+import { CoAssigneePicker } from "@/components/shared/CoAssigneePicker";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { canPerformAction } from "@/hooks/use-action-permissions";
@@ -38,6 +39,7 @@ export function EditPlanningDialog({ open, onOpenChange, planning, onSaved }: Pr
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const [priority, setPriority] = useState<Priority>("media");
   const [assignee, setAssignee] = useState("");
+  const [coAssignees, setCoAssignees] = useState<string[]>([]);
   const [description, setDescription] = useState("");
   const [internalDeadline, setInternalDeadline] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -58,6 +60,7 @@ export function EditPlanningDialog({ open, onOpenChange, planning, onSaved }: Pr
     setYear(y);
     setPriority(planning.priority);
     setAssignee(planning.assignee);
+    setCoAssignees(planning.coAssignees ?? []);
     setDescription(planning.description || "");
     setInternalDeadline(planning.internalDeadline);
     // Detect if this planning is part of a recurring series
@@ -102,6 +105,7 @@ export function EditPlanningDialog({ open, onOpenChange, planning, onSaved }: Pr
         competencias,
         priority,
         assignee,
+        co_assignees: coAssignees.filter((c) => c !== assignee),
         description,
         internal_deadline: internalDeadline,
       })
@@ -226,6 +230,7 @@ export function EditPlanningDialog({ open, onOpenChange, planning, onSaved }: Pr
                   {teamMembers.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
               </div>
+              <CoAssigneePicker members={teamMembers} value={coAssignees} onChange={setCoAssignees} excludeId={assignee} disabled={!canEdit} />
               <div className="col-span-2">
                 <Label>Prazo Interno *</Label>
                 <Input type="date" value={internalDeadline} onChange={(e) => setInternalDeadline(e.target.value)} disabled={!canEdit || !canEditDates} />

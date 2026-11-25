@@ -1,3 +1,4 @@
+import { CoAssigneePicker } from "@/components/shared/CoAssigneePicker";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { canPerformAction } from "@/hooks/use-action-permissions";
@@ -48,6 +49,7 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
   const [compYear, setCompYear] = useState(String(now.getFullYear()));
   const [priority, setPriority] = useState<Priority>("media");
   const [assignee, setAssignee] = useState("");
+  const [coAssignees, setCoAssignees] = useState<string[]>([]);
   const [description, setDescription] = useState("");
   const [internalDeadline, setInternalDeadline] = useState("");
   const [recurrence, setRecurrence] = useState<"none"|"monthly"|"bimonthly"|"quarterly"|"semiannual">("none");
@@ -104,6 +106,7 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
     setCompYear(String(now.getFullYear()));
     setPriority("media");
     setAssignee("");
+    setCoAssignees([]);
     setDescription("");
     setInternalDeadline("");
     setRecurrence("none");
@@ -147,6 +150,7 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
           types: typesArr,
           description: desc,
           assignee,
+          co_assignees: coAssignees.filter((c) => c !== assignee),
           priority,
           internal_deadline: shiftDate(internalDeadline, offset),
           status: "not_started",
@@ -353,6 +357,7 @@ export function CreatePlanningDialog({ open, onOpenChange, onCreated, existingPl
                 ))}
               </select>
             </div>
+            <CoAssigneePicker members={teamMembers} value={coAssignees} onChange={setCoAssignees} excludeId={assignee} />
             <div className="col-span-2">
               <Label>Prazo Interno *</Label>
               <Input type="date" value={internalDeadline} onChange={(e) => setInternalDeadline(e.target.value)} required disabled={!isAdmin && !canPerformAction("edit_dates", profile?.role)} />

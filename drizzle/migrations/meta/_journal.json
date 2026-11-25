@@ -8,6 +8,13 @@
       "when": 1795633726416,
       "tag": "0000_restrict_shared_tables_to_active_staff",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795633873760,
+      "tag": "0001_add_co_assignees",
+      "breakpoints": true
     }
   ]
 }

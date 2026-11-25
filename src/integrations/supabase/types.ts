@@ -423,6 +423,7 @@ export type Database = {
           assignee: string
           client: string
           client_deadline: string
+          co_assignees: string[]
           competencias: string[]
           completed_at: string | null
           complexity: string
@@ -444,6 +445,7 @@ export type Database = {
           assignee: string
           client: string
           client_deadline: string
+          co_assignees?: string[]
           competencias: string[]
           completed_at?: string | null
           complexity?: string
@@ -465,6 +467,7 @@ export type Database = {
           assignee?: string
           client?: string
           client_deadline?: string
+          co_assignees?: string[]
           competencias?: string[]
           completed_at?: string | null
           complexity?: string
@@ -1094,6 +1097,7 @@ export type Database = {
         Row: {
           assignee: string
           client: string
+          co_assignees: string[]
           competencias: string[]
           completed_at: string | null
           created_at: string
@@ -1113,6 +1117,7 @@ export type Database = {
         Insert: {
           assignee: string
           client: string
+          co_assignees?: string[]
           competencias: string[]
           completed_at?: string | null
           created_at?: string
@@ -1132,6 +1137,7 @@ export type Database = {
         Update: {
           assignee?: string
           client?: string
+          co_assignees?: string[]
           competencias?: string[]
           completed_at?: string | null
           created_at?: string

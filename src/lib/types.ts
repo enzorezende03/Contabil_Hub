@@ -49,6 +49,7 @@ export interface Demand {
   types: DemandType[];
   description: string;
   assignee: string; // TeamMember id
+  coAssignees?: string[]; // collaborative work
   complexity: Complexity;
   weight: number;
   priority: Priority;

@@ -328,6 +328,20 @@ export function PlanningCard({
             </Tooltip>
           </TooltipProvider>
         )}
+        {(demand.coAssignees?.length ?? 0) > 0 && (
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center justify-center h-[22px] px-1.5 rounded-full text-[9px] font-semibold bg-accent/20 text-accent-foreground">
+                  +{demand.coAssignees!.length}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                Trabalho colaborativo: {demand.coAssignees!.map((id) => allMembers.find((m) => m.id === id)?.name ?? "—").join(", ")}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
     </div>
   );

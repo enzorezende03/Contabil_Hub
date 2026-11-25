@@ -29,7 +29,7 @@ export function PlanningWorkloadBar({ plannings, activeFilter, onFilterByAssigne
     return [...members]
       .sort((a, b) => ROLE_PRIORITY[a.role] - ROLE_PRIORITY[b.role])
       .map((m) => {
-        const assigned = plannings.filter((p) => p.assignee === m.id);
+        const assigned = plannings.filter((p) => p.assignee === m.id || (p.coAssignees ?? []).includes(m.id));
         const active = assigned.filter((p) => p.status !== "completed").length;
         const completed = assigned.length - active;
         return { member: m, active, completed, total: assigned.length, overloaded: active >= MAX_LOAD };

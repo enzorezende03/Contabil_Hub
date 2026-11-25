@@ -20,7 +20,7 @@ export function CompletedPlanningsDrawer({ completed, onOpenDemand, periodLabel 
 
   const list = useMemo(() => {
     return completed.filter((d) => {
-      if (assignee !== "all" && d.assignee !== assignee) return false;
+      if (assignee !== "all" && d.assignee !== assignee && !(d.coAssignees ?? []).includes(assignee)) return false;
       if (type !== "all" && !d.types.includes(type as any)) return false;
       return true;
     });

@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1795633726416,
+      "tag": "0000_restrict_shared_tables_to_active_staff",
+      "breakpoints": true
+    }
+  ]
+}

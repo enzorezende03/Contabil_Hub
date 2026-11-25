@@ -170,7 +170,7 @@ export default function Clients() {
   const { session, profile, isAdmin } = useAuth();
   useActionPermissions();
   const canManageCarteira = isAdmin || profile?.role === "coordenacao";
-  const { members: operational } = useTeamMembers({ excludeCoordenacao: true });
+  const { members: operational } = useTeamMembers();
   const ownerName = (id?: string | null) => operational.find((m) => m.id === id)?.name || "";
   const [filterCarteira, setFilterCarteira] = useState<string>("all");
   const canEditFimContrato = canPerformAction("editar_fim_contrato", profile?.role);

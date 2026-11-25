@@ -12,7 +12,7 @@ type Row = { client: string; assignee: string; status: string; internal_deadline
 
 export default function PortfolioSection() {
   const { clients } = useClientPortfolio();
-  const { members } = useTeamMembers({ excludeCoordenacao: true });
+  const { members } = useTeamMembers();
   const { members: all } = useTeamMembers();
   const [openOwner, setOpenOwner] = useState<string | null>(null);
 

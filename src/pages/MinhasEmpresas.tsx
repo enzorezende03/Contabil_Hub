@@ -19,7 +19,7 @@ export default function MinhasEmpresas() {
   const { user, profile, isAdmin } = useAuth();
   const canManage = isAdmin || profile?.role === "coordenacao";
   const { clients, refetch } = useClientPortfolio();
-  const { members: operational } = useTeamMembers({ excludeCoordenacao: true });
+  const { members: operational } = useTeamMembers();
   const [owner, setOwner] = useState<string>(canManage ? "all" : "");
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);

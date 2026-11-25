@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ClientNotes } from "@/components/ClientNotes";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { Briefcase, Search, ChevronRight } from "lucide-react";
 
 const TRIB: Record<string, string> = { simples_nacional: "Simples Nacional", lucro_presumido: "Lucro Presumido", lucro_real: "Lucro Real", isenta_imune: "Isenta/Imune" };
@@ -23,6 +25,9 @@ export default function MinhasEmpresas() {
   const [owner, setOwner] = useState<string>(canManage ? "all" : "");
   const [search, setSearch] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkOwner, setBulkOwner] = useState<string>("");
+  const [bulkBusy, setBulkBusy] = useState(false);
   const viewOwner = canManage ? owner : user?.id || "";
 
   const { data: openDemands = {} } = useQuery({
@@ -59,6 +64,21 @@ export default function MinhasEmpresas() {
     toast.success("Carteira atualizada."); refetch();
   };
 
+  const toggle = (id: string) => setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const allSelected = list.length > 0 && list.every((c) => selected.has(c.id));
+  const toggleAll = () => setSelected(allSelected ? new Set() : new Set(list.map((c) => c.id)));
+
+  const bulkReassign = async () => {
+    if (selected.size === 0) return;
+    setBulkBusy(true);
+    const ids = Array.from(selected);
+    const { error } = await supabase.from("clients").update({ carteira_responsavel_id: bulkOwner || null } as any).in("id", ids);
+    setBulkBusy(false);
+    if (error) return toast.error("Erro ao alterar em lote: " + error.message);
+    toast.success(`${ids.length} empresa(s) atualizada(s) para ${bulkOwner ? name(bulkOwner) : "Sem responsável"}.`);
+    setSelected(new Set()); refetch();
+  };
+
   const sel = "h-9 px-3 text-sm border rounded-md bg-card";
 
   return (
@@ -84,10 +104,36 @@ export default function MinhasEmpresas() {
           </div>
         </div>
 
+        {canManage && list.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3 px-4 py-2 rounded-md border bg-card">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <Checkbox checked={allSelected} onCheckedChange={toggleAll} />
+              Selecionar todas ({list.length})
+            </label>
+            {selected.size > 0 && (
+              <>
+                <span className="text-sm font-medium">{selected.size} selecionada(s)</span>
+                <span className="text-sm text-muted-foreground">Mover para:</span>
+                <select className={sel} value={bulkOwner} onChange={(e) => setBulkOwner(e.target.value)}>
+                  <option value="">Sem responsável</option>
+                  {operational.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                </select>
+                <Button size="sm" onClick={bulkReassign} disabled={bulkBusy}>{bulkBusy ? "Aplicando..." : "Aplicar"}</Button>
+                <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Limpar seleção</Button>
+              </>
+            )}
+          </div>
+        )}
+
         <Card className="divide-y">
           {list.length === 0 && <p className="p-6 text-sm text-center text-muted-foreground">Nenhuma empresa nesta carteira.</p>}
           {list.map((c) => (
             <div key={c.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40 cursor-pointer" onClick={() => setOpenId(c.id)}>
+              {canManage && (
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Checkbox checked={selected.has(c.id)} onCheckedChange={() => toggle(c.id)} />
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium truncate">{c.razao_social}</div>
                 <div className="text-[11px] text-muted-foreground">{TRIB[c.tributacao] || c.tributacao} · {UNI[c.unidade] || c.unidade}</div>
